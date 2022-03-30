@@ -1,0 +1,18 @@
+name: bossruns
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9.7=hb7a2778_3_cpython
+  - numpy=1.21.2=py39hdbf815f_0
+  - scipy=1.7.1=py39hee8e79c_0
+  - pandas=1.3.3=py39hde0f152_0
+  - numba=0.53.1=py39h56b8d98_1
+  - natsort=7.1.1=pyhd8ed1ab_0
+  - toml=0.10.2=pyhd8ed1ab_0
+  - mappy=2.22=py39hd1f1204_0
+  - pip=21.2.4=pyhd8ed1ab_0
+  - pip:
+    - minknow-api==4.2.4
+
