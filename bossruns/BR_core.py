@@ -790,7 +790,7 @@ class OTU:
 
         if self.args.whole_genome:
             on_target = OTU._find_initial_accept_whole_genome(strat_dict=self.strat_dict_BR,
-                                                              genome2roi=self.genome2roi)
+                                                              chromosome_indices=self.chromosome_indices)
         else:
             on_target = OTU._find_initial_accept(strat_dict=self.strat_dict_BR,
                                                  genome2roi=self.genome2roi,
@@ -814,7 +814,7 @@ class OTU:
 
             if self.args.whole_genome:
                 _ = OTU._find_initial_accept_whole_genome(strat_dict=self.strat_dict_RU,
-                                                          genome2roi=self.genome2roi)
+                                                          chromosome_indices=self.chromosome_indices)
             else:
                 _ = OTU._find_initial_accept(strat_dict=self.strat_dict_RU,
                                              genome2roi=self.genome2roi,
@@ -878,9 +878,9 @@ class OTU:
 
 
     @staticmethod
-    def _find_initial_accept_whole_genome(strat_dict, genome2roi):
+    def _find_initial_accept_whole_genome(strat_dict, chromosome_indices):
         # whole genomes: set everything to accept
-        for chrom, position_dict in genome2roi.items():
+        for chrom in chromosome_indices.keys():
             try:
                 chrom_strat = strat_dict[chrom]
             except KeyError:
@@ -1373,7 +1373,7 @@ class BossRun:
         else:
             otu.init_reference(ref=self.args.ref)
         # initialise buckets and switches for the strategy
-        otu.init_buckets(size=self.args.bucket_size)
+        otu.init_buckets(size=self.const.bucket_size)
         # init frames for saving metrics, only used for sims
         otu.init_frames()
         # Generate phi and phi_stored
