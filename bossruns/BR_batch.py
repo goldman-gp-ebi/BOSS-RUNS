@@ -356,7 +356,8 @@ class CurrentBatch:
         conv = SimpleNamespace(base2int=self.base2int, qual2int=self.qual2int,
                                cig2int=self.cig2int, cigar_regex=self.cigar_regex,
                                genome2roi=otu.genome2roi, genome2roi_arr=otu.genome2roi_arr,
-                               read_seqs=self.read_sequences, read_quals=self.read_qualities)
+                               read_seqs=self.read_sequences, read_quals=self.read_qualities,
+                               chrom_rpos=otu.chrom_rpos)
 
         # separate records into chunks for each worker
         record_arrays = np.array_split(record_list, workers)
