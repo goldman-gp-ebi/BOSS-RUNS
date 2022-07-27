@@ -21,7 +21,7 @@ from .BR_mapper import Mapper
 from .BR_merged_genome import MergedGenome
 from .BR_batch import CurrentBatch
 from .BR_reference import ReferenceWGS
-
+from .BR_abundance_tracker import AbundanceTracker
 
 
 class Constants:
@@ -1352,6 +1352,8 @@ class BossRun:
             self.channels = grab_br_channels(channels_toml=args.channels, run_name=args.run_name)
         else:
             self.channels = None
+        # initialise the abundance tracker
+        self.abundance_tracker = AbundanceTracker()
 
 
 
@@ -1604,13 +1606,13 @@ class BossRun:
         timeToNaive += (self.args.batch_size * self.const.alpha)
         # RU: all accepted bases and ((mu + rho) * number of unmapped/rejected reads)) + (alpha * batch_size)
         timeToRU = basesRU
-        timeToRU += (unmapped_RU * (self.args.mu + self.const.rho))
-        timeToRU += (reject_RU * (self.args.mu + self.const.rho))
+        timeToRU += (unmapped_RU * (self.const.mu + self.const.rho))
+        timeToRU += (reject_RU * (self.const.mu + self.const.rho))
         timeToRU += (self.args.batch_size * self.const.alpha)
         # BR: all accepted bases and ((mu + rho) * number of unmapped/rejected reads)) + (alpha * batch_size)
         timeToBR = basesBR
-        timeToBR += (unmapped_BR * (self.args.mu + self.const.rho))
-        timeToBR += (reject_BR * (self.args.mu + self.const.rho))
+        timeToBR += (unmapped_BR * (self.const.mu + self.const.rho))
+        timeToBR += (reject_BR * (self.const.mu + self.const.rho))
         timeToBR += (self.args.batch_size * self.const.alpha)
         # update attr
         self.timeNaive += timeToNaive
@@ -1618,8 +1620,8 @@ class BossRun:
         self.timeBR += timeToBR
         # also keep track of yields
         self.yield_NV += basesNV
-        self.yield_RU += (basesRU + ((reject_RU + unmapped_RU) * self.args.mu))
-        self.yield_BR += (basesBR + ((reject_BR + unmapped_BR) * self.args.mu))
+        self.yield_RU += (basesRU + ((reject_RU + unmapped_RU) * self.const.mu))
+        self.yield_BR += (basesBR + ((reject_BR + unmapped_BR) * self.const.mu))
 
 
 
@@ -2103,6 +2105,9 @@ class BossRun:
             reject_RU=len(self.cigars_reject_RU),
             reject_BR=len(self.cigars_reject_BR))
 
+        # update the observed abundances
+        self.abundance_tracker.update(n=len(self.current_batch.read_ids), cigar_dict=self.cigars_full)
+
         # periodically update read length dist
         self.otu.update_length_dist(batch=self.batch, cigars_full=self.cigars_full)
         # update scores
@@ -2193,6 +2198,8 @@ class BossRun_live(BossRun):
         else:
             # if we use a whole flowcell, use all channels
             self.channels = set(np.arange(1, 512 + 1))
+        # initialise the abundance tracker
+        self.abundance_tracker = AbundanceTracker()
 
 
     def scan_dir(self):
@@ -2362,6 +2369,7 @@ class BossRun_live(BossRun):
         # read fq of the batch and map
         paf_raw = self.read_and_map(new_fastq=new_fastq)
         coverage_addition = self.get_new_coverage(paf_raw=paf_raw, workers=12)
+        self.abundance_tracker.update(n=len(self.current_batch.read_ids), cigar_dict=self.cigar_dict)
         self.otu.update_length_dist(batch=self.batch, cigars_full=self.cigar_dict)
         self.update_score(coverage_addition=coverage_addition)
         self.merged_genome.countReadStarts(cigars_full=self.cigar_dict)
