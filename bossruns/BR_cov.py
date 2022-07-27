@@ -71,7 +71,7 @@ def convert_records(records, conv, qt, whole_genome):
         start = min(record.genome_start, record.genome_end)
         end = max(record.genome_start, record.genome_end)
         # intersect area that read covers and ROIs of chromosome
-        target_chromosome_rois = conv.genome2roi[str(record.target_name)]
+
         try:
             chrom_roi_arr = conv.genome2roi_arr[str(record.target_name)]
         except KeyError:
@@ -114,11 +114,12 @@ def convert_records(records, conv, qt, whole_genome):
 
         # transform into increments
         if whole_genome:
+            chrom_rpos = conv.chrom_rpos[str(record.target_name)]
             increments = _collect_increments_wg(covered_rois=covered_rois,
-                                                         target_chromosome_rois=target_chromosome_rois,
-                                                         query_arr=query_arr)
+                                                query_arr=query_arr, chrom_rpos=chrom_rpos)
 
         else:
+            target_chromosome_rois = conv.genome2roi[str(record.target_name)]
             increments = _collect_increments(covered_rois=covered_rois,
                                             start=start,
                                             target_chromosome_rois=target_chromosome_rois,
@@ -266,10 +267,11 @@ def _collect_increments(covered_rois, start, target_chromosome_rois, query_arr, 
     return increments
 
 
-def _collect_increments_wg(covered_rois, target_chromosome_rois, query_arr):
+def _collect_increments_wg(covered_rois, query_arr, chrom_rpos):
     # faster version if we consider whole genomes where ROIs are always consecutive
-    roi_coords = np.arange(target_chromosome_rois[covered_rois[0]],
-                           target_chromosome_rois[covered_rois[-1]] + 1)
+    # roi_coords = np.arange(target_chromosome_rois[covered_rois[0]],
+    #                        target_chromosome_rois[covered_rois[-1]] + 1)
+    roi_coords = chrom_rpos[covered_rois]
     increments = np.swapaxes(np.vstack((roi_coords, query_arr)), 0, 1)
     return increments
 
