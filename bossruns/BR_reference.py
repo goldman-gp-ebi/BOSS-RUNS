@@ -5,7 +5,7 @@ import mappy
 from natsort import natsorted
 import numpy as np
 # custom import
-from BR_utils import integer_genome, read_fa
+from .BR_utils import integer_genome, read_fa
 
 
 class ReferenceWGS:
