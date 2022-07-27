@@ -37,6 +37,7 @@ class ReferenceWGS:
         self.chrom_rpos = chrom_rpos
         self.chrom_rpos_ranges = chrom_rpos_ranges
         self.roi_indices = roi_indices
+        self.genome2roi = 0   # dummy init
 
         chNum, chArray, ch_cum_sum = self.gen_chrom_numbers(len_dict)
         self.chNum = chNum
