@@ -20,6 +20,7 @@ from .BR_utils import execute, read_fa, integer_genome, append_row,\
 from .BR_mapper import Mapper
 from .BR_merged_genome import MergedGenome
 from .BR_batch import CurrentBatch
+from .BR_reference import ReferenceWGS
 
 
 
@@ -616,6 +617,12 @@ class OTU:
             roi_indices.extend(chrom_pos + chrom_offset)
         self.roi_indices = np.array(roi_indices, dtype="uint64")
 
+
+    def init_reference_wgs(self, ref=None, mmi=None, min_len=None):
+        # get reference object with necessary attributes
+        reference = ReferenceWGS(ref=ref, mmi=mmi, min_len=min_len)
+        # transfer all attributes to OTU instance
+        self.__dict__.update(reference.__dict__)
 
 
     def init_buckets(self, size):
@@ -1359,7 +1366,12 @@ class BossRun:
 
         logging.info(f"starting init ------- ")
         # initialise the reference
-        otu.init_reference(ref=self.args.ref)
+        # tmp
+        if self.args.whole_genome:
+            otu.init_reference_wgs(ref=self.args.ref, mmi=self.args.ref_idx)
+        # this is for the case of VCF input ---- TODO
+        else:
+            otu.init_reference(ref=self.args.ref)
         # initialise buckets and switches for the strategy
         otu.init_buckets(size=self.args.bucket_size)
         # init frames for saving metrics, only used for sims
