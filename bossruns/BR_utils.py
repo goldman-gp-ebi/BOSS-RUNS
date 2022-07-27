@@ -190,7 +190,7 @@ def integer_genome(chromosome_sequences):
     transDict.update({'A': 0, 'C': 1, 'G': 2, 'T': 3})
     for letter in ascii_letters:
         if letter not in transDict.keys():
-            transDict[letter] = 99
+            transDict[letter] = 0
     # create translation table from dictionary
     base2int = str.maketrans(dict(transDict))
 
@@ -201,7 +201,7 @@ def integer_genome(chromosome_sequences):
         intSeq = np.fromstring(read_integer, dtype='int8', sep='')
         genome.append(intSeq)
     # transform to array at the end
-    genome = np.squeeze(np.array(genome))
+    genome = np.concatenate(genome)
     return genome
 
 
