@@ -287,6 +287,7 @@ def setup_parser_sim():
     parser = MyArgumentParser(fromfile_prefix_chars='@')
     #
     parser.add_argument('--ref', type=str, default=None, help='path to reference')
+    parser.add_argument('--vcf', dest='vcf', type=str, default=None, help='path to vcf file for ROIs')
     parser.add_argument('--ref_idx', type=str, default=None, help='index of reference to map against')
     parser.add_argument('--roi_mask', type=str, default=None, help='path to roi mask for reference')
     parser.add_argument('--run_name', dest='run_name', default="test", type=str, help='name of sequencing run')
@@ -301,7 +302,7 @@ def setup_parser_sim():
     parser.add_argument('--batch_size', dest='batch_size', default=100, type=int, help='Number of reads in a batch')
     #
     parser.add_argument('--whole_genome', action="store_true", help="how strat is initialised")
-    parser.add_argument('--ploidy', dest='ploidy', default=2, help='1 == haploid, 2==diploid')
+    parser.add_argument('--ploidy', dest='ploidy', default=1, help='1 == haploid, 2==diploid')
     return parser
 
 
@@ -311,6 +312,7 @@ def setup_parser_live():
     parser = MyArgumentParser(fromfile_prefix_chars='@')
     #
     parser.add_argument('--roi_mask', type=str, required=True, help='Path to ROI mask')
+    parser.add_argument('--vcf', dest='vcf', type=str, default=None, help='path to vcf file for ROIs')
     parser.add_argument('--ref_idx', type=str, required=True, help='Index of reference to map against')
     parser.add_argument('--run_name', default="test", type=str, required=True,
                         help='Any identifier. If multiple conditions: must match name in channels.toml')
