@@ -17,7 +17,7 @@ class MergedGenome:
         self.otu = otu
         self.timeCost = otu.timeCost
         # for fhat expansion
-        self.target_size = int(otu.ch_cum_sum[-1] // otu.const.window) + 1
+        self.target_size = int(otu.ch_cum_sum[-1] // otu.args.window) + 1
         self.on_target = otu.on_target
         self.readStartCounts = None
         self.fhat = None

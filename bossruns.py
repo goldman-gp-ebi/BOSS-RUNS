@@ -8,8 +8,7 @@ parser = setup_parser_live()
 args = parser.parse_args()
 
 # initialise constants and data processor
-const = Constants()
-bossrun = BossRun_live(args=args, const=const)
+bossrun = BossRun_live(args=args)
 logging.info("starting initialisation")
 bossrun.initialise_OTUs()
 bossrun.initialise_merged()

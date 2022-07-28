@@ -50,8 +50,7 @@ class Constants:
 
 class OTU:
 
-    def __init__(self, const, args, ref, name='otu', ploidy=1):
-        self.const = const
+    def __init__(self, args, ref, name='otu', ploidy=1):
         self.args = args
         self.name = name
         self.ref = ref
@@ -101,9 +100,9 @@ class OTU:
         logging.info(f"initialising phi ")
 
         len_b, len_g, phi = OTU.generate_phi(
-            deletion_error=self.const.deletion_error,
-            err_missed_deletion=self.const.err_missed_deletion,
-            substitution_error=self.const.substitution_error,
+            deletion_error=self.args.deletion_error,
+            err_missed_deletion=self.args.err_missed_deletion,
+            substitution_error=self.args.substitution_error,
             diploid=self.diploid)
 
         self.len_b = len_b
@@ -415,19 +414,19 @@ class OTU:
         '''
         logging.info(f"initializing priors")
         # check that theta and del_subs_ratio have reasonable levels
-        if self.const.theta * (1.0 + self.const.deletion_substitution_ratio) > 1.0:
+        if self.args.theta * (1.0 + self.args.deletion_substitution_ratio) > 1.0:
             raise ValueError("too much diversity, most of the genome expected to be different from reference")
 
         # two distinction, like in generate_phi(): ploidy and deletion genotype
         if not self.diploid:
-            priors = OTU.haploid_priors(self.const.deletion_error,
-                                        self.const.theta,
-                                        self.const.deletion_substitution_ratio)
+            priors = OTU.haploid_priors(self.args.deletion_error,
+                                        self.args.theta,
+                                        self.args.deletion_substitution_ratio)
 
         else:
-            priors = OTU.diploid_priors(self.const.deletion_error,
-                                         self.const.theta,
-                                         self.const.deletion_substitution_ratio)
+            priors = OTU.diploid_priors(self.args.deletion_error,
+                                         self.args.theta,
+                                         self.args.deletion_substitution_ratio)
 
         # set attr priors
         self.priors = priors
@@ -1103,7 +1102,7 @@ class OTU:
             # increment this length in recording array
             # ignore rejected reads for read length dist
             # might overestimate the dist slightly
-            if read_len > self.const.mu * 2:
+            if read_len > self.args.mu * 2:
                 self.read_lengths[read_len] += 1
             else:
                 continue
@@ -1118,12 +1117,12 @@ class OTU:
             self.L = np.copy(self.read_lengths[:self.longest_read]).astype('float64')
             self.L /= sum(self.L)
             # update approx CCL
-            self.approx_ccl = OTU.CCL_ApproxConstant(L=self.L, eta=self.const.eta)
+            self.approx_ccl = OTU.CCL_ApproxConstant(L=self.L, eta=self.args.eta)
             self.approx_CCL = self.approx_ccl  # fix case error
             logging.info("new approx ccl")
             logging.info(self.approx_ccl)
             # update time cost
-            self.timeCost = self.lam - self.const.mu - self.const.rho
+            self.timeCost = self.lam - self.args.mu - self.args.rho
 
 
     def save_metrics_chroms(self, batch, timeNV, timeRU, timeBR, yield_NV, yield_RU, yield_BR):
@@ -1288,9 +1287,12 @@ class OTU:
 
 class BossRun:
 
-    def __init__(self, args, const):
+    def __init__(self, args):
+        const = Constants()
+        for c, cval in const.__dict__.items():
+            setattr(args, c, cval)
+
         self.args = args
-        self.const = const
         self.batch = 0
         # to keep track of off and on target fragments for fhat
         self.num_mapped = 0
@@ -1338,7 +1340,6 @@ class BossRun:
 
     def initialise_OTUs(self, modes=False):
         otu = OTU(args=self.args,
-                  const=self.const,
                   ref=self.args.ref,
                   ploidy=self.args.ploidy)
         self.otu = otu
@@ -1355,7 +1356,7 @@ class BossRun:
             logging.info("Need either of arguments: --wgs --vcf")
             sys.exit()
         # initialise buckets and switches for the strategy
-        otu.init_buckets(size=self.const.bucket_size)
+        otu.init_buckets(size=self.args.bucket_size)
         # init frames for saving metrics, only used for sims
         otu.init_frames()
         # Generate phi and phi_stored
@@ -1367,13 +1368,13 @@ class BossRun:
         # initialise a prior for read length distribution
         otu.lam, otu.longest_read, otu.L, otu.approx_ccl = OTU.prior_readlength_dist()
         # init time cost of acceptance
-        otu.init_timecost(mu=self.const.mu, rho=self.const.rho, lam=otu.lam)
+        otu.init_timecost(mu=self.args.mu, rho=self.args.rho, lam=otu.lam)
         # initialise scores and pre-computed array for updating
         otu.init_scores(modes=modes)
         otu.init_score_array()
         otu.init_coverage(modes=modes)
         # initialise first strategies
-        otu.init_dummy_strats(flank=self.const.flank, window=self.const.window, modes=modes)
+        otu.init_dummy_strats(flank=self.args.flank, window=self.args.window, modes=modes)
         logging.info(f"finished init ------- \n")
 
 
@@ -1396,12 +1397,12 @@ class BossRun:
         if mappy:
             ref = self.args.ref_idx
             logging.info(f"loading mapping index: {ref}")
-            self.mapper = Mapper(mu=self.const.mu)
+            self.mapper = Mapper(mu=self.args.mu)
             self.mapper.init_mappy(ref=ref)
 
         # initialise read start position probabilities
-        self.merged_genome = MergedGenome(otu=self.otu, windowSize=self.const.windowSize,
-                                          alpha=self.const.alphaPrior, p0=self.const.p0)
+        self.merged_genome = MergedGenome(otu=self.otu, windowSize=self.args.windowSize,
+                                          alpha=self.args.alphaPrior, p0=self.args.p0)
 
 
 
@@ -1428,8 +1429,8 @@ class BossRun:
 
         '''
         self.current_batch = CurrentBatch(num=self.batch,
-                                          qt=self.const.base_quality_threshold,
-                                          window=self.const.window)
+                                          qt=self.args.base_quality_threshold,
+                                          window=self.args.window)
 
         if fastq_file is None:
             # get batch of randomly sampled reads
@@ -1469,8 +1470,8 @@ class BossRun:
         '''
         # initialise current batch
         self.current_batch = CurrentBatch(num=self.batch,
-                                          qt=self.const.base_quality_threshold,
-                                          window=self.const.window)
+                                          qt=self.args.base_quality_threshold,
+                                          window=self.args.window)
         # sample batch of reads
         read_lengths, read_sequences, read_qualities, basesTOTAL = sampler.parallel_batch(batch=self.batch)
         self.current_batch.read_ids = set(read_sequences.keys())
@@ -1581,25 +1582,25 @@ class BossRun:
         '''
         # NAIVE: total number of bases + alpha for each read
         timeToNaive = basesNV
-        timeToNaive += (self.args.batch_size * self.const.alpha)
+        timeToNaive += (self.args.batch_size * self.args.alpha)
         # RU: all accepted bases and ((mu + rho) * number of unmapped/rejected reads)) + (alpha * batch_size)
         timeToRU = basesRU
-        timeToRU += (unmapped_RU * (self.const.mu + self.const.rho))
-        timeToRU += (reject_RU * (self.const.mu + self.const.rho))
-        timeToRU += (self.args.batch_size * self.const.alpha)
+        timeToRU += (unmapped_RU * (self.args.mu + self.args.rho))
+        timeToRU += (reject_RU * (self.args.mu + self.args.rho))
+        timeToRU += (self.args.batch_size * self.args.alpha)
         # BR: all accepted bases and ((mu + rho) * number of unmapped/rejected reads)) + (alpha * batch_size)
         timeToBR = basesBR
-        timeToBR += (unmapped_BR * (self.const.mu + self.const.rho))
-        timeToBR += (reject_BR * (self.const.mu + self.const.rho))
-        timeToBR += (self.args.batch_size * self.const.alpha)
+        timeToBR += (unmapped_BR * (self.args.mu + self.args.rho))
+        timeToBR += (reject_BR * (self.args.mu + self.args.rho))
+        timeToBR += (self.args.batch_size * self.args.alpha)
         # update attr
         self.timeNaive += timeToNaive
         self.timeRU += timeToRU
         self.timeBR += timeToBR
         # also keep track of yields
         self.yield_NV += basesNV
-        self.yield_RU += (basesRU + ((reject_RU + unmapped_RU) * self.const.mu))
-        self.yield_BR += (basesBR + ((reject_BR + unmapped_BR) * self.const.mu))
+        self.yield_RU += (basesRU + ((reject_RU + unmapped_RU) * self.args.mu))
+        self.yield_BR += (basesBR + ((reject_BR + unmapped_BR) * self.args.mu))
 
 
 
@@ -1717,10 +1718,10 @@ class BossRun:
         '''
         # calculate s_mu
         s_mu, scores_placed = self.otu.update_S_mu_thread(
-            scores=scores, mu=self.const.mu, window=self.const.window)
+            scores=scores, mu=self.args.mu, window=self.args.window)
         # calculate benefit U
         expected_benefit = self.otu.update_U_thread(
-            scores_placed=scores_placed, eta=self.const.eta, window=self.const.window)
+            scores_placed=scores_placed, eta=self.args.eta, window=self.args.window)
         # benefit increase by keeping to sequence instead of rejecting
         benefit = expected_benefit - s_mu
         benefit[benefit < 0] = 0
@@ -1751,10 +1752,10 @@ class BossRun:
 
         '''
         # take downsampling into consideration
-        window = self.const.window
-        alpha = self.const.alpha // window
-        rho = self.const.rho // window
-        mu = self.const.mu // window
+        window = self.args.window
+        alpha = self.args.alpha // window
+        rho = self.args.rho // window
+        mu = self.args.mu // window
         tc = self.merged_genome.timeCost // window
         # group benefit into bins of similar values
         # using binary exponent
@@ -2004,12 +2005,12 @@ class BossRun:
         otu = self.otu
         # flip strategy switches if threshold is reached
         switches = BossRun.check_bucket_switches(
-            otu=otu, threshold=self.const.cov_until, whole_genome=self.args.wgs)
+            otu=otu, threshold=self.args.cov_until, whole_genome=self.args.wgs)
         # UPDATE STRATEGY
         if any(switches):
             # update Fhat: unpack and normalise
             fhat = self.merged_genome.updateFpointmass()
-            fhat_exp = self.merged_genome.expandF(fhat=fhat, downsample_window=self.const.window)
+            fhat_exp = self.merged_genome.expandF(fhat=fhat, downsample_window=self.args.window)
             # update S_mu and U
             benefit, s_mu = self.update_benefit(scores=otu.S_BR)
             self.benefit = benefit  # tmp for tracking
@@ -2020,9 +2021,9 @@ class BossRun:
 
             # replace strategies in dictionaries
             if len(switches) > 1:
-                BossRun.flush_strat_buckets(strat=strat, otu=otu, switches=switches, window=self.const.window)
+                BossRun.flush_strat_buckets(strat=strat, otu=otu, switches=switches, window=self.args.window)
             else:
-                BossRun.flush_strat(strat=strat, otu=otu, window=self.const.window)
+                BossRun.flush_strat(strat=strat, otu=otu, window=self.args.window)
             # save masks to disk
             otu.save_strat()
 
@@ -2122,9 +2123,12 @@ class BossRun:
 class BossRun_live(BossRun):
 
 
-    def __init__(self, args, const):
+    def __init__(self, args):
+        const = Constants()
+        for c, cval in const.__dict__.items():
+            setattr(args, c, cval)
+
         self.args = args
-        self.const = const
         self.processed_files = set()
         self.batch = 0
         self.threshold = 0
@@ -2226,7 +2230,7 @@ class BossRun_live(BossRun):
             Alignments of reads to the reference in PAF format
         '''
         self.current_batch = CurrentBatch(
-            num=self.batch, qt=self.const.base_quality_threshold, window=self.const.window)
+            num=self.batch, qt=self.args.base_quality_threshold, window=self.args.window)
 
         # read all new files
         read_ids = set()
