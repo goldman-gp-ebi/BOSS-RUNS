@@ -286,12 +286,11 @@ def setup_parser_sim():
     # SIMULATION VERSION
     parser = MyArgumentParser(fromfile_prefix_chars='@')
     #
-    parser.add_argument('--ref', type=str, default=None, help='path to reference')
-    parser.add_argument('--vcf', dest='vcf', type=str, default=None, help='path to vcf file for ROIs')
-    parser.add_argument('--ref_idx', type=str, default=None, help='index of reference to map against')
-    parser.add_argument('--roi_mask', type=str, default=None, help='path to roi mask for reference')
-    parser.add_argument('--run_name', dest='run_name', default="test", type=str, help='name of sequencing run')
-    parser.add_argument('--out_dir', dest='out_dir', type=str, default=None, help='path to dir for strats')
+    parser.add_argument('--ref', type=str, required=True)
+    parser.add_argument('--ref_idx', type=str, default=None)
+    parser.add_argument('--vcf', type=str, default=None)
+    parser.add_argument('--run_name', default="br", type=str)
+    #
     parser.add_argument('--ckp', default=None, type=str, help="path to checkpoint file for relaunching")
     parser.add_argument('--channels', dest='channels', type=str, default=None, help='path to channels.toml file')
     parser.add_argument('--fastq_dir', dest='fastq_dir', type=str, default=None, help='dir with playback data')
@@ -301,8 +300,7 @@ def setup_parser_sim():
     parser.add_argument('--paf_trunc', dest='paf_trunc', type=str, default=None, help='path to paf trunc for streaming')
     parser.add_argument('--batch_size', dest='batch_size', default=100, type=int, help='Number of reads in a batch')
     #
-    parser.add_argument('--whole_genome', action="store_true", help="how strat is initialised")
-    parser.add_argument('--ploidy', dest='ploidy', default=1, help='1 == haploid, 2==diploid')
+    parser.add_argument('--ploidy', default=1, help='1 == haploid, 2==diploid')
     return parser
 
 
@@ -311,24 +309,20 @@ def setup_parser_live():
     # LIVE VERSION
     parser = MyArgumentParser(fromfile_prefix_chars='@')
     #
-    parser.add_argument('--roi_mask', type=str, required=True, help='Path to ROI mask')
-    parser.add_argument('--vcf', dest='vcf', type=str, default=None, help='path to vcf file for ROIs')
-    parser.add_argument('--ref_idx', type=str, required=True, help='Index of reference to map against')
-    parser.add_argument('--run_name', default="test", type=str, required=True,
-                        help='Any identifier. If multiple conditions: must match name in channels.toml')
-    parser.add_argument('--ref', type=str,
-                        help='Path to reference fasta, used for priors. If not provided, priors will be uniform')
+    parser.add_argument('--ref', type=str, required=True, help='Path to reference')
+    parser.add_argument('--ref_idx', type=str, default=None, help='Optional minimap index of reference')
+    parser.add_argument('--vcf', type=str, default=None, help='Path to vcf file for ROIs')
+    parser.add_argument('--run_name', type=str, default="br",
+                        help='Experiment identifier. If multiple conditions: must match name in channels.toml')
+    parser.add_argument('--ploidy', default=1, help='1 == haploid, 2 == diploid')
+    parser.add_argument('--conditions', action='store_true',
+                        help="Multiple conditions on a single flowcell, used to assign channels")
     #
     parser.add_argument('--device', required=True, type=str, help="Name of device/sequencing position in MinKNOW")
     parser.add_argument('--host', default='localhost', type=str, help="hostname of sequencing device")
     parser.add_argument('--port', default=None, type=str, help="port of sequencing device")
     #
-    parser.add_argument('--conditions', action='store_true',
-                        help="Multiple conditions on a single flowcell, used to assign channels")
-    parser.add_argument('--whole_genome', action='store_true',
-                        help="switch for several algorithms, if whole genome(s) of interest")
-    parser.add_argument('--wait', dest='wait', default=90, type=int, help='Period between strategy updates (sec.)')
-    parser.add_argument('--ploidy', dest='ploidy', default=1, help='1 == haploid, 2 == diploid')
+    parser.add_argument('--wait', default=90, type=int, help='Period between strategy updates (sec.)')
     return parser
 
 

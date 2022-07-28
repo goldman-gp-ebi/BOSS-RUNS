@@ -760,8 +760,8 @@ class OTU:
         # this will be a separate array for each chromosome
         self.strat_dict_BR = self._init_strategy_dict(window=window, method='BR')
 
-        if self.args.whole_genome:
-            on_target = OTU._find_initial_accept_whole_genome(strat_dict=self.strat_dict_BR,
+        if self.args.wgs:
+            on_target = OTU._find_initial_accept_wgs(strat_dict=self.strat_dict_BR,
                                                               chromosome_indices=self.chromosome_indices)
         else:
             on_target = OTU._find_initial_accept(strat_dict=self.strat_dict_BR,
@@ -784,8 +784,8 @@ class OTU:
             self.strat_dict_NV = self._init_strategy_dict(window=window, method='NV')
             self.strat_dict_RU = self._init_strategy_dict(window=window, method='RU')
 
-            if self.args.whole_genome:
-                _ = OTU._find_initial_accept_whole_genome(strat_dict=self.strat_dict_RU,
+            if self.args.wgs:
+                _ = OTU._find_initial_accept_wgs(strat_dict=self.strat_dict_RU,
                                                           chromosome_indices=self.chromosome_indices)
             else:
                 _ = OTU._find_initial_accept(strat_dict=self.strat_dict_RU,
@@ -850,7 +850,7 @@ class OTU:
 
 
     @staticmethod
-    def _find_initial_accept_whole_genome(strat_dict, chromosome_indices):
+    def _find_initial_accept_wgs(strat_dict, chromosome_indices):
         # whole genomes: set everything to accept
         for chrom in chromosome_indices.keys():
             try:
@@ -1308,6 +1308,7 @@ class BossRun:
         # for tracking benefits
         self.threshold = 0
         # create directories for logs etc.
+        args.out_dir = f'./out_{args.run_name}'
         if not os.path.exists(args.out_dir):
             os.mkdir(args.out_dir)
             os.mkdir(f'{args.out_dir}/masks')
@@ -1326,6 +1327,11 @@ class BossRun:
             self.channels = None
         # initialise the abundance tracker
         self.abundance_tracker = AbundanceTracker()
+        # check which scenario
+        args.wgs = 1  # default
+        if args.vcf:
+            args.wgs = 0
+
 
 
 
@@ -1340,7 +1346,7 @@ class BossRun:
         logging.info(f"starting init ------- ")
         # initialise the reference
         # tmp
-        if self.args.whole_genome:
+        if self.args.wgs:
             otu.init_reference_wgs(ref=self.args.ref, mmi=self.args.ref_idx)
         # this is for the case of VCF input
         elif self.args.vcf:
@@ -1356,7 +1362,7 @@ class BossRun:
         otu.init_phi()
         otu.init_prior()
         # alternative uniform priors
-        if not self.args.whole_genome:
+        if not self.args.wgs:
             otu.priors, otu.prior_dist = OTU.uniform_priors(priors=otu.priors)
         # initialise a prior for read length distribution
         otu.lam, otu.longest_read, otu.L, otu.approx_ccl = OTU.prior_readlength_dist()
@@ -1669,7 +1675,7 @@ class BossRun:
             cigars_reject=self.cigars_reject,
             cigars_full=self.cigars_full,
             otu=self.otu,
-            whole_genome=self.args.whole_genome,
+            whole_genome=self.args.wgs,
             workers=workers)
 
         covADD_RU, self.basesRU = self.current_batch.convert_coverage(
@@ -1677,7 +1683,7 @@ class BossRun:
             cigars_reject=self.cigars_reject_RU,
             cigars_full=self.cigars_full,
             otu=self.otu,
-            whole_genome=self.args.whole_genome,
+            whole_genome=self.args.wgs,
             workers=workers)
 
         covADD_BR, self.basesBR = self.current_batch.convert_coverage(
@@ -1685,7 +1691,7 @@ class BossRun:
             cigars_reject=self.cigars_reject_BR,
             cigars_full=self.cigars_full,
             otu=self.otu,
-            whole_genome=self.args.whole_genome,
+            whole_genome=self.args.wgs,
             workers=workers)
 
         return covADD_naive, covADD_RU, covADD_BR
@@ -1998,7 +2004,7 @@ class BossRun:
         otu = self.otu
         # flip strategy switches if threshold is reached
         switches = BossRun.check_bucket_switches(
-            otu=otu, threshold=self.const.cov_until, whole_genome=self.args.whole_genome)
+            otu=otu, threshold=self.const.cov_until, whole_genome=self.args.wgs)
         # UPDATE STRATEGY
         if any(switches):
             # update Fhat: unpack and normalise
@@ -2172,6 +2178,10 @@ class BossRun_live(BossRun):
             self.channels = set(np.arange(1, 512 + 1))
         # initialise the abundance tracker
         self.abundance_tracker = AbundanceTracker()
+        # check which scenario
+        args.wgs = 1  # default
+        if args.vcf:
+            args.wgs = 0
 
 
     def scan_dir(self):
@@ -2256,7 +2266,7 @@ class BossRun_live(BossRun):
             cigars_reject=dict(),
             cigars_full=self.cigar_dict,
             otu=self.otu,
-            whole_genome=self.args.whole_genome,
+            whole_genome=self.args.wgs,
             workers=workers)
         return coverage_addition
 
