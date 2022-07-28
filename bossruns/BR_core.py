@@ -1333,6 +1333,11 @@ class BossRun:
         args.wgs = 1  # default
         if args.vcf:
             args.wgs = 0
+        # print args for debugging
+        logging.info("BOSS-RUNS")
+        for a, aval in self.args.__dict__.items():
+            logging.info(f'{a} {aval}')
+        logging.info('\n')
 
 
 
@@ -2186,6 +2191,12 @@ class BossRun_live(BossRun):
         args.wgs = 1  # default
         if args.vcf:
             args.wgs = 0
+        # print args for debugging
+        logging.info("BOSS-RUNS")
+        for a, aval in self.args.__dict__.items():
+            logging.info(f'{a} {aval}')
+        logging.info('\n')
+
 
 
     def scan_dir(self):
