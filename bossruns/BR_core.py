@@ -2156,13 +2156,20 @@ class BossRun_live(BossRun):
         # initialise logging file
         init_logger(logfile=f'{args.out_dir}/{args.run_name}.bossruns.log')
 
+        # print args for debugging
+        logging.info("BOSS-RUNS")
+        for a, aval in self.args.__dict__.items():
+            logging.info(f'{a} {aval}')
+        logging.info('\n')
+
         # initialise sequencing device dependent paths
+        logging.info("looking for MinKNOW's output path..")
         try:
             out_path = grab_output_dir(device=args.device, host=args.host, port=args.port)
-            logging.info(f"grabbing Minknow's output path: \n{out_path}\n")
+            logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
             args.fastq_dir = f'{out_path}/fastq_pass'
         except:
-            print("Minknow's output dir could not be inferred from device name. Exiting..")
+            print("MinKNOW's output dir could not be inferred from device name. Exiting..")
             print(f'{args.device}\n{args.host}\n{args.port}')
             # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
             # args.fastq_dir = out_path
@@ -2191,11 +2198,7 @@ class BossRun_live(BossRun):
         args.wgs = 1  # default
         if args.vcf:
             args.wgs = 0
-        # print args for debugging
-        logging.info("BOSS-RUNS")
-        for a, aval in self.args.__dict__.items():
-            logging.info(f'{a} {aval}')
-        logging.info('\n')
+
 
 
 
