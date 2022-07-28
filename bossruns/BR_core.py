@@ -20,7 +20,7 @@ from .BR_utils import execute, read_fa, integer_genome, append_row,\
 from .BR_mapper import Mapper
 from .BR_merged_genome import MergedGenome
 from .BR_batch import CurrentBatch
-from .BR_reference import ReferenceWGS
+from .BR_reference import ReferenceWGS, ReferenceVCF
 from .BR_abundance_tracker import AbundanceTracker
 
 
@@ -50,12 +50,11 @@ class Constants:
 
 class OTU:
 
-    def __init__(self, const, args, ref, roi_mask, name='otu', ploidy=1):
+    def __init__(self, const, args, ref, name='otu', ploidy=1):
         self.const = const
         self.args = args
         self.name = name
         self.ref = ref
-        self.roi_mask_file = roi_mask
         self.switch = False  # switch whether strategy is on or not
         self.threshold = 0
         self.approx_ccl = 0
@@ -72,6 +71,21 @@ class OTU:
         # for dynamic read length dist, we init an array that keeps track of lengths
         self.read_lengths = np.zeros(shape=int(1e6), dtype='uint16')
         self.frame = []
+
+        # attributes that get overwritten by reference object
+        self.chromosome_sequences = {}
+        self.chromosome_lengths = {}
+        self.chromosome_indices = {}
+        self.chNum = 0
+        self.chArray = np.zeros(1)
+        self.ch_cum_sum = np.zeros(1)
+        self.genome = np.zeros(1)
+        self.roi_length = 0
+        self.genome2roi = defaultdict(dict)
+        self.genome2roi_arr = {}
+        self.chrom_rpos = {}
+        self.chrom_rpos_ranges = {}
+        self.roi_indices = np.zeros(1)
 
 
 
@@ -567,60 +581,18 @@ class OTU:
         return priors, prior_dist
 
 
-    def init_reference(self, ref=None):
-        logging.info(f"loading reference sequence and masks")
-        # load roi masks
-        roi_mask_container = np.load(self.roi_mask_file, allow_pickle=True)
-        # load translator dict
-        genome2roi = roi_mask_container['genome2roi'][()]
-        roi_len = np.sum([len(cdict) for chrom, cdict in genome2roi.items()])
-        self.genome2roi = genome2roi
-        # save as array for each chrom (used in coverage conv)
-        self.genome2roi_arr = dict()
-        # coordinate container holds rpos for each chrom
-        self.chrom_rpos = dict()
-        for c, roi_dict in self.genome2roi.items():
-            self.genome2roi_arr[c] = np.array(list(roi_dict.keys()))
-            self.chrom_rpos[c] = np.array(list(roi_dict.values()))
-        # more efficient version: rois from chromosomes are always consecutive
-        self.chrom_rpos_ranges = dict()
-        for c, roi_dict in self.genome2roi.items():
-            chrom_rois = list(roi_dict.values())
-            self.chrom_rpos_ranges[c] = (chrom_rois[0], chrom_rois[-1])  # hsap
-
-        # read the reference bases of ROIs
-        if ref:
-            self.genome, self.soft_mask, _, _ = get_reference(reference_file_path=ref)
-        else:
-            self.genome = np.zeros(shape=roi_len, dtype="uint8")
-
-        # dict of chromosome lengths
-        chrom_lengths_raw = natsorted(roi_mask_container['chrom_lengths'])
-        # filter very short chromosomes
-        chrom_lengths = {c: int(clen) for c, clen in chrom_lengths_raw if int(clen) > 1e5}
-        self.chromosome_lengths = chrom_lengths
-        self.chromosome_indices = {c: i for i, c in enumerate(chrom_lengths.keys())}
-        self.chNum = len(self.chromosome_lengths.keys())
-        # number of sites
-        self.roi_length = self.genome.shape[0]
-        # array of chrom lengths
-        self.chArray = np.array(list(self.chromosome_lengths.values()))
-        # cumulative sum of chromosome lengths, starting with 0
-        self.ch_cum_sum = np.append(np.zeros(1, dtype='uint64'),
-                                    np.cumsum(self.chArray, dtype='uint64'))
-
-        # indices to locate ROIs (used for scores_placed)
-        roi_indices = []
-        for c, c_ind in self.chromosome_indices.items():
-            chrom_pos = np.array(list(self.genome2roi[c].keys()))
-            chrom_offset = self.ch_cum_sum[c_ind]
-            roi_indices.extend(chrom_pos + chrom_offset)
-        self.roi_indices = np.array(roi_indices, dtype="uint64")
+    def init_reference_vcf(self, vcf, ref=None, mmi=None, min_len=None):
+        # create the reference object for the VCF scenario
+        reference = ReferenceVCF(ref=ref, mmi=mmi, min_len=min_len)
+        reference.load_reference(vcf)
+        # transfer the attributes to otu instance
+        self.__dict__.update(reference.__dict__)
 
 
     def init_reference_wgs(self, ref=None, mmi=None, min_len=None):
         # get reference object with necessary attributes
         reference = ReferenceWGS(ref=ref, mmi=mmi, min_len=min_len)
+        reference.load_reference()
         # transfer all attributes to OTU instance
         self.__dict__.update(reference.__dict__)
 
@@ -1362,8 +1334,7 @@ class BossRun:
         otu = OTU(args=self.args,
                   const=self.const,
                   ref=self.args.ref,
-                  ploidy=self.args.ploidy,
-                  roi_mask=self.args.roi_mask)
+                  ploidy=self.args.ploidy)
         self.otu = otu
 
         logging.info(f"starting init ------- ")
@@ -1371,9 +1342,12 @@ class BossRun:
         # tmp
         if self.args.whole_genome:
             otu.init_reference_wgs(ref=self.args.ref, mmi=self.args.ref_idx)
-        # this is for the case of VCF input ---- TODO
+        # this is for the case of VCF input
+        elif self.args.vcf:
+            otu.init_reference_vcf(ref=self.args.ref, mmi=self.args.ref_idx, vcf=self.args.vcf)
         else:
-            otu.init_reference(ref=self.args.ref)
+            logging.info("Need either of arguments: --wgs --vcf")
+            sys.exit()
         # initialise buckets and switches for the strategy
         otu.init_buckets(size=self.const.bucket_size)
         # init frames for saving metrics, only used for sims
@@ -1382,9 +1356,7 @@ class BossRun:
         otu.init_phi()
         otu.init_prior()
         # alternative uniform priors
-        if self.args.ref:
-            pass
-        else:
+        if not self.args.whole_genome:
             otu.priors, otu.prior_dist = OTU.uniform_priors(priors=otu.priors)
         # initialise a prior for read length distribution
         otu.lam, otu.longest_read, otu.L, otu.approx_ccl = OTU.prior_readlength_dist()
