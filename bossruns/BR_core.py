@@ -2169,8 +2169,8 @@ class BossRun_live(BossRun):
             logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
             args.fastq_dir = f'{out_path}/fastq_pass'
         except:
-            print("MinKNOW's output dir could not be inferred from device name. Exiting..")
-            print(f'{args.device}\n{args.host}\n{args.port}')
+            logging.info("MinKNOW's output dir could not be inferred from device name. Exiting..")
+            logging.info(f'device: {args.device}, host: {args.host}, port: {args.port}')
             # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
             # args.fastq_dir = out_path
             sys.exit()
@@ -2864,7 +2864,7 @@ def grab_output_dir(device, host='localhost', port=None):
     try:
         target_device = pos_dict[device]
     except KeyError:
-        print(f"target device {device} not available")
+        logging.info(f"target device {device} not available")
         return None
     # connect to the device and navigate api to get output path
     device_connection = target_device.connect()
