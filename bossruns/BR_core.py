@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from natsort import natsorted
 from minknow_api.manager import Manager
+from minknow_api import __version__ as minknow_api_version
 
 
 # custom imports
@@ -2855,8 +2856,19 @@ def grab_output_dir(device, host='localhost', port=None):
     -------
 
     '''
+    logging.info(f"minknow API Version {minknow_api_version}")
     # minknow_api.manager supplies Manager (wrapper around MinKNOW's Manager gRPC)
-    manager = Manager(host=host, port=port, use_tls=False)
+    if minknow_api_version.startswith("5"):
+        if not port:
+            port = 9502
+        manager = Manager(host=host, port=port)
+    elif minknow_api_version.startswith("4"):
+        if not port:
+            port = 9501
+        manager = Manager(host=host, port=port, use_tls=False)
+    else:
+        logging.info("unsupported version of minknow_api")
+        sys.exit()
     # Find a list of currently available sequencing positions.
     positions = list(manager.flow_cell_positions())
     pos_dict = {pos.name: pos for pos in positions}
@@ -2864,11 +2876,15 @@ def grab_output_dir(device, host='localhost', port=None):
     try:
         target_device = pos_dict[device]
     except KeyError:
-        logging.info(f"target device {device} not available")
-        return None
+        logging.info(f"Error: target device {device} not available")
+        logging.info("Error: Please make sure to supply correct name of sequencing position in MinKNOW.")
+        sys.exit()
     # connect to the device and navigate api to get output path
     device_connection = target_device.connect()
-    out_path = device_connection.protocol.get_current_protocol_run().output_path
+    current_run = device_connection.protocol.get_current_protocol_run()
+    run_id = current_run.run_id
+    logging.info(f"connected to run_id: {run_id}")
+    out_path = current_run.output_path
     return out_path
 
 
