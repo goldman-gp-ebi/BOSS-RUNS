@@ -1,18 +1,18 @@
 name: bossruns
 channels:
-  - conda-forge
   - bioconda
+  - conda-forge
   - defaults
 dependencies:
-  - python=3.9.7=hb7a2778_3_cpython
-  - numpy=1.21.2=py39hdbf815f_0
-  - scipy=1.7.1=py39hee8e79c_0
-  - pandas=1.3.3=py39hde0f152_0
-  - numba=0.53.1=py39h56b8d98_1
-  - natsort=7.1.1=pyhd8ed1ab_0
+  - mappy=2.24=py39h87d955d_1
+  - natsort=8.1.0=pyhd8ed1ab_0
+  - numba=0.55.2=py39h66db6d7_0
+  - numpy=1.22.4=py39hc58783e_0
+  - pandas=1.4.3=py39h1832856_0
+  - pip=22.2.1=pyhd8ed1ab_0
+  - python=3.9.13=h2660328_0_cpython
+  - scipy=1.9.0=py39h8ba3f38_0
   - toml=0.10.2=pyhd8ed1ab_0
-  - mappy=2.22=py39hd1f1204_0
-  - pip=21.2.4=pyhd8ed1ab_0
   - pip:
-    - minknow-api==4.2.4
+    - minknow-api==5.0.0.1
 
