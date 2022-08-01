@@ -323,6 +323,7 @@ def setup_parser_live():
     parser.add_argument('--port', default=None, type=str, help="port of sequencing device")
     #
     parser.add_argument('--wait', default=90, type=int, help='Period between strategy updates (sec.)')
+    parser.add_argument('--ckp', default=None, type=str, help="path to checkpoint file for relaunching. Experimental")
     return parser
 
 
