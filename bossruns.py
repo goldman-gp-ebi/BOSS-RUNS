@@ -1,4 +1,5 @@
-from bossruns.BR_core import Constants, BossRun_live
+#!/usr/bin/env python3
+from bossruns.BR_core import BossRun_live
 from bossruns.BR_utils import setup_parser_live
 from time import sleep
 import logging
