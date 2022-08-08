@@ -15,22 +15,27 @@ The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/co
 
 ## Installation
 
-Clone this repository:
+In parallel to BOSS-RUNS, a modified version of readfish needs to be set up, which is available at: [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.1).
+
+Please follow the instructions of the readfish repository for installation instructions.
+
+Then clone this repository:
 
 `git clone https://github.com/goldman-gp-ebi/BOSS-RUNS.git`
 
-Install a conda environment incl. required dependencies using the provided `yaml` file
+If you want to run BOSS-RUNS in the same environment used for readfish you simply need to install a few additional dependencies:
+
+`pip install numba natsort scipy`
+
+
+
+Alternatively, BOSS-RUNS can be run in a separate conda environment. The required dependencies can be installed using the provided `yaml` file
 
 `conda env create -f environment.yml`
 
-Activate the environment:
+To activate the environment:
 
 `conda activate bossruns`
-
-
-In parallel, a modified version of readfish needs to be set up, available at: [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.1).
-
-Please follow the instructions of the readfish repository for installation.
 
 
 ## Usage
