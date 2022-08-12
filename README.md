@@ -23,9 +23,9 @@ Then clone this repository:
 
 `git clone https://github.com/goldman-gp-ebi/BOSS-RUNS.git`
 
-If you want to run BOSS-RUNS in the same environment used for readfish you simply need to install a few additional dependencies:
+BOSS-RUNS can be run in the same virtual environment used for readfish. You simply need to install a few additional dependencies:
 
-`pip install numba natsort scipy`
+`pip install numba natsort scipy toml`
 
 
 
@@ -52,13 +52,44 @@ By default, all whole genome(s) included in the input fasta file are considered 
 Alternatively, a VCF that matches the input fasta file and contains regions/sites of interest (ROIs) can be provided. Only sites included in the VCF will be considered on-target.
 
 
+### Starting readfish
+
+readfish needs a single modification to utilize BOSS-RUNS' dynamically updated decision masks:
+In the TOML configuration for readfish, add a single line pointing to the location where BOSS-RUNS will deposit new strategies, e.g. `mask = bossruns_name/masks`.
+This path will follow the pattern `bossruns_{condition_name}/masks`, where `condition_name` is the name of the condition in the readfish TOML intended to use BOSS-RUNS.
+A configuration for such a condition would like this for example:
+
+```
+[conditions.0]
+name = "select_c20"                     <- condition name 
+control = false
+min_chunks = 0
+max_chunks = 12
+targets = ["20"]
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+mask = "bossruns_select_c20/masks"      <- path to dynamic strategies (bossruns_{condition_name}/masks)
+```
+
+### Starting BOSS-RUNS
+
 After sequencing has started and readfish is operating, the minimal command to launch BOSS-RUNS is:
 
-`./bossruns.py --ref REF --device DEVICE`
+`./bossruns.py --ref REF --device DEVICE --run_name CONDITION_NAME`
 
-where `DEVICE` needs to be the name of the 'position' on the sequencer (displayed in MinKNOW overview).
+where `DEVICE` needs to be the name of the 'position' on the sequencer (displayed in MinKNOW overview),
+and `CONDITION_NAME` is the same as in the readfish TOML.
 
-BOSS-RUNS will initialise and start to periodically generate new decision strategies from the sequencing reads deposited by the sequencer. If readfish is configured properly, the strategies will be reloaded automatically (triggering a message in readfish's logfile). BOSS-RUNS needs to be stopped by a keyboard interrupt (Ctrl+C) after the sequencing is completed.
+
+BOSS-RUNS will initialise and start to periodically generate new decision strategies from the sequencing reads deposited by the sequencer.
+If readfish is configured properly, the strategies will be reloaded automatically.
+This triggers a message in readfish's logfile similar to: `Reloaded mask dict for FASTA_HEADER`.
+
+After sequencing, BOSS-RUNS needs to be stopped by a keyboard interrupt (Ctrl+C).
 
 
 ### Arguments
@@ -93,6 +124,9 @@ A parameter file can be supplied using `@` on the command line. E.g.: `python bo
 ```
 
 ## Walkthrough
+
+
+TODO
 
 Sample experiment using Playback mode (under construction ..)
 
