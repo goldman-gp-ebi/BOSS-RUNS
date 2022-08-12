@@ -77,9 +77,9 @@ mask = "bossruns_select_c20/masks"      <- path to dynamic strategies (bossruns_
 
 readfish can then be started with the subcommand `boss-runs` (instead of `targets`). E.g. like this:
 ```
-readfish boss-runs --device DEVICE 
-                   --experiment-name NAME
-                   --toml TOML
+readfish boss-runs --device DEVICE \
+                   --experiment-name NAME \
+                   --toml TOML \
                    --log-file LOGFILE
 ```
 
@@ -89,9 +89,7 @@ readfish boss-runs --device DEVICE
 After sequencing has started and readfish is operating, the minimal command to launch BOSS-RUNS is:
 
 ```
-./bossruns.py --ref REF
-               --device DEVICE
-               --run_name CONDITION_NAME
+./bossruns.py --ref REF --device DEVICE --run_name CONDITION_NAME
 ```
 
 where `DEVICE` needs to be the name of the 'position' on the sequencer (displayed in MinKNOW overview),
@@ -148,17 +146,18 @@ To test your configuration of readfish and BOSS-RUNS we recommend first running 
 Download an open access [bulk FAST5 file](http://s3.amazonaws.com/nanopore-human-wgs/bulkfile/PLSP57501_20170308_FNFAF14035_MN16458_sequencing_run_NOTT_Hum_wh1rs2_60428.fast5). (Attention 21Gb!)
 
 To configure a run for playback, you need to edit a sequencing TOML file located at `/opt/ont/minknow/conf/package/sequencing`.
-Edit `sequencing_MIN106_DNA.toml` and under the entry `[custom_settings]` add:
+
+- Edit `sequencing_MIN106_DNA.toml` and under the entry `[custom_settings]` add:
 
 `simulation = "/full/path/to/your_bulk.FAST5"`
 
-and set the parameter `break_reads_after_seconds = 1.0` to `break_reads_after_seconds = 0.4`
+- and set the parameter `break_reads_after_seconds = 1.0` to `break_reads_after_seconds = 0.4`
 
-In the MinKNOW GUI select Reload Scripts (vertical dot menu at `Select positions` screen when starting a sequencing run).
+- In the MinKNOW GUI select Reload Scripts (vertical dot menu at `Select positions` screen when starting a sequencing run).
 
-Insert a configuration test flowcell into the sequencing device and start a sequencing run (selecting the corresponding flow cell type to the edited script, i.e. `FLO-MIN106`).
+- Insert a configuration test flowcell into the sequencing device and start a sequencing run (selecting the corresponding flow cell type to the edited script, i.e. `FLO-MIN106`).
 
-The run should start and immediately begin a mux scan. Let it run for a few minutes.
+- The run should start and immediately begin a mux scan. Let it run for a few minutes.
 
 ### Starting readfish 
 
@@ -199,9 +198,9 @@ This is the sequence name only, up to but not including any whitespace. e.g. `>2
 `readfish` can then be launched with 
 
 ```
-readfish boss-runs --device DEVICE
-                   --experiment-name "EXPERIMENT_NAME"
-                   --toml example.toml
+readfish boss-runs --device DEVICE \
+                   --experiment-name "EXPERIMENT_NAME" \
+                   --toml example.toml \
                    --log-file readfish.log
 ```
 
@@ -218,13 +217,13 @@ First download and unzip the reference for chromosome 20:
 mkdir -p ref && wget -O ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz http://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz && gunzip ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz
 ```
 
-Then launch BOSS-RUNS with the following parameters:
+Then launch BOSS-RUNS:
 
 ```
---run_name select_c20
---ref /ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa
---device DEVICE
---testing
+./bossruns.py --run_name select_c20 \
+              --ref /ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa \
+              --device DEVICE \
+              --testing
 ```
 
 `--run_name` needs to match the condition name in the readfish TOML file.
@@ -238,7 +237,7 @@ Let the playback sequencing run for a few minutes.
 
 There are 2 things to verify that the setup works:
 
-- (i) `readfish` is rejecting reads from all chromosomes, except for #20. For this, we look at the observed read lengths:
+1) `readfish` is rejecting reads from all chromosomes, except for #20. For this, we look at the observed read lengths:
 
 `readfish summary example.toml /path/to/sequencing/output/fastq_pass/`
 
@@ -278,7 +277,7 @@ TODO replace readfish summary output
 ```
 
 
-- (ii) `readfish` is using dynamically updated decision strategies
+2) `readfish` is using dynamically updated decision strategies
 
 for this, we can simply grep the log-file of `readfish` for all reloading events of updated strategies.
 
@@ -297,7 +296,7 @@ TODO add grep output from readfish log
 
 ### Deactivating playback behaviour
 
-After testing, remove the `simulation = ` line from the `sequencing_MIN106_DNA.toml` file and reload scripts in MinKNOW GUI (as above).
+After testing, remove the `simulation =` line from the `sequencing_MIN106_DNA.toml` file and reload scripts in MinKNOW GUI (as above).
 
 
 
