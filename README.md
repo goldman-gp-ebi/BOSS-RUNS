@@ -57,7 +57,7 @@ Alternatively, a VCF that matches the input fasta file and contains regions/site
 readfish needs a single modification to utilize BOSS-RUNS' dynamically updated decision masks:
 In the TOML configuration for readfish, add a single line pointing to the location where BOSS-RUNS will deposit new strategies, e.g. `mask = bossruns_name/masks`.
 This path will follow the pattern `bossruns_{condition_name}/masks`, where `condition_name` is the name of the condition in the readfish TOML intended to use BOSS-RUNS.
-A configuration for such a condition would like this for example:
+A configuration for such a condition might look like this:
 
 ```
 [conditions.0]
@@ -134,7 +134,7 @@ A parameter file can be supplied using `@` on the command line. E.g.: `python bo
 --argumentY valueY
 ```
 
-## Walkthrough
+## Walkthrough for testing
 
 
 
@@ -162,7 +162,7 @@ To configure a run for playback, you need to edit a sequencing TOML file located
 ### Starting readfish 
 
 
-This requires access to a guppy basecall server and a TOML file. Here's an example TOML file:
+This requires access to a guppy basecall server and a TOML file. Here's an example TOML file for this walkthrough:
 
 ```
 [caller_settings]
@@ -193,7 +193,7 @@ This configures `readfish` to target all reads from chromosome 20 and to continu
 You simply need to modify the reference field to a minimap2 index of the human genome.
 
 Modify the targets fields for each condition to reflect the naming convention used in your index. 
-This is the sequence name only, up to but not including any whitespace. e.g. `>20 human chromosome 20` would become `20`.
+This is the sequence name only, up to but not including any whitespace. e.g. the fasta header `>20 human chromosome 20` would become `20`.
 
 `readfish` can then be launched with 
 
@@ -209,7 +209,8 @@ readfish boss-runs --device DEVICE \
 
 
 After `readfish` is running, you can launch `BOSS-RUNS`. In this walkthrough we are using a reference that contains only chromosome 20. 
-This is purely for testing purposes and does not make for an interesting biological question. 
+This is purely for testing purposes and does not make for an interesting example,
+since the difference between the behaviours of `readfish` by itself and using `BOSS-RUNS` will be small in this example. 
 
 First download and unzip the reference for chromosome 20:
 
@@ -226,7 +227,7 @@ Then launch BOSS-RUNS:
               --testing
 ```
 
-`--run_name` needs to match the condition name in the readfish TOML file.
+`run_name` needs to match the condition name in the readfish TOML file.
 
 
 Let the playback sequencing run for a few minutes. 
@@ -285,7 +286,7 @@ for this, we can simply grep the log-file of `readfish` for all reloading events
 grep "Reloaded" readfish.log
 ```
 
-This should produce something like this, with updates after 90 seconds each (by default):
+This should produce something like this, with updates every 90 seconds (by default):
 
 
 ```
