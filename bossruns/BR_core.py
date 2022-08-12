@@ -1311,7 +1311,7 @@ class BossRun:
         # for tracking benefits
         self.threshold = 0
         # create directories for logs etc.
-        args.out_dir = f'./out_{args.run_name}'
+        args.out_dir = f'./bossruns_{args.run_name}'
         if not os.path.exists(args.out_dir):
             os.mkdir(args.out_dir)
             os.mkdir(f'{args.out_dir}/masks')
@@ -2147,7 +2147,7 @@ class BossRun_live(BossRun):
         # make sure the run name does not have any spaces
         assert ' ' not in args.run_name
 
-        args.out_dir = f'./out_{args.run_name}'
+        args.out_dir = f'./bossruns_{args.run_name}'
         if not os.path.exists(args.out_dir):
             os.mkdir(args.out_dir)
             os.mkdir(f'{args.out_dir}/masks')

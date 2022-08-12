@@ -311,9 +311,9 @@ def setup_parser_live():
     #
     parser.add_argument('--ref', type=str, required=True, help='Path to reference')
     parser.add_argument('--ref_idx', type=str, default=None, help='Optional minimap index of reference')
-    parser.add_argument('--vcf', type=str, default=None, help='Path to vcf file for ROIs')
     parser.add_argument('--run_name', type=str, default="br",
-                        help='Experiment identifier. If multiple conditions: must match name in channels.toml')
+                        help='Experiment identifier. Must match name of [conditions.X] in readfish toml file')
+    parser.add_argument('--vcf', type=str, default=None, help='Path to vcf file for ROIs')
     parser.add_argument('--ploidy', default=1, help='1 == haploid, 2 == diploid')
     parser.add_argument('--conditions', action='store_true',
                         help="Multiple conditions on a single flowcell, used to assign channels")
