@@ -324,6 +324,7 @@ def setup_parser_live():
     #
     parser.add_argument('--wait', default=90, type=int, help='Period between strategy updates (sec.)')
     parser.add_argument('--ckp', default=None, type=str, help="path to checkpoint file for relaunching. Experimental")
+    parser.add_argument('--testing', default=False, action='store_true', help="development option for testing")
     return parser
 
 

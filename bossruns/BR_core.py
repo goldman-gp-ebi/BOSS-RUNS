@@ -2134,6 +2134,10 @@ class BossRun_live(BossRun):
         for c, cval in const.__dict__.items():
             setattr(args, c, cval)
 
+        # development option for testing
+        if args.testing:
+            args.cov_until = 0
+
         self.args = args
         self.processed_files = set()
         self.batch = 0
