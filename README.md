@@ -9,7 +9,10 @@ BOSS-RUNS allows for dynamic, adaptive sampling during nanopore sequencing. It p
 The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/content/10.1101/2020.02.07.938670v3)
 
 
-![alt text](doc/BR_flowchart.png "BR flowchart")
+
+<p align="center">
+	<img src=doc/BR_flowchart.png width="750" />
+</p>
 
 
 
