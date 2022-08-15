@@ -317,7 +317,18 @@ Please use the issue tracker in this repository to get in touch!
 
 ## Citation
 
-add bibtex entry 
+
+```
+@article {Weilguny_dynamic_adaptive_sampling,
+	author = {Weilguny, Lukas and De Maio, Nicola and Munro, Rory and Manser, Charlotte and Birney, Ewan and Loose, Matt and Goldman, Nick},
+	title = {Dynamic, adaptive sampling during nanopore sequencing using Bayesian experimental design},
+	year = {2022},
+	doi = {10.1101/2020.02.07.938670},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2022/04/04/2020.02.07.938670},
+	journal = {bioRxiv}
+}
+```
 
 
 ## License
