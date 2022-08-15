@@ -1,4 +1,4 @@
-# ![alt text](doc/BR_logo.png "BOSS-RUNS logo")
+# <img src=doc/BR_logo.png width="500" />
 
 
 
