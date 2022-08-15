@@ -1,8 +1,15 @@
-# BOSS-RUNS
+# ![alt text](doc/BR_logo.png "BOSS-RUNS logo")
+
+
 
 BOSS-RUNS allows for dynamic, adaptive sampling during nanopore sequencing. It periodically ingests all newly observed sequencing reads to generate updated decision strategies in order to maximise the information gain during the sequencing experiment. This method is implemented to run alongside readfish, which communicates the rejection signals to the sequencing machine and reloads BOSS-RUNS' decision strategies whenever they are updated. 
 
 The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/content/10.1101/2020.02.07.938670v3)
+
+
+![alt text](doc/BR_flowchart.png "BR flowchart")
+
+
 
 
 ## Requirements
