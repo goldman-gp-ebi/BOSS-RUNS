@@ -11,7 +11,7 @@ The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/co
 
 
 <p align="center">
-	<img src=doc/BR_flowchart.png width="750" />
+	<img src=doc/BR_flowchart.png width="700" />
 </p>
 
 
