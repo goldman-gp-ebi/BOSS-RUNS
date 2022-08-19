@@ -314,6 +314,7 @@ class OTU:
             maximum read length of the distribution
 
         '''
+        logging.info("initialising prior read length distribution")
         # get the maximum read length
         longest_read = int(lam + 10 * sd)
         # prob density of normal distribution
@@ -605,6 +606,7 @@ class OTU:
 
     def init_buckets(self, size):
         # put all sites in buckets for strategy switches
+        logging.info("initialising strategy switches")
         self.bucket_size = size
         num_roi_in_bucket = np.zeros(shape=int(self.ch_cum_sum[-1] // size) + 1)
         roi_indices = self.roi_indices // size
@@ -707,6 +709,7 @@ class OTU:
         -------
 
         '''
+        logging.info("initialising positional scores")
         # start by calculating score of an empty position
         score0, ent0 = sitewise_score(scores=np.zeros(1),
                                       pos_posterior=self.prior_dist[0:1],
@@ -762,7 +765,7 @@ class OTU:
         -------
 
         '''
-        logging.info("init fist strategy")
+        logging.info("initialising fist strategy")
         # this will be a separate array for each chromosome
         self.strat_dict_BR = self._init_strategy_dict(window=window, method='BR')
 

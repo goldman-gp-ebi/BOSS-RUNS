@@ -114,6 +114,7 @@ class ReferenceWGS(Reference):
             chrom_rpos_ranges[cname] = (n, n + carr[-1])
             n += carr[-1] + 1
         roi_indices = np.arange(0, n, dtype="uint64")
+        logging.info(f"total on-target sequence: {roi_indices.shape[0]}")
         return genome2roi_arr, chrom_rpos, chrom_rpos_ranges, roi_indices
 
 
