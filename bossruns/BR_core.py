@@ -2152,8 +2152,8 @@ class BossRun_live(BossRun):
         # development option for testing
         if args.testing:
             args.cov_until = 0
-            out_path = "."
-            args.fastq_dir = "."
+            # out_path = "."
+            # args.fastq_dir = "."
 
         self.args = args
         self.processed_files = set()
