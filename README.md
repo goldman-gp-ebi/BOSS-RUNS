@@ -35,23 +35,29 @@ To install both readfish and BOSS-RUNS:
 - create a virtual environment
     
 `python3 -m venv bossruns`
+
 `. bossruns/bin/activate`
 
 - install dependencies and readfish
 
 `pip install --upgrade pip`
+
 `pip install git+https://github.com/nanoporetech/read_until_api@v3.0.0`
+
 `pip install git+https://github.com/LooseLab/readfish@BossRuns/V0.0.2`
 
 - `ont_guppy_client_lib` needs a version specific to your guppy version. On OSes using `apt` you can find your guppy version using:
 
 `apt list --installed ont-guppy* | tail -n 1 | cut -f2 -d' ' | cut -f1 -d'-' >guppy_version`
+
 `cat guppy_version`
+
 `pip install ont_pyguppy_client_lib==$(cat guppy_version)`
 
 - install a few more dependencies for BR and clone the repository
 
 `pip3 install natsort scipy numba toml`
+
 `git clone https://github.com/goldman-gp-ebi/BOSS-RUNS.git`
 
 
@@ -242,7 +248,7 @@ readfish boss-runs --device DEVICE \
 ### Starting BOSS-RUNS
 
 
-After `readfish` is running, you can launch `BOSS-RUNS` using the same reference and indicating which chromosomes should be completely ignored.
+After `readfish` is running, you can launch `BOSS-RUNS` using the same reference file and indicate which chromosomes are not of interest a priori.
 
 ```
 ./bossruns.py --run_name select_c20 \
@@ -313,7 +319,7 @@ for this, we can simply grep the log-file of `readfish` for all reloading events
 grep "Reloaded" readfish.log
 ```
 
-This should produce something like this, with updates every ~90 seconds (by default):
+This should produce an output similar to this, with updates every ~90 seconds (by default):
 
 
 ```
