@@ -12,13 +12,16 @@ from .BR_utils import integer_genome, read_fa
 
 class Reference:
 
-    def __init__(self, ref, mmi=None, min_len=None):
+    def __init__(self, ref, mmi=None, min_len=None, reject_refs=None):
         self.ref = ref
         self.mmi = mmi
 
         if not mmi:
             logging.info(f"indexing reference: {self.ref}")
             self.mmi = self.index_reference()
+
+        # prep the rejected sequences
+        self.reject_refs = reject_refs
 
         # load the sequences and their lengths
         min_len = min_len if min_len else 1e5
@@ -27,6 +30,8 @@ class Reference:
         self.chromosome_sequences = seq_dict
         self.chromosome_lengths = len_dict
         self.chromosome_indices = ind_dict
+        # used for flushing new strategies
+        self.chromosome_indices_considered = {cname: cind for cname, cind in ind_dict.items() if cname not in reject_refs}
 
         chNum, chArray, ch_cum_sum = self.gen_chrom_numbers()
         self.chNum = chNum
@@ -43,22 +48,33 @@ class Reference:
 
     def chromosome_dict(self, min_len):
         chrom_dict = {}
+        chrom_lengths = {}
         with open(self.ref, 'r') as fasta:
             for cname, cseq in read_fa(fasta):
-                if len(cseq) > min_len:
-                    chrom_dict[cname] = cseq.upper()
+                if len(cseq) < min_len:
+                    continue
+                if cname not in self.reject_refs:
+                    cseq_upper = cseq.upper()
+                    chrom_dict[cname] = cseq_upper
+                    chrom_lengths[cname] = len(cseq_upper)
+                else:
+                    chrom_dict[cname] = ""  # empty sequence to save memory
+                    chrom_lengths[cname] = len(cseq)
+
         # apply natsorting
         cnames_sorted = natsorted(list(chrom_dict.keys()))
         chrom_dict_sort = {cname: chrom_dict[cname] for cname in cnames_sorted}
-        chrom_lengths_sort = {cname: len(chrom_dict[cname]) for cname in cnames_sorted}
+        chrom_lengths_sort = {cname: chrom_lengths[cname] for cname in cnames_sorted}
         chrom_indices = {cname: i for i, cname in enumerate(cnames_sorted)}
         return chrom_dict_sort, chrom_lengths_sort, chrom_indices
 
     def gen_chrom_numbers(self):
+        # only use considered chromosomes
+        chrom_lengths = [clen for cname, clen in self.chromosome_lengths.items() if cname not in self.reject_refs]
         # number of chromosomes
-        chNum = len(self.chromosome_lengths.keys())
+        chNum = len(chrom_lengths)
         # array of chrom lengths
-        chArray = np.array(list(self.chromosome_lengths.values()))
+        chArray = np.array(list(chrom_lengths))
         # cumulative sum of chromosome lengths, starting with 0
         ch_cum_sum = np.append(np.zeros(1, dtype='uint64'),
                                np.cumsum(chArray, dtype='uint64'))
@@ -86,12 +102,14 @@ class ReferenceWGS(Reference):
 
     def gen_array_maps(self):
         # dict that holds an array of chromosome length
-        genome2roi_arr = {cname: np.arange(clen) for cname, clen in self.chromosome_lengths.items()}
+        genome2roi_arr = {cname: np.arange(len(cseq)) for cname, cseq in self.chromosome_sequences.items()}
         n = 0
         # dict that maps chromosomes to the concatenated array
         chrom_rpos = {}
         chrom_rpos_ranges = {}
         for cname, carr in genome2roi_arr.items():
+            if carr.shape[0] == 0:
+                continue
             chrom_rpos[cname] = np.arange(n, n + carr[-1] + 1)
             chrom_rpos_ranges[cname] = (n, n + carr[-1])
             n += carr[-1] + 1

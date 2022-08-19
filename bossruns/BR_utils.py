@@ -301,6 +301,8 @@ def setup_parser_sim():
     parser.add_argument('--batch_size', dest='batch_size', default=100, type=int, help='Number of reads in a batch')
     #
     parser.add_argument('--ploidy', default=1, help='1 == haploid, 2==diploid')
+    parser.add_argument('--reject_refs', default=None, type=str, help='reject all reads of some entries in reference file,'
+                                                                      ' i.e. chromosomes or species. Multiple sequences can be comma separated')
     return parser
 
 
@@ -314,6 +316,9 @@ def setup_parser_live():
     parser.add_argument('--run_name', type=str, default="br",
                         help='Experiment identifier. Must match name of [conditions.X] in readfish toml file')
     parser.add_argument('--vcf', type=str, default=None, help='Path to vcf file for ROIs')
+    parser.add_argument('--reject_refs', default=None, type=str,
+                        help='reject all reads of some entries in reference file,'
+                             ' i.e. chromosomes or species. Multiple headers can be comma separated')
     parser.add_argument('--ploidy', default=1, help='1 == haploid, 2 == diploid')
     parser.add_argument('--conditions', action='store_true',
                         help="Multiple conditions on a single flowcell, used to assign channels")

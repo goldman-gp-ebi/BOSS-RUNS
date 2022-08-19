@@ -76,6 +76,7 @@ class OTU:
         self.chromosome_sequences = {}
         self.chromosome_lengths = {}
         self.chromosome_indices = {}
+        self.chromosome_indices_considered = {}
         self.chNum = 0
         self.chArray = np.zeros(1)
         self.ch_cum_sum = np.zeros(1)
@@ -86,6 +87,11 @@ class OTU:
         self.chrom_rpos = {}
         self.chrom_rpos_ranges = {}
         self.roi_indices = np.zeros(1)
+        # prep rejected refs
+        if not self.args.reject_refs:
+            self.reject_refs = set()
+        else:
+            self.reject_refs = set(self.args.reject_refs.split(','))
 
 
 
@@ -581,17 +587,17 @@ class OTU:
         return priors, prior_dist
 
 
-    def init_reference_vcf(self, vcf, ref=None, mmi=None, min_len=None):
+    def init_reference_vcf(self, vcf, ref=None, mmi=None, min_len=None, reject_refs=None):
         # create the reference object for the VCF scenario
-        reference = ReferenceVCF(ref=ref, mmi=mmi, min_len=min_len)
+        reference = ReferenceVCF(ref=ref, mmi=mmi, min_len=min_len, reject_refs=reject_refs)
         reference.load_reference(vcf)
         # transfer the attributes to otu instance
         self.__dict__.update(reference.__dict__)
 
 
-    def init_reference_wgs(self, ref=None, mmi=None, min_len=None):
+    def init_reference_wgs(self, ref=None, mmi=None, min_len=None, reject_refs=None):
         # get reference object with necessary attributes
-        reference = ReferenceWGS(ref=ref, mmi=mmi, min_len=min_len)
+        reference = ReferenceWGS(ref=ref, mmi=mmi, min_len=min_len, reject_refs=reject_refs)
         reference.load_reference()
         # transfer all attributes to OTU instance
         self.__dict__.update(reference.__dict__)
@@ -762,7 +768,8 @@ class OTU:
 
         if self.args.wgs:
             on_target = OTU._find_initial_accept_wgs(strat_dict=self.strat_dict_BR,
-                                                              chromosome_indices=self.chromosome_indices)
+                                                     chromosome_indices=self.chromosome_indices,
+                                                     reject_refs=self.reject_refs)
         else:
             on_target = OTU._find_initial_accept(strat_dict=self.strat_dict_BR,
                                                  genome2roi=self.genome2roi,
@@ -786,7 +793,8 @@ class OTU:
 
             if self.args.wgs:
                 _ = OTU._find_initial_accept_wgs(strat_dict=self.strat_dict_RU,
-                                                          chromosome_indices=self.chromosome_indices)
+                                                 chromosome_indices=self.chromosome_indices,
+                                                 reject_refs=self.reject_refs)
             else:
                 _ = OTU._find_initial_accept(strat_dict=self.strat_dict_RU,
                                              genome2roi=self.genome2roi,
@@ -851,7 +859,7 @@ class OTU:
 
 
     @staticmethod
-    def _find_initial_accept_wgs(strat_dict, chromosome_indices):
+    def _find_initial_accept_wgs(strat_dict, chromosome_indices, reject_refs):
         # whole genomes: set everything to accept
         for chrom in chromosome_indices.keys():
             try:
@@ -859,8 +867,11 @@ class OTU:
             except KeyError:
                 continue
             # forward & reverse
-            chrom_strat.fill(1)
-        # on-target proportion for fhat
+            if chrom not in reject_refs:
+                chrom_strat.fill(1)
+            else:
+                chrom_strat.fill(0)
+        # on-target proportion for fhat TODO
         on_target = 1
         return on_target
 
@@ -1355,10 +1366,10 @@ class BossRun:
         # initialise the reference
         # tmp
         if self.args.wgs:
-            otu.init_reference_wgs(ref=self.args.ref, mmi=self.args.ref_idx)
+            otu.init_reference_wgs(ref=self.args.ref, mmi=self.args.ref_idx, reject_refs=self.otu.reject_refs)
         # this is for the case of VCF input
         elif self.args.vcf:
-            otu.init_reference_vcf(ref=self.args.ref, mmi=self.args.ref_idx, vcf=self.args.vcf)
+            otu.init_reference_vcf(ref=self.args.ref, mmi=self.args.ref_idx, vcf=self.args.vcf, reject_refs=self.otu.reject_refs)
         else:
             logging.info("Need either of arguments: --wgs --vcf")
             sys.exit()
@@ -1918,7 +1929,7 @@ class BossRun:
         '''
         # for each chromosome, place the strategy into the correct arrays
         ch_cum_sum = otu.ch_cum_sum // window
-        for c, c_ind in otu.chromosome_indices.items():
+        for c, c_ind in otu.chromosome_indices_considered.items():
             chrom_start = ch_cum_sum[c_ind]
             chrom_end = ch_cum_sum[c_ind + 1]
             chrom_strat = strat[chrom_start: chrom_end, :]
@@ -1973,7 +1984,7 @@ class BossRun:
         # for each chromosome place the strategy into the correct arrays
         ch_cum_sum = otu.ch_cum_sum // window
         ch_cum_sum_buckets = otu.ch_cum_sum // otu.bucket_size
-        for c, c_ind in otu.chromosome_indices.items():
+        for c, c_ind in otu.chromosome_indices_considered.items():
             c_start = ch_cum_sum[c_ind]
             c_end = ch_cum_sum[c_ind + 1]
             c_strat = strat[c_start: c_end, :]
@@ -2138,6 +2149,8 @@ class BossRun_live(BossRun):
         # development option for testing
         if args.testing:
             args.cov_until = 0
+            out_path = "."
+            args.fastq_dir = "."
 
         self.args = args
         self.processed_files = set()
@@ -2170,16 +2183,17 @@ class BossRun_live(BossRun):
 
         # initialise sequencing device dependent paths
         logging.info("looking for MinKNOW's output path..")
-        try:
-            out_path = grab_output_dir(device=args.device, host=args.host, port=args.port)
-            logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
-            args.fastq_dir = f'{out_path}/fastq_pass'
-        except:
-            logging.info("MinKNOW's output dir could not be inferred from device name. Exiting..")
-            logging.info(f'device: {args.device}, host: {args.host}, port: {args.port}')
-            # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
-            # args.fastq_dir = out_path
-            sys.exit()
+        if not args.fastq_dir:
+            try:
+                out_path = grab_output_dir(device=args.device, host=args.host, port=args.port)
+                logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
+                args.fastq_dir = f'{out_path}/fastq_pass'
+            except:
+                logging.info("MinKNOW's output dir could not be inferred from device name. Exiting..")
+                logging.info(f'device: {args.device}, host: {args.host}, port: {args.port}')
+                # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
+                # args.fastq_dir = out_path
+                sys.exit()
 
         # grab channels of the condition - only relevant if conditions
         if args.conditions:
