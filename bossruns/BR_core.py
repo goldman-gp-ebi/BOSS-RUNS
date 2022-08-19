@@ -827,6 +827,7 @@ class OTU:
             # adjust positions into their windows
             positions = np.array(list(position_dict.keys()))
             positions = positions // window
+            positions = np.unique(positions)  # reduce size of next loop by factor of window
 
             for pos in positions:
                 flank_left = pos - flank_size
