@@ -3,6 +3,7 @@ import os
 import glob
 import time
 import sys
+from pathlib import Path
 from itertools import product, permutations
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor as TPexe
@@ -16,7 +17,7 @@ from minknow_api import __version__ as minknow_api_version
 
 
 # custom imports
-from .BR_utils import execute, read_fa, integer_genome, append_row,\
+from .BR_utils import read_fa, integer_genome, append_row,\
     grab_br_channels, init_logger, binc, window_sum, adjust_length
 from .BR_mapper import Mapper
 from .BR_merged_genome import MergedGenome
@@ -896,7 +897,8 @@ class OTU:
             strats = getattr(self, f'strat_dict_BR')
             np.save(f"{chrom_path}", strats[c])
         # place a marker that the strategies were updated
-        execute(f"touch {self.args.out_dir}/masks/masks.updated")
+        markerfile = f'{self.args.out_dir}/masks/masks.updated'
+        Path(markerfile).touch()
 
 
     def add_coverage(self, covADD_naive=0, covADD_RU=0, covADD_BR=0):
@@ -2186,17 +2188,16 @@ class BossRun_live(BossRun):
 
         # initialise sequencing device dependent paths
         logging.info("looking for MinKNOW's output path..")
-        if not args.fastq_dir:
-            try:
-                out_path = grab_output_dir(device=args.device, host=args.host, port=args.port)
-                logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
-                args.fastq_dir = f'{out_path}/fastq_pass'
-            except:
-                logging.info("MinKNOW's output dir could not be inferred from device name. Exiting..")
-                logging.info(f'device: {args.device}, host: {args.host}, port: {args.port}')
-                # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
-                # args.fastq_dir = out_path
-                sys.exit()
+        try:
+            out_path = grab_output_dir(device=args.device, host=args.host, port=args.port)
+            logging.info(f"grabbing MinKNOW's output path: \n{out_path}\n")
+            args.fastq_dir = f'{out_path}/fastq_pass'
+        except:
+            logging.info("MinKNOW's output dir could not be inferred from device name. Exiting..")
+            logging.info(f'device: {args.device}, host: {args.host}, port: {args.port}')
+            # out_path = "/home/lukas/Desktop/BossRuns/playback_target/data/pb01/no_sample/20211021_2209_MS00000_f1_f320fce2"
+            # args.fastq_dir = out_path
+            sys.exit()
 
         # grab channels of the condition - only relevant if conditions
         if args.conditions:
