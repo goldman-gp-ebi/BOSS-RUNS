@@ -75,7 +75,7 @@ class MergedGenome:
 
             for cigar in cigars:
                 try:
-                    chrom_index = self.otu.chromosome_indices[str(cigar.target_name)]
+                    chrom_index = self.otu.chromosome_indices_considered[str(cigar.target_name)]
                 except KeyError:
                     continue
                 chrom_offset = self.otu.ch_cum_sum[chrom_index]

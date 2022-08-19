@@ -26,12 +26,11 @@ class Reference:
         # load the sequences and their lengths
         min_len = min_len if min_len else 1e5
         logging.info("reading reference file")
-        seq_dict, len_dict, ind_dict = self.chromosome_dict(min_len)
+        seq_dict, len_dict, ind_dict, ind_dict_filt = self.chromosome_dict(min_len)
         self.chromosome_sequences = seq_dict
         self.chromosome_lengths = len_dict
         self.chromosome_indices = ind_dict
-        # used for flushing new strategies
-        self.chromosome_indices_considered = {cname: cind for cname, cind in ind_dict.items() if cname not in reject_refs}
+        self.chromosome_indices_considered = ind_dict_filt
 
         chNum, chArray, ch_cum_sum = self.gen_chrom_numbers()
         self.chNum = chNum
@@ -66,7 +65,9 @@ class Reference:
         chrom_dict_sort = {cname: chrom_dict[cname] for cname in cnames_sorted}
         chrom_lengths_sort = {cname: chrom_lengths[cname] for cname in cnames_sorted}
         chrom_indices = {cname: i for i, cname in enumerate(cnames_sorted)}
-        return chrom_dict_sort, chrom_lengths_sort, chrom_indices
+        cnames_filt = [c for c in cnames_sorted if c not in self.reject_refs]
+        chrom_indices_filt = {cname: i for i, cname in enumerate(cnames_filt)}
+        return chrom_dict_sort, chrom_lengths_sort, chrom_indices, chrom_indices_filt
 
     def gen_chrom_numbers(self):
         # only use considered chromosomes
