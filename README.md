@@ -21,27 +21,44 @@ The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/co
 
 - Linux
 - MinKNOW >=5.0 with guppy >=6.0
-- working setup of [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.1). 
+- working setup of [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.2). 
 
 
 
 ## Installation
 
-In parallel to BOSS-RUNS, a modified version of readfish needs to be set up, which is available at: [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.1).
+In parallel to BOSS-RUNS, a modified version of readfish needs to be set up,
+which is available at: [readfish for BOSS-RUNS](https://github.com/LooseLab/readfish/tree/BossRuns/V0.0.2).
 
-Please follow the instructions of the readfish repository for installation instructions.
+To install both readfish and BOSS-RUNS:
 
-Then clone this repository:
+- create a virtual environment
+    
+`python3 -m venv bossruns`
+`. bossruns/bin/activate`
 
+- install dependencies and readfish
+
+`pip install --upgrade pip`
+`pip install git+https://github.com/nanoporetech/read_until_api@v3.0.0`
+`pip install git+https://github.com/LooseLab/readfish@BossRuns/V0.0.2`
+
+- `ont_guppy_client_lib` needs a version specific to your guppy version. On OSes using `apt` you can find your guppy version using:
+
+`apt list --installed ont-guppy* | tail -n 1 | cut -f2 -d' ' | cut -f1 -d'-' >guppy_version`
+`cat guppy_version`
+`pip install ont_pyguppy_client_lib==$(cat guppy_version)`
+
+- install a few more dependencies for BR and clone the repository
+
+`pip3 install natsort scipy numba toml`
 `git clone https://github.com/goldman-gp-ebi/BOSS-RUNS.git`
 
-BOSS-RUNS can be run in the same virtual environment used for readfish. You simply need to install a few additional dependencies:
-
-`pip install numba natsort scipy toml`
 
 
 
-Alternatively, BOSS-RUNS can be run in a separate conda environment. The required dependencies can be installed using the provided `yaml` file
+Alternatively, if you already have the correct version of readfish set up, BOSS-RUNS can be run in a separate conda environment.
+The required dependencies can then be installed using the provided `yaml` file
 
 `conda env create -f environment.yml`
 
@@ -56,12 +73,14 @@ BOSS-RUNS can be used in different ways depending on the aim of the sequencing e
 
 Reference fasta sequences are required for all targets. They will be indexed upon launch, or an index can optionally be provided. For creation, you can use:
 
-`scripts/mappy_index_fasta.py references.fa`
+`BOSS_RUNS/scripts/mappy_index_fasta.py references.fa`
 
 
-By default, all whole genome(s) included in the input fasta file are considered of interest. 
+- By default, all whole genome(s) included in the input fasta file are considered of interest. 
 
-Alternatively, a VCF that matches the input fasta file and contains regions/sites of interest (ROIs) can be provided. Only sites included in the VCF will be considered on-target.
+- You can also choose to reject all reads from specific sequences in your fasta file. For this, provide fasta headers of the reference file, e.g.: `--reject_refs 1,2,3,X,Y,MT`
+
+- Alternatively, a VCF that matches the input fasta file and contains regions/sites of interest (ROIs) can be provided. Only sites included in the VCF will be considered on-target.
 
 
 ### Starting readfish
@@ -110,7 +129,7 @@ and `CONDITION_NAME` is the same as in the readfish TOML.
 
 BOSS-RUNS will initialise and start to periodically generate new decision strategies from the sequencing reads deposited by the sequencer.
 If readfish is configured properly, the strategies will be reloaded automatically.
-This triggers a message in readfish's logfile similar to: `Reloaded mask dict for FASTA_HEADER`.
+This triggers a message in readfish's logfile similar to: `Reloaded mask dict for FASTA_HEADERS`.
 
 After sequencing, BOSS-RUNS needs to be stopped by a keyboard interrupt (Ctrl+C).
 
@@ -119,23 +138,26 @@ After sequencing, BOSS-RUNS needs to be stopped by a keyboard interrupt (Ctrl+C)
 
 Arguments can either be specified on the command line, by providing a parameter file, or a mixture or both (command-line arguments take priority).
 
+`python BOSS-RUNS/bossruns.py --help`
+
 ```
-usage: bossruns.py [-h] --ref REF [--ref_idx REF_IDX] [--vcf VCF] [--run_name RUN_NAME] [--ploidy PLOIDY] [--conditions] --device DEVICE
-                   [--host HOST] [--port PORT] [--wait WAIT]
+usage: bossruns.py [-h] --ref REF [--ref_idx REF_IDX] [--run_name RUN_NAME] [--vcf VCF] [--reject_refs REJECT_REFS] [--ploidy PLOIDY] [--conditions] --device DEVICE [--host HOST] [--port PORT] [--wait WAIT]
+                   [--ckp CKP]
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --ref REF            Path to reference
-  --ref_idx REF_IDX    Optional minimap index of reference
-  --vcf VCF            Path to vcf file for ROIs
-  --run_name RUN_NAME  Experiment identifier. If multiple conditions: must match name in channels.toml
-  --ploidy PLOIDY      1 == haploid, 2 == diploid
-  --conditions         Multiple conditions on a single flowcell, used to assign channels
-  --device DEVICE      Name of device/sequencing position in MinKNOW
-  --host HOST          hostname of sequencing device
-  --port PORT          port of sequencing device
-  --wait WAIT          Period between strategy updates (sec.)
-
+  -h, --help            show this help message and exit
+  --ref REF             Path to reference
+  --ref_idx REF_IDX     Optional minimap index of reference
+  --run_name RUN_NAME   Experiment identifier. Must match name of [conditions.X] in readfish toml file
+  --vcf VCF             Path to vcf file for ROIs
+  --reject_refs REJECT_REFS
+                        reject all reads of some entries in reference file, i.e. chromosomes or species. Multiple headers can be comma separated
+  --ploidy PLOIDY       1 == haploid, 2 == diploid
+  --conditions          Multiple conditions on a single flowcell, used to assign channels
+  --device DEVICE       Name of device/sequencing position in MinKNOW
+  --host HOST           hostname of sequencing device
+  --port PORT           port of sequencing device
+  --wait WAIT           Period between strategy updates (sec.)
 
 ```
 
@@ -200,11 +222,11 @@ no_map = "proceed"
 mask = "bossruns_select_c20/masks"
 ```
 
-This configures `readfish` to target all reads from chromosome 20 and to continuously read the dynamically updated decision strategies from `BOSS-RUNS`.
+This configures `readfish` to target all reads from chromosome 20 and to continuously read the dynamically updated decision strategies from `BOSS-RUNS` (`mask = "bossruns_select_c20/masks"`).
 
 You simply need to modify the reference field to a minimap2 index of the human genome.
 
-Modify the targets fields for each condition to reflect the naming convention used in your index. 
+Modify the `targets` field to reflect the naming convention used in your index. 
 This is the sequence name only, up to but not including any whitespace. e.g. the fasta header `>20 human chromosome 20` would become `20`.
 
 `readfish` can then be launched with 
@@ -220,21 +242,13 @@ readfish boss-runs --device DEVICE \
 ### Starting BOSS-RUNS
 
 
-After `readfish` is running, you can launch `BOSS-RUNS`. In this walkthrough we are using a reference that contains only chromosome 20. 
-This is purely for testing purposes and does not make for an interesting example,
-since the difference between the behaviours of `readfish` by itself and using `BOSS-RUNS` will be small in this example. 
-
-First download and unzip the reference for chromosome 20:
-
-```
-mkdir -p ref && wget -O ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz http://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz && gunzip ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa.gz
-```
-
-Then launch BOSS-RUNS:
+After `readfish` is running, you can launch `BOSS-RUNS` using the same reference and indicating which chromosomes should be completely ignored.
 
 ```
 ./bossruns.py --run_name select_c20 \
-              --ref /ref/Homo_sapiens.GRCh38.dna.chromosome.20.fa \
+              --ref /data/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa \
+              --ref_idx /data/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.mmi \
+              --reject_refs 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,X,Y,MT \
               --device DEVICE \
               --testing
 ```
@@ -256,37 +270,38 @@ There are 2 things to verify that the setup works:
 
 
 Check that the mean read length for the enriched chromosome is larger than for the remaining chromosomes.   
+(In this example the read lengths of depleted chromosomes are still rather long due to slow base calling) 
 
 
-TODO replace readfish summary output
 
 ```
-    contig  number      sum   min     max    std   mean  median     N50
-      chr1    1326  4187614   142  224402  14007   3158     795   48026
-     chr10     804  2843010   275  248168  15930   3536     842   47764
-     chr11     672  2510741   184  310591  18572   3736     841   73473
-     chr12     871  2317742   292  116848   9929   2661     825   37159
-     chr13     391  1090012   227  189103  12690   2788     781   41292
-     chr14     469  2323329   275  251029  20107   4954     830   68887
-     chr15     753  2189326   180  154830  12371   2907     812   40686
-     chr16     522  1673329   218  166941  12741   3206     862   39258
-     chr17     484  1609208   191  169651  15777   3325     816   73019
-     chr18     483  1525953   230  252901  14414   3159     813   40090
-     chr19     664  1898289   249  171742  13181   2859     820   46271
-      chr2    1474  4279420   234  222310  13090   2903     820   43618
-     chr20     489  1622910   229  171322  13223   3319     887   33669
-     chr21      32  1221224  1053  223477  56923  38163   13238  112200
-     chr22      47   724863   244  184049  28113  15423    6781   33464
-      chr3    1142  3554814   243  247771  15173   3113     760   62683
-      chr4    1224  4402210   210  221084  15769   3597     820   66686
-      chr5    1371  4495150   205  330821  16699   3279     801   65394
-      chr6     978  2725891   246  146169  10995   2787     791   37791
-      chr7    1039  3027136   166  263043  14705   2914     798   56567
-      chr8     848  2581406   238  229150  15618   3044     772   44498
-      chr9     893  3028224   259  247975  16011   3391     802   54953
-      chrM     144   216047   215   20731   2562   1500     864    1391
-      chrX     868  3124552   238  192451  15594   3600     832   49047
-      chrY       8    47071   510   31654  10743   5884    1382   31654    
+contig  number      sum  min     max    std   mean  median    N50
+     1    1151  1577570  224  197871   7002   1371     581   7096
+    10    1012  1147739  211  105585   5128   1134     578   1149
+    11     836  1207274  225  212740   8385   1444     590   7727
+    12     741   940284  192   81667   5419   1269     569   2143
+    13     477   412434  182   54642   2694    865     556    898
+    14     771   988124  176  114908   5616   1282     573   7301
+    15     540   882612  223   99327   7459   1634     576   8258
+    16     425   486124  209  107335   5579   1144     533   1341
+    17     732  1099546  195  219260   9307   1502     614   8725
+    18     180   310512  228   40407   4565   1725     638   8213
+    19     592   824374  222  121745   6374   1393     634   5811
+     2    1477  1572749  190   89358   3780   1065     561   1154
+    20      50  1163599  227  145149  37887  23272    2214  86773   <---
+    21     392   424448  199  118785   6053   1083     548   1213
+    22     178   286534  188   49058   4788   1610     655   9884
+     3    1198  1638753  201  172141   7473   1368     578   6548
+     4    1370  1807013  174  160366   6708   1319     582   6917
+     5    1408  2144345  162  212394   9884   1523     544   8397
+     6     656  1013424  231  118194   5819   1545     599   7268
+     7    1026   932717  185   66384   2972    909     563    914
+     8     906  1133194  210  162732   5930   1251     564   2210
+     9    1046  1533653  200  248867   9656   1466     552   8059
+    MT      19   143721  591   16467   6140   7564    6809  13257
+     X    1515  1490398  199  132776   4652    984     526   1014
+     Y       9     6531  427    1895    475    726     517    628
+
 ```
 
 
@@ -298,11 +313,15 @@ for this, we can simply grep the log-file of `readfish` for all reloading events
 grep "Reloaded" readfish.log
 ```
 
-This should produce something like this, with updates every 90 seconds (by default):
+This should produce something like this, with updates every ~90 seconds (by default):
 
 
 ```
-TODO add grep output from readfish log
+2022-08-19 22:58:12,327 ru.ru_gen_boss_runs Reloaded mask dict for dict_keys(['2', '14', '21', '18', '8', '20', '16', '15', '6', '17', '19', '1', '22', '13', '5', '7', '9', '4', '12', 'Y', '10', '11', '3', 'X'])
+2022-08-19 22:59:32,695 ru.ru_gen_boss_runs Reloaded mask dict for dict_keys(['2', '14', '21', '18', '8', '20', '16', '15', '6', '17', '19', '1', '22', '13', '5', '7', '9', '4', '12', 'Y', '10', '11', '3', 'X'])
+2022-08-19 23:01:02,290 ru.ru_gen_boss_runs Reloaded mask dict for dict_keys(['2', '14', '21', '18', '8', '20', '16', '15', '6', '17', '19', '1', '22', '13', '5', '7', '9', '4', '12', 'Y', '10', '11', '3', 'X'])
+2022-08-19 23:02:31,781 ru.ru_gen_boss_runs Reloaded mask dict for dict_keys(['2', '14', '21', '18', '8', '20', '16', '15', '6', '17', '19', '1', '22', '13', '5', '7', '9', '4', '12', 'Y', '10', '11', '3', 'X'])
+
 ```
 
 
