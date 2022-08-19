@@ -167,8 +167,9 @@ class ReferenceVCF(Reference):
     def check_vcf_order(self, vcf_sites):
         # check that the order of variants in the file is the same as the chromosome dict
         chrom_names_ref = self.chromosome_sequences.keys()
-        chrom_names_vcf = vcf_sites.keys()
-        assert chrom_names_ref == chrom_names_vcf
+        chrom_names_vcf = list(vcf_sites.keys())
+        chrom_names_ref_filt = [c for c in chrom_names_vcf if c in chrom_names_ref]
+        assert chrom_names_ref_filt == chrom_names_vcf
 
 
     def gen_genome2roi(self, vcf_sites):
