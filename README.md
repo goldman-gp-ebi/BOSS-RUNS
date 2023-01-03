@@ -6,7 +6,7 @@
 
 BOSS-RUNS allows for dynamic, adaptive sampling during nanopore sequencing. It periodically ingests all newly observed sequencing reads to generate updated decision strategies in order to maximise the information gain during the sequencing experiment. This method is implemented to run alongside readfish, which communicates the rejection signals to the sequencing machine and reloads BOSS-RUNS' decision strategies whenever they are updated. 
 
-The method is described in this [preprint on bioRxiv](https://www.biorxiv.org/content/10.1101/2020.02.07.938670v3)
+The method is described in this [open access paper](https://doi.org/10.1038/s41587-022-01580-z) and this [preprint on bioRxiv](https://www.biorxiv.org/content/10.1101/2020.02.07.938670v3)
 
 
 
@@ -347,15 +347,15 @@ Please use the issue tracker in this repository to get in touch!
 
 
 ```
-@article {Weilguny_dynamic_adaptive_sampling,
-	author = {Weilguny, Lukas and De Maio, Nicola and Munro, Rory and Manser, Charlotte and Birney, Ewan and Loose, Matt and Goldman, Nick},
-	title = {Dynamic, adaptive sampling during nanopore sequencing using Bayesian experimental design},
-	year = {2022},
-	doi = {10.1101/2020.02.07.938670},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2022/04/04/2020.02.07.938670},
-	journal = {bioRxiv}
+@article{weilgunyDynamicAdaptiveSampling2023,
+  title = {Dynamic, adaptive sampling during nanopore sequencing using {{Bayesian}} experimental design},
+  author = {Weilguny, Lukas and De Maio, Nicola and Munro, Rory and Manser, Charlotte and Birney, Ewan and Loose, Matthew and Goldman, Nick},
+  year = {2023},
+  journal = {Nature Biotechnology},
+  publisher = {{Nature Publishing Group}},
+  doi = {10.1038/s41587-022-01580-z}
 }
+
 ```
 
 
