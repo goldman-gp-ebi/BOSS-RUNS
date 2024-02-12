@@ -7,8 +7,8 @@ wait = 30                       # waiting time between updates in live version
 
 [simulation]                    # simulation arguments
 fq = "../data/ERR3152366_10k.fq"
-bsize = 400
-maxb = 240
-binit = 100
+batchsize = 10
+maxb = 20
+binit = 10
 dumptime = 50000000
 
