@@ -46,12 +46,12 @@ class Config:
         [optional]
         reject_refs = ""                # comma-separated list of headers in reference from which to always reject
         ploidy = 1                      # 1 or 2
-        lowcov = 10                     # target for assemblies
-        temperature = 60                # max batches during which to consider fragments
-        min_seq_len = 2500
-        min_contig_len = 10_000
-        min_s1 = 200
-        min_map_len = 2000
+        lowcov = 10                     # target coverage for assemblies
+        temperature = 60                # max updates during which to consider fragments (higher number might decrease update speeds)
+        min_seq_len = 2500              # min sequence length used during contig reconstruction
+        min_contig_len = 10_000         # min length to consider contigs
+        min_s1 = 200                    # min alignment scores to consider overlaps
+        min_map_len = 2000              # min alignment length to consider overlaps
         tetra = true                    # perform tetranucleotide frequency tests
         filter_repeats = false          # perform repeat filtering
 
