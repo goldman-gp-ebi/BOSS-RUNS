@@ -33,7 +33,7 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 Since this software depends on readfish, install that first (instructions copied from [their repository](https://github.com/LooseLab/readfish/tree/main?tab=readme-ov-file#installation)):
 
 
-```toml
+```yaml
 name: readfish
 channels:
   - bioconda
