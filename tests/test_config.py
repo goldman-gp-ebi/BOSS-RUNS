@@ -5,10 +5,10 @@ import boss.config
 
 
 arg_lists = {
-    "boss-runs": ['--toml', "./BOSS_RUNS.toml", '--toml_readfish', "./BOSS_RUNS_RF.toml"],
-    "boss-runs-sim": ['--toml', "./BOSS_RUNS_SIM.toml"],
-    "boss-aeons": ['--toml', "./BOSS_AEONS.toml", '--toml_readfish', "./BOSS_AEONS_RF.toml"],
-    "boss-aeons-sim": ['--toml', "./BOSS_AEONS_SIM.toml"],
+    "boss-runs": ['--toml', "./config/BOSS_RUNS.toml", '--toml_readfish', "./config/BOSS_RUNS_RF.toml"],
+    "boss-runs-sim": ['--toml', "./config/BOSS_RUNS_SIM.toml"],
+    "boss-aeons": ['--toml', "./config/BOSS_AEONS.toml", '--toml_readfish', "./config/BOSS_AEONS_RF.toml"],
+    "boss-aeons-sim": ['--toml', "./config/BOSS_AEONS_SIM.toml"],
 }
 
 
@@ -28,10 +28,10 @@ def test_config_runs():
     conf = boss.config.Config(parse=True, arg_list=arg_lists['boss-runs'])
     assert conf.args.name == "runs"
     assert conf.args.device == "MS00000"
-    assert conf.args.ref == "../data/zymo_accurate_concat_unwrapped.fa"
+    assert conf.args.ref == "../data/zymo.fa"
     assert conf.args.live_run is True
     assert conf.args.sim_run is False
-    assert conf.args.toml_readfish == "./BOSS_RUNS_RF.toml"
+    assert conf.args.toml_readfish == "./config/BOSS_RUNS_RF.toml"
     assert conf.args.split_flowcell is True
 
 
@@ -51,7 +51,7 @@ def test_config_aeons():
     assert conf.args.ref == ""
     assert conf.args.live_run is True
     assert conf.args.sim_run is False
-    assert conf.args.toml_readfish == "./BOSS_AEONS_RF.toml"
+    assert conf.args.toml_readfish == "./config/BOSS_AEONS_RF.toml"
     assert conf.args.split_flowcell is True
     assert conf.args.lowcov == 1
 
