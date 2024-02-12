@@ -1,3 +1,27 @@
+out_boss/
+out_aeons/
+out_runs/
+00_reads/
+htmlcov/
+.snakemake/
+fastq_pass/
+fastq_pass_ch/
+
+data/*.fq*
+data/*.fasta*
+data/*.fa*
+data/ERR*
+data/*.toml
+data/*.npz
+tests/boss.*
+tests/init_*
+little_seqs.fa
+sim.done
+
+
+# AUTO-GENERATED BELOW
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
