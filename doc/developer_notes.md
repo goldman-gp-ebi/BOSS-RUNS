@@ -37,3 +37,31 @@ The `process_batch()` functions take a method of one of the subclasses and execu
 
 
 
+
+## Testing
+
+The code is covered by pytests. Test data will shortly be available in `data/`
+
+```shell
+pip install pytest pytest-cov pytest-timeout
+```
+
+Most tests can be run stand-alone with
+
+```shell
+cd tests
+pytest --ignore=playback --cov --cov-report html 
+```
+
+Some tests need to have playback sequencing running in the background.
+These can be run with
+
+```shell
+cd tests
+pytest playback 
+```
+
+In the playback case, some tests (infinite loops) will run for a while and xfail on purpose by a timeout.
+In that case, the correct behaviour can only be checked by looking at the corresponding logfile.
+
+
