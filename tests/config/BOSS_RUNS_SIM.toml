@@ -1,0 +1,17 @@
+[general]
+name = "runs"                   # experiment name
+wait = 30                       # waiting time between updates in live version
+ref = "../data/zymo.fa"         # reference file
+
+########################################################################################
+
+[simulation]                    # simulation arguments
+fq = "../data/ERR3152366_10k.fq"
+bsize = 10
+maxb = 100
+binit = 3
+dumptime = 5000
+paf_full = "../data/ERR3152366_10k.paf"
+paf_trunc = "../data/ERR3152366_10k_trunc.paf"
+
+

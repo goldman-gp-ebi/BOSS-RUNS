@@ -1,0 +1,14 @@
+[general]
+name = "aeons"                   # experiment name
+wait = 30                       # waiting time between updates in live version
+
+[live]
+device = "MS00000"                     # position on sequencer
+host = "localhost"              # host of sequencing device
+port = 9502                     # port of sequencing device
+data_wait = 30                 # wait for X Mb data before first update
+prom = false
+
+[optional]
+lowcov = 1                     # target for assemblies
+

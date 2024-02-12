@@ -1,0 +1,14 @@
+[general]
+name = "aeons"                   # experiment name
+wait = 30                       # waiting time between updates in live version
+
+
+########################################################################################
+
+[simulation]                    # simulation arguments
+fq = "../data/ERR3152366_10k.fq"
+bsize = 400
+maxb = 240
+binit = 100
+dumptime = 50000000
+
