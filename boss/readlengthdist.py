@@ -80,7 +80,7 @@ class ReadlengthDist:
         ccl[1:] = 1 - np.concatenate((self.L[1:].cumsum(), np.ones(1)))
         # cut distribution off to reduce complexity
         ccl[ccl < 1e-6] = 0
-        ccl = np.trim_zeros(ccl, trim='b')
+        ccl = np.concatenate((np.trim_zeros(ccl, trim='b'), np.zeros(1)))
         self.ccl = ccl
         # approx. with piecewise constant function
         approx_ccl = np.zeros(self.eta - 1, dtype='int32')
