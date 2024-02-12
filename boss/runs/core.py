@@ -137,6 +137,14 @@ class BossRuns(Boss):
             i += cont.length // window
 
 
+    def cleanup(self) -> None:
+        """
+        To be implemented
+
+        :return:
+        """
+        pass
+
 
     def update_wrapper(self) -> None:
         """
