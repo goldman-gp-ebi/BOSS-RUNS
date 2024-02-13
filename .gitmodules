@@ -1,0 +1,3 @@
+[submodule "data/BOSS_test_data"]
+	path = data/BOSS_test_data
+	url = https://github.com/W-L/BOSS_test_data.git
