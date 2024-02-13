@@ -40,7 +40,7 @@ The `process_batch()` functions take a method of one of the subclasses and execu
 
 ## Testing
 
-The code is covered by pytests. Test data will shortly be available in `data/`
+The code is covered by pytests. Test data is available in a submodule in `data/`. To get the test data: `git clone --recurse-submodules ...` 
 
 ```shell
 pip install pytest pytest-cov pytest-timeout
