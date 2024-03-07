@@ -9,7 +9,9 @@ generate updated decision strategies in order to maximise the information gain d
 [Readfish](https://github.com/LooseLab/readfish) is launched to run alongside and communicates the rejection signals 
 to the sequencing machine. 
 
+
 The method is described in this [article](https://doi.org/10.1038/s41587-022-01580-z)
+
 
 
 
@@ -233,6 +235,7 @@ Notes for development and code organisation can be found in `doc/developer_noted
   publisher = {{Nature Publishing Group}},
   doi = {10.1038/s41587-022-01580-z}
 }
+
 ```
 
 
