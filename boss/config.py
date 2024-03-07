@@ -40,8 +40,8 @@ class Config:
         device = "TEST"                 # position on sequencer
         host = "localhost"              # host of sequencing device
         port = 9502                     # port of sequencing device
-        data_wait = 100                 # wait for X Mb data before first update
-        prom = false
+        data_wait = 100                 # wait for X Mb of data before first update
+        prom = false                    # switch for using a PromethION flowcell (experimental)
 
         [optional]
         reject_refs = ""                # comma-separated list of headers in reference from which to always reject
