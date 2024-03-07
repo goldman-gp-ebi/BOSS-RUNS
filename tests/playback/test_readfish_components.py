@@ -1,7 +1,7 @@
 import pytest
 import argparse
 from pathlib import Path
-import boss.readfish.boss_readfish as rf
+import readfish_boss as rf
 import subprocess
 
 

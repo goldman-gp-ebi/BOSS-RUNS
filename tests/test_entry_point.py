@@ -1,6 +1,6 @@
 import pytest
 
-from BOSS import main
+from boss.BOSS import main
 
 
 arg_lists = {
