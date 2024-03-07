@@ -1,4 +1,4 @@
-# <img src=doc/BR_logo.png width="500" />
+# <img src=doc/BR_logo.png width="350" />
 
 
 *B*enefit-*O*ptimising *S*hort-term *S*trategies for *R*ead*U*ntil *N*anopore *S*equencing
@@ -30,37 +30,16 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 
 ## Installation
 
-Since this software depends on readfish, install that first (instructions copied from [their repository](https://github.com/LooseLab/readfish/tree/main?tab=readme-ov-file#installation)):
 
+Recommended way of installing our software is in a conda/mamba environment. 
+These commands will create an environment and install BOSS* alongside the necessary dependencies. 
 
-```yaml
-name: readfish
-channels:
-  - bioconda
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.10
-  - pip
-  - pip:
-    - readfish[all]
-
-```
-
-save the snippet above as `readfish_boss.yml` and run:
 
 ```shell
-conda env create -f readfish_boss.yml
-conda activate readfish
-````
-
-then install some additional dependencies of BOSS*, clone this repository, switch to the dev branch
-
-```shell
-conda install -y gfatools minimap2 miniasm bottleneck scipy numba -c bioconda -c conda-forge -c defaults
-git clone https://github.com/goldman-gp-ebi/BOSS-RUNS.git
-git checkout dev
+mamba create -n boss python=3.10 pip gfatools minimap2 miniasm && mamba activate boss   
+pip install boss_runs
 ```
+
 
 
 ## Usage
@@ -92,7 +71,8 @@ ploidy = 1                      # 1 or 2
 
 
 By default, all whole genome(s) included in the input fasta file are considered of interest at the beginning of the experiment. 
-It is possible to reject all reads from specific sequences in a fasta file. For this, provide fasta headers of the reference file, e.g.: `--reject_refs 1,2,3,X,Y,MT`
+It is possible to reject all reads from specific sequences in a fasta file. 
+For this, provide fasta headers of the reference file, e.g.: `--reject_refs 1,2,3,X,Y,MT`
 
 
 
@@ -151,8 +131,8 @@ readfish is launched from within BOSS* for ease of use
 
 After sequencing has started launch BOSS* with:
 
-```
-./BOSS.py --toml path/to/toml --toml_readfish path/to/readfish/toml
+```shell
+boss --toml path/to/toml --toml_readfish path/to/readfish/toml
 ```
 
 
@@ -160,7 +140,7 @@ BOSS* will initialise and start to periodically generate new decision strategies
 If readfish is configured properly, the strategies will be reloaded automatically.
 This triggers a message in readfish's logfile similar to: `Reloaded strategies for X sequences`.
 
-When enough data is collected, BOSS-RUNS can be stopped by a keyboard interrupt (Ctrl+C).
+When enough data is collected, BOSS* can be stopped by a keyboard interrupt (Ctrl+C).
 
 
 
@@ -170,30 +150,19 @@ When enough data is collected, BOSS-RUNS can be stopped by a keyboard interrupt 
 It is highly recommended to follow the [walkthrough provided in the readfish repository](https://github.com/LooseLab/readfish/tree/main?tab=readme-ov-file#testing)
 to set up a playback experiment and test the functionality and interplay of the software and sequencing machine.
 
-As soon as playback is running, BOSS* can be executed using these toml files:
+As soon as playback is running, BOSS* can be executed using toml files located in `tests/config`:
 
-TODO
-```
---ref /data/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa
---ref_idx /data/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.mmi 
---reject_refs 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,X,Y,MT 
+
+```shell
+boss --toml tests/config/boss_ch20.toml --toml_readfish tests/config/boss_ch20_readfish.toml
 ``` 
               
+This configures targeting of chromosome 20 with continuously updated decision strategies.
+Let the playback sequencing run for a few minutes, then verify that the setup works:
 
-`../BOSS.py --toml ./config/`
+1) `readfish` is rejecting reads from all chromosomes, except for #20. For this, look at the observed read lengths:
 
-
-This configures targeting of chromosome 20 and to continuously updated decision strategies
-
-
-Let the playback sequencing run for a few minutes.
-
-
-Then there are 2 things to verify that the setup works:
-
-1) `readfish` is rejecting reads from all chromosomes, except for #20. For this, we look at the observed read lengths:
-
-`readfish summary readfish_test.toml /path/to/sequencing/output/fastq_pass/`
+`readfish summary tests/config/boss_ch20_readfish.toml /path/to/sequencing/output/fastq_pass/`
 
 
 Check that the mean read length for the enriched chromosome is larger than for the remaining chromosomes.   
@@ -228,31 +197,28 @@ contig  number      sum  min     max    std   mean  median    N50
     MT      19   143721  591   16467   6140   7564    6809  13257
      X    1515  1490398  199  132776   4652    984     526   1014
      Y       9     6531  427    1895    475    726     517    628
-
 ```
 
 
 2) `readfish` is using dynamically updated decision strategies
 
-for this, we can simply grep the log-file of `readfish` for all reloading events of updated strategies.
+for this, grep the log-file of `readfish` for all reloading events of updated strategies.
 
-```
+```shell 
 grep "Reloaded" readfish.log
+#2024-03-06 17:06:39,179 readfish.targets Reloaded strategies for 24 sequences
+#2024-03-06 17:07:07,994 readfish.targets Reloaded strategies for 24 sequences
+#2024-03-06 17:07:37,818 readfish.targets Reloaded strategies for 24 sequences
+#2024-03-06 17:08:38,902 readfish.targets Reloaded strategies for 24 sequences
+#2024-03-06 17:09:07,365 readfish.targets Reloaded strategies for 24 sequences
+# ...
 ```
-
-This should produce an output similar to this, showing the periodic updates:
-
-
-```
-TODO
-```
-
-
 
 
 ## Issues, questions, suggestions ...
 
 Please use the issue tracker in this repository to get in touch!
+Notes for development and code organisation can be found in `doc/developer_noted.md` 
 
 
 ## Citation
