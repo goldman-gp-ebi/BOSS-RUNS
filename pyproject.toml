@@ -22,6 +22,10 @@ dependencies = [
 ]
 
 
+[project.urls]
+homepage = "https://github.com/goldman-gp-ebi/BOSS-RUNS/"
+
+
 [project.optional-dependencies]
 dev = [
     "pytest~=8.0.0",
