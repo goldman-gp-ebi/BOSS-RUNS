@@ -30,6 +30,9 @@ classes:
 
 ## Entry points
 
+
+General entry-point for the package is `main()` in `boss.BOSS`. The hatch build copies this as a script into a callable path.
+
 The superclass Boss initialises and then runs `process_batch()` for each batch of new data. (Or `process_batch_sim()` for simulations)
 
 The `process_batch()` functions take a method of one of the subclasses and execute that as their main body
@@ -40,7 +43,8 @@ The `process_batch()` functions take a method of one of the subclasses and execu
 
 ## Testing
 
-The code is covered by pytests. Test data is available in a submodule in `data/`. To get the test data: `git clone --recurse-submodules ...` 
+The code is covered by pytests. Test data is available in a submodule in `data/`. 
+To get the test data: `git clone --recurse-submodules ...` 
 
 ```shell
 pip install pytest pytest-cov pytest-timeout
@@ -62,6 +66,6 @@ pytest playback
 ```
 
 In the playback case, some tests (infinite loops) will run for a while and xfail on purpose by a timeout.
-In that case, the correct behaviour can only be checked by looking at the corresponding logfile.
+In that case, the correct behaviour can only be checked by looking at the corresponding logfiles.
 
 
