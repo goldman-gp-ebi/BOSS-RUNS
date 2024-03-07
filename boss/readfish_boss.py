@@ -48,7 +48,7 @@ from readfish.plugins.utils import Decision, PreviouslySentActionTracker, Result
 
 # TODO custom import
 from readfish.entry_points import targets
-from boss.readfish._cli_base import main as main_args
+from _cli_base import main as main_args
 import numpy as np
 import sys
 import os

@@ -173,7 +173,7 @@ class LiveRun:
         # find the script to launch readfish
         module_path = inspect.getfile(LiveRun)
         logging.info(module_path)
-        script_path = Path(module_path).parent / "readfish" / "boss_readfish.py"
+        script_path = Path(module_path).parent / "readfish_boss.py"
         if not script_path.is_file():
             raise FileNotFoundError("boss_readfish.py not found. Something went wrong..")
         readfish_comm = f'python {script_path} {toml} {device} {name} 2>&1 | tee -a readfish.log'
