@@ -68,4 +68,12 @@ pytest playback
 In the playback case, some tests (infinite loops) will run for a while and xfail on purpose by a timeout.
 In that case, the correct behaviour can only be checked by looking at the corresponding logfiles.
 
+Upper case TOML config files in `tests/config` are for the test suite. 
+The other ones are for the walkthrough example of Chromosome 20 fishing.
+
+
+## Test packaged version
+
+`pip install dist/boss_runs-0.1.0-py3-none-any.whl --force-reinstall --no-deps`
+
 
