@@ -47,16 +47,16 @@ class Contig:
         :return: Array of integers representing nucleotides
         """
         # define the dict for translating the bases
-        transDict = defaultdict(int)
-        transDict.update({'A': 0, 'C': 1, 'G': 2, 'T': 3})
+        transDict = defaultdict(str)
+        transDict.update({'A': '0', 'C': '1', 'G': '2', 'T': '3'})
         for letter in ascii_letters:
             if letter not in transDict.keys():
-                transDict[letter] = 0
+                transDict[letter] = '0'
         # create translation table from dictionary
         base2int = str.maketrans(dict(transDict))
         # translate and convert from byte string
         read_integer = self.seq.translate(base2int)
-        seq_int = np.fromstring(read_integer, dtype='int8', sep='')
+        seq_int = np.frombuffer(read_integer.encode(), 'u1') - ord('0')
         assert set(seq_int) == {0, 1, 2, 3}
         return seq_int
 

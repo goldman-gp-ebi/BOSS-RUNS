@@ -657,13 +657,13 @@ class CoverageConverter:
         :param qt: Minimum quality threshold to count observations
         """
         # set up translation dict for bases
-        transDict = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
+        transDict = {'A': '0', 'C': '1', 'G': '2', 'T': '3'}
         self.base2int = str.maketrans(transDict)
         # translation dict for qualities (phred encoded)
-        transDict_qual = {chr(min(126, q + 33)): q for q in range(94)}
+        transDict_qual = {chr(min(126, q + 33)): f'{q},' for q in range(94)}
         self.qual2int = str.maketrans(transDict_qual)
         # and a translation dict for the cigar ops
-        transDict_cig = {'M': 0, 'D': 1, 'I': 2, 'S': 3}
+        transDict_cig = {'M': '0', 'D': '1', 'I': '2', 'S': '3'}
         self.cig2int = str.maketrans(transDict_cig)
         # compile regex for cigar ops
         self.cigar_regex = re.compile("(\d+)([MIDNSHP=XB])")
@@ -740,9 +740,9 @@ class CoverageConverter:
         """
         # translate sequence and qualities to integers
         read_integer = read_string.translate(self.base2int)
-        int_seq = np.fromstring(read_integer, dtype='int8', sep='')
+        int_seq = np.frombuffer(read_integer.encode(), 'u1') - ord('0')
         qual_integer = qual_string.translate(self.qual2int)
-        int_qual = np.fromstring(qual_integer, dtype='int8', sep='')
+        int_qual = np.array(qual_integer.split(',')[:-1], dtype="uint8")
         # split up the cigar
         lengths, ops = self._prep_cigar(cigar_string)
         # loop cigar operators
@@ -774,7 +774,7 @@ class CoverageConverter:
         # for the opcodes, first put them into a string and translate to integers
         ops_seq = ''.join(ops)
         ops_tr = ops_seq.translate(self.cig2int)
-        opsSeq = np.fromstring(ops_tr, dtype='int8', sep='')
+        opsSeq = np.frombuffer(ops_tr.encode(), 'u1') - ord('0')
         return lengths_arr, opsSeq
 
 
