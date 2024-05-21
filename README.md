@@ -21,6 +21,12 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 
 
 
+## Changelog
+
+
+- 2024/05/21 0.2.0 Updated internal readfish functionality to ensure compatibility with newest dorado versions
+
+
 
 ## Requirements
 
@@ -85,7 +91,7 @@ A separate toml file needs to be given to BOSS that contains the configuration o
 Here's an example with two regions on a flowcell, where one is running this method and the second half acts as a control:
 
 ```toml
-[caller_settings.guppy]
+[caller_settings.guppy]  # use .dorado here if using dorado
 config = 'dna_r10.4.1_e8.2_400bps_5khz_fast'
 address = 'ipc:///tmp/.guppy/5555'
 debug_log = 'live_reads.fq'
