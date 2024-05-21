@@ -32,10 +32,17 @@ from readfish.read_until import ReadUntilClient
 from minknow_api import protocol_service
 
 # Library
-from readfish._cli_args import DEVICE_BASE_ARGS, DEFAULT_UNBLOCK
+from readfish._cli_args import DEVICE_BASE_ARGS, Chemistry
 from readfish._read_until_client import RUClient
 from readfish._config import Action, Conf, make_decision, _Condition
 from readfish._statistics import ReadfishStatistics
+from readfish.__about__ import __version__
+from readfish._compatibility import (
+    _get_minknow_version,
+    check_compatibility,
+    MINKNOW_COMPATIBILITY_RANGE,
+    DIRECTION,
+)
 from readfish._utils import (
     get_device,
     send_message,
@@ -43,7 +50,14 @@ from readfish._utils import (
     Severity,
 )
 from readfish.plugins.abc import AlignerABC, CallerABC
-from readfish.plugins.utils import Decision, PreviouslySentActionTracker, Result
+from readfish.plugins.utils import (
+    Decision,
+    PreviouslySentActionTracker,
+    Result,
+    DuplexTracker,
+    Strand,
+)
+
 
 
 # TODO custom import
@@ -198,10 +212,6 @@ class AnalysisMod(targets.Analysis):
             self.logger.info("Finished analysis of reads as client stopped.")
 
 
-
-
-
-
 # TODO the only change in this function is the renamed AnalysisMod object
 # TODO to inject the modified run() function above
 def run(
@@ -220,6 +230,24 @@ def run(
     """
     # Setup logger used in this entry point, this one should be passed through
     logger = logging.getLogger(f"readfish.{args.command}")
+
+    # Check MinKNOW version
+
+    minknow_version = _get_minknow_version(host=args.host, port=args.port)
+    if (
+        action := check_compatibility(minknow_version, MINKNOW_COMPATIBILITY_RANGE)
+    ) in (
+        DIRECTION.UPGRADE,
+        DIRECTION.DOWNGRADE,
+    ):
+        lower_bound, upper_bound = MINKNOW_COMPATIBILITY_RANGE
+        logger.warning(
+            f"""This readfish version ({__version__}) is tested for compatibility with MinKNOW v{lower_bound} to v{upper_bound}.
+This version of minknow is {minknow_version}.
+If readfish fails please try to {action.value} readfish.
+If there isn't a newer version of readfish and readfish is failing, please open an issue:
+    https://github.com/LooseLab/readfish/issues"""
+        )
 
     # Fetch sequencing device
     position = get_device(args.device, host=args.host, port=args.port)
@@ -252,9 +280,6 @@ def run(
 
     # start the client running
     read_until_client.run(
-        # TODO: Set correct channel range
-        # first_channel=186,
-        # last_channel=187,
         first_channel=1,
         last_channel=read_until_client.channel_count,
         max_unblock_read_length_seconds=args.max_unblock_read_length_seconds,
@@ -269,6 +294,7 @@ def run(
         throttle=args.throttle,
         dry_run=args.dry_run,
         toml=args.toml,
+        chemistry=Chemistry(args.chemistry),
     )
 
     # begin readfish function
