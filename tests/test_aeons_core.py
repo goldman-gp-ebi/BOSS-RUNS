@@ -27,18 +27,20 @@ def BossAeons(args):
 
 def test_process_batch(BossAeons):
     tic = time.time()
-    subprocess.run("cp ../data/ERR3152366_10k.fq ../data/fastq_pass/ERR3152366_10k.fq", shell=True)
+    # empty dir at first
+    subprocess.run("rm -r ../data/fastq_pass && mkdir ../data/fastq_pass", shell=True)
+    # put the single 10k file in the dir
+    subprocess.run("cp ../data/ERR3152366_10k.fq ../data/fastq_pass/", shell=True)
     BossAeons.init()
-    subprocess.run("rm ../data/fastq_pass/ERR3152366_10k.fq", shell=True)
+    # remove that file again
+    subprocess.run("rm -r ../data/fastq_pass && mkdir ../data/fastq_pass", shell=True)
     assert BossAeons.batch == 0
     # add some new data
-    subprocess.run("rm ../data/fastq_pass/FAT91932_pass_e7bf7751_f43c451e_0.fastq.gz", shell=True)
-    subprocess.run("rm ../data/fastq_pass/ERR3152366_10k.fq", shell=True)
-    subprocess.run("cp ../data/fastq_pass_ch/FAT91932_pass_e7bf7751_f43c451e_0.fastq.gz ../data/fastq_pass", shell=True)
+    subprocess.run("cp ../data/BOSS_test_data/fastq_pass/FAT91932_pass_e7bf7751_f43c451e_0.fastq.gz ../data/fastq_pass/", shell=True)
     subprocess.run("cp ../data/ERR3152366_10k.fq ../data/fastq_pass", shell=True)
     next_update = BossAeons.process_batch(BossAeons.process_batch_aeons)
-    subprocess.run("rm ../data/fastq_pass/FAT91932_pass_e7bf7751_f43c451e_0.fastq.gz", shell=True)
-    subprocess.run("rm ../data/fastq_pass/ERR3152366_10k.fq", shell=True)
+    subprocess.run("rm -r ../data/fastq_pass && mkdir ../data/fastq_pass", shell=True)
+    subprocess.run("cp -r ../data/BOSS_test_data/fastq_pass/ ../data/", shell=True)
     assert BossAeons.batch == 1
     assert next_update != BossAeons.args.wait
     # check that new contigs were produced

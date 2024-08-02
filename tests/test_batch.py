@@ -32,13 +32,13 @@ def sampler():
 
 @pytest.fixture
 def fq_files():
-    f = Path("../data/fastq_pass_ch/").glob("F*")
+    f = Path("../data/fastq_pass/").glob("F*")
     f = list(f)
     f.sort()
     # make one filepath str to test input types
     f[1] = str(f[1])
     # add file without ch=
-    f.append("../data/fastq_pass/ERR3152366_1k_0.fq")
+    f.append("../data/fastq_pass_no_ch/ERR3152366_1k_0.fq")
     return f
 
 

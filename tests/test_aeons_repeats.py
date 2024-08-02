@@ -8,7 +8,7 @@ from boss.aeons.sequences import SequencePool
 
 @pytest.fixture
 def batch():
-    f = list(Path("../data/fastq_pass_ch/").glob("F*"))
+    f = list(Path("../data/fastq_pass/").glob("F*"))
     b = boss.batch.FastqBatch(f)
     return b
 

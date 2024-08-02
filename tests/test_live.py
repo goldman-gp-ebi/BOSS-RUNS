@@ -39,8 +39,8 @@ def test_connect_sequencer_dummy():
 
 
 @pytest.mark.parametrize("fastq_pass, processed_files, exp", [
-    ("../data/fastq_pass", set(), 11),
-    ("../data/fastq_pass", {'../data/fastq_pass/ERR3152366_1k_3.fq', '../data/fastq_pass/ERR3152366_1k_7.fq'}, 9),
+    ("../data/fastq_pass", set(), 5),
+    ("../data/fastq_pass", {'../data/fastq_pass/FAT91932_pass_e7bf7751_f43c451e_1.fastq.gz', '../data/fastq_pass/FAT91932_pass_e7bf7751_f43c451e_2.fastq.gz'}, 3),
     ("../scripts", {}, 0),
 ])
 def test_scan_dir(fastq_pass, processed_files, exp):
