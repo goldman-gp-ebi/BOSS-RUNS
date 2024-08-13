@@ -5,7 +5,7 @@ out_runs/
 htmlcov/
 .snakemake/
 fastq_pass/
-fastq_pass_ch/
+fastq_pass_no_ch/
 
 data/*.fq*
 data/*.fasta*
