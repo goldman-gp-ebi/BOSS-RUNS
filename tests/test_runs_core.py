@@ -52,6 +52,9 @@ def test_process_batch(BossRuns):
     BossRuns.init()
     assert BossRuns.batch == 0
     tic = time.time()
+    # we need to switch bucket switches manually here
+    for cname, cont in BossRuns.contigs_filt.items():
+        cont.switched_on = True
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
     assert next_update != BossRuns.args.wait

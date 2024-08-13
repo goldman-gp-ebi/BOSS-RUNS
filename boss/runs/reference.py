@@ -81,7 +81,7 @@ class Contig:
         :return:
         """
         self.bucket_size = bucket_size
-        self.bucket_switches = np.ones(shape=int(self.length // bucket_size) + 1, dtype="bool")
+        self.bucket_switches = np.zeros(shape=int(self.length // bucket_size) + 1, dtype="bool")
         self.switched_on = False
 
 

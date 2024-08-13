@@ -7,6 +7,7 @@ import time
 from types import SimpleNamespace
 from typing import Optional, Any
 from concurrent.futures import ThreadPoolExecutor as TPexe
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -296,10 +297,6 @@ class Sequence:
             # if merged info are provided
             self.components = set(merged_components)
             self.atoms = set(merged_atoms)
-        # threshold for first polish  # TODO remove this
-        self.last_polish = 0
-        self.next_polish = 15
-        self.polish_step = 5
         # inits
         self.tetramer_zscores = 0
         # self.kmers = 0
@@ -490,8 +487,6 @@ class SequencePool:
         empty = True if len(self.sequences) == 0 else False
         return empty
 
-    # TODO type of seqs in ingest should be: dict[str, str] | self
-    # TODO how to specify own class in typehint
 
     def ingest(self, seqs: Any) -> None:
         """
@@ -1128,8 +1123,11 @@ class ContigPool(SequencePool):
         :param out_dir: The output directory.
         :param contig_strats: A dictionary containing the strategies for contigs.
         """
-        cpath = f'{out_dir}/masks/boss'
-        np.savez(cpath, **contig_strats)
+        cpath_tmp = f'{out_dir}/masks/boss_tmp.npz'
+        np.savez(cpath_tmp, **contig_strats)
+        # after writing to tmpfile, rename to replace the current strat
+        cpath = f'{out_dir}/masks/boss.npz'
+        Path(cpath_tmp).rename(cpath)
         # Example how to load these:
         # container = np.load(f'{cpath}.npz')
         # data = {key: container[key] for key in container}
@@ -1142,12 +1140,15 @@ class ContigPool(SequencePool):
         :param out_dir: The output directory.
         :param batch: The batch number.
         """
-        fa_path = f'{out_dir}/contigs/aeons.fa'
+        fa_path_tmp = f'{out_dir}/contigs/aeons_tmp.fa'
         # save the contigs to fasta
-        with open(fa_path, 'w') as fasta:
+        with open(fa_path_tmp, 'w') as fasta:
             for sid, seqo in self.sequences.items():
                 fasta.write(f'>{sid}\n')
                 fasta.write(f'{seqo.seq}\n')
+        # rename file after being written to
+        fa_path = f'{out_dir}/contigs/aeons.fa'
+        Path(fa_path_tmp).rename(fa_path)
         # copy previous contigs
         if batch % 10 == 0:
             copy(fa_path, f'{out_dir}/contigs/prev/aeons_{batch}.fa')

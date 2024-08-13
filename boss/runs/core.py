@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -54,8 +55,11 @@ class BossRuns(Boss):
 
         :param contig_strats: A dictionary containing the strategies for contigs.
         """
-        cpath = f'{self.out_dir}/masks/boss'
-        np.savez(cpath, **contig_strats)
+        cpath_tmp = f'{self.out_dir}/masks/boss_tmp.npz'
+        np.savez(cpath_tmp, **contig_strats)
+        # after writing to tmpfile, rename to replace the current strat
+        cpath = f'{self.out_dir}/masks/boss.npz'
+        Path(cpath_tmp).rename(cpath)
         # Example how to load these:
         # container = np.load(f'{cpath}.npz')
         # data = {key: container[key] for key in container}

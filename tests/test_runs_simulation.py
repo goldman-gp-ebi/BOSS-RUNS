@@ -45,6 +45,9 @@ def test_process_batch(args):
     b.init_sim()
     assert b.batch == 0
     tic = time.time()
+    # we need to switch bucket switches manually here
+    for cname, cont in b.contigs_filt.items():
+        cont.switched_on = True
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 1
     assert next_update != b.args.wait
