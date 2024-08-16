@@ -1,7 +1,5 @@
 import subprocess
 from types import SimpleNamespace
-from itertools import groupby
-from typing import TextIO
 
 import numpy as np
 from numpy.typing import NDArray
@@ -69,62 +67,6 @@ def write_logs(stdout: str, stderr: str, basename: str) -> None:
     with open(f'{basename}.err', 'a') as errf:
         errf.write(stderr)
         errf.write('\n')
-
-
-def read_fa(fh: TextIO):
-    """
-    Generator for fasta files: yields all headers and sequences in the file.
-
-    :param fh: The file handle.
-    :yield: A tuple containing the header and sequence.
-    """
-    faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
-    for header in faiter:
-        headerStr = header.__next__().strip().split(' ')[0]  # drop the ">"
-        # join all sequence lines to one
-        seq = "".join(s.strip() for s in faiter.__next__())
-        yield headerStr, seq
-
-
-def readfq(fp: TextIO):
-    """
-    Read a fastq file and yield the entries.
-
-    :param fp: File handle for the fastq file.
-    :yield: A tuple containing the fastq read header, read ID, and sequence.
-    """
-    last = None  # this is a buffer keeping the last unprocessed line
-    while True:  # mimic closure; is it a bad idea?
-        if not last:  # the first record or a record following a fastq
-            for ll in fp:  # search for the start of the next record
-                if ll[0] in ">@":  # fasta/q header line
-                    last = ll[: -1]  # save this line
-                    break
-        if not last:
-            break
-        desc, name, seqs, last = last[1:], last[1:].partition(" ")[0], [], None
-        for ll in fp:  # read the sequence
-            if ll[0] in "@+>":
-                last = ll[: -1]
-                break
-            seqs.append(ll[: -1])
-        if not last or last[0] != "+":  # this is a fasta record
-            yield desc, name, "".join(seqs), None  # yield a fasta record
-            if not last:
-                break
-        else:  # this is a fastq record
-            seq, leng, seqs = "".join(seqs), 0, []
-            for ll in fp:  # read the quality
-                seqs.append(ll[: -1])
-                leng += len(ll) - 1
-                if leng >= len(seq):  # have read enough quality
-                    last = None
-                    yield desc, name, seq, "".join(seqs)  # yield a fastq record
-                    break
-            if last:  # reach EOF before reading enough quality
-                yield desc, name, seq, None  # yield a fasta record instead
-                break
-
 
 
 def binc(arguments: tuple[NDArray, NDArray]) -> NDArray:
