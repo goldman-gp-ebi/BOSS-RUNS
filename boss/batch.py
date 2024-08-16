@@ -1,12 +1,12 @@
 import logging
-import gzip
 import re
 import os
-from pathlib import Path, PosixPath
+from pathlib import Path
 
+import mappy
 import numpy as np
 
-from boss.utils import readfq, empty_file, execute, random_id
+from boss.utils import empty_file, execute, random_id
 from boss.paf import paf_dict_type
 
 
@@ -64,29 +64,17 @@ class FastqBatch:
         logging.info(f"Reading file: {fastq_file}")
         read_sequences = {}
         read_qualities = {}
-        # to make sure it's a path object, not a string
-        if type(fastq_file) is str:
-            fpath = Path(fastq_file)
-        elif type(fastq_file) in {Path, PosixPath}:
-            fpath = fastq_file
-        else:
-            raise TypeError("New FASTQ need to be string or Path")
-
-        # check whether fastq is gzipped
-        if fpath.name.endswith(('.gz', '.gzip')):
-            fh = gzip.open(fpath, 'rt')
-        else:
-            fh = open(fpath, 'rt')
-
+        # to make sure it's a string
+        assert type(fastq_file) is str
         # loop over all reads in the fastq file
         # if we consider all channels
         if not self.channels:
-            for desc, name, seq, qual in readfq(fh):
+            for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
                 read_sequences[str(name)] = seq
                 read_qualities[str(name)] = qual
         else:
             # consider source channel
-            for desc, name, seq, qual in readfq(fh):
+            for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
                 try:
                     # regex to get the channel number from the header
                     # \s=whitespace followed by 'ch=' and then any amount of numeric characters
@@ -100,7 +88,6 @@ class FastqBatch:
                 if ch_num in self.channels:
                     read_sequences[str(name)] = seq
                     read_qualities[str(name)] = qual
-        fh.close()
         return read_sequences, read_qualities
 
 
