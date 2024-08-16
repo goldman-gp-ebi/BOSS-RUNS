@@ -35,8 +35,10 @@ class AbundanceTracker:
                 rec = Paf.choose_best_mapper(rec)
             # grab target of the mapping
             t = rec[0].tname
-            self.read_counts[t] += 1
-
+            try:
+                self.read_counts[t] += 1
+            except KeyError:
+                pass
 
 
     def _report_proportions(self) -> None:
