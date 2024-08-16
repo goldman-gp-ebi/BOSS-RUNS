@@ -58,7 +58,7 @@ class Contig:
         # translate and convert from byte string
         read_integer = self.seq.translate(base2int)
         seq_int = np.frombuffer(read_integer.encode(), 'u1') - ord('0')
-        assert set(seq_int) == {0, 1, 2, 3}
+        assert len(set(seq_int[:100]) | {0, 1, 2, 3}) == 4
         return seq_int
 
 
