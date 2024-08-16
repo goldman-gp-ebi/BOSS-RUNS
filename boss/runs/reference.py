@@ -6,8 +6,9 @@ from string import ascii_letters
 import numpy as np
 from numpy.typing import NDArray
 import bottleneck as bn
+import mappy
 
-from boss.utils import read_fa, window_sum, adjust_length
+from boss.utils import window_sum, adjust_length
 from boss.mapper import Indexer
 from boss.runs.sequences import Scoring
 
@@ -305,20 +306,16 @@ class Reference:
         :return: dictionary of Contig objects
         """
         contigs = {}
-        with open(self.ref, 'r') as fasta:
-            for cname, cseq in read_fa(fasta):
-                # drop >
-                cname = cname[1:]
-                # filter short reference sequences that can cause issues
-                if len(cseq) < min_len:
-                    continue
-                # load reference sequences
-                if cname not in self.reject_refs:
-                    cseq_upper = cseq.upper()
-                    contigs[cname] = Contig(name=cname, seq=cseq_upper, ploidy=ploidy)
-                # for ref seqs that we always reject, set sequence empty
-                else:
-                    contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True)
+        for cname, cseq, _ in mappy.fastx_read(self.ref):
+            # filter short reference sequences that can cause issues
+            if len(cseq) < min_len:
+                continue
+            # load reference sequences
+            if cname not in self.reject_refs:
+                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy)
+            # for ref seqs that we always reject, set sequence empty
+            else:
+                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True)
         return contigs
 
 
