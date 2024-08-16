@@ -1,6 +1,7 @@
 import argparse
 from types import SimpleNamespace
 from pathlib import Path
+from datetime import datetime
 import sys
 
 import rtoml
@@ -83,7 +84,8 @@ class Config:
             # check if we are simulating or running real experiment
             self._check_run_type()
             # initialise a log file in the output folder
-            init_logger(logfile=f'{self.args.name}.boss.log', args=self.args)
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            init_logger(logfile=f'{stamp}_boss.log', args=self.args)
             # config settings for readfish
             if self.args.live_run:
                 # add path to readfish toml as arg
