@@ -29,7 +29,7 @@ class BossRuns(Boss):
         :return:
         """
         # initialise reference
-        self.ref = Reference(ref=self.args.ref, reject_refs=self.args.reject_refs)
+        self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}
         # initialise a mapper using the reference
