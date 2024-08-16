@@ -6,6 +6,7 @@ import sys
 import glob
 import inspect
 from pathlib import Path
+from datetime import datetime
 
 import rtoml
 from minknow_api.manager import Manager
@@ -175,8 +176,9 @@ class LiveRun:
         logging.info(module_path)
         script_path = Path(module_path).parent / "readfish_boss.py"
         if not script_path.is_file():
-            raise FileNotFoundError("boss_readfish.py not found. Something went wrong..")
-        readfish_comm = f'python {script_path} {toml} {device} {name} 2>&1 | tee -a readfish.log'
+            raise FileNotFoundError("readfish_boss.py not found. Something went wrong..")
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        readfish_comm = f'python {script_path} {toml} {device} {name} >{stamp}_readfish.log 2>&1'
         logging.info(readfish_comm)
         if device == "TEST":  # exit for testing purposes
             return
