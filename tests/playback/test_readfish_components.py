@@ -1,7 +1,7 @@
 import pytest
 import argparse
 from pathlib import Path
-import readfish_boss as rf
+import boss.readfish_boss as rf
 import subprocess
 
 
@@ -36,14 +36,15 @@ def test_get_args(args_runs):
 @pytest.fixture
 def analysis_mod_runs(args_runs):
     """
-    Create an AnalysisMod object for testing
-    This test is modeled after run() in the boss_readfish.py entry-point
+    Create an Analysis object for testing
+    This test is modeled after run() in the readfish_boss.py entry-point
     """
     import logging
     from readfish._read_until_client import RUClient
     from readfish.read_until.read_cache import AccumulatingCache
     from readfish._utils import get_device
     from readfish._config import Conf
+    from readfish._cli_args import Chemistry
 
     args = args_runs
 
@@ -65,7 +66,7 @@ def analysis_mod_runs(args_runs):
     # Load TOML configuration
     conf = Conf.from_file(args.toml, read_until_client.channel_count, logger=logger)
 
-    worker = rf.AnalysisMod(
+    worker = rf.Analysis(
         read_until_client,
         conf=conf,
         logger=logger,
@@ -74,6 +75,7 @@ def analysis_mod_runs(args_runs):
         throttle=args.throttle,
         dry_run=args.dry_run,
         toml=args.toml,
+        chemistry=Chemistry.SIMPLEX
     )
     return worker
 
@@ -81,14 +83,15 @@ def analysis_mod_runs(args_runs):
 @pytest.fixture
 def analysis_mod_aeons(args_aeons):
     """
-    Create an AnalysisMod object for testing
-    This test is modeled after run() in the boss_readfish.py entry-point
+    Create an Analysis object for testing
+    This test is modeled after run() in the readfish_boss.py entry-point
     """
     import logging
     from readfish._read_until_client import RUClient
     from readfish.read_until.read_cache import AccumulatingCache
     from readfish._utils import get_device
     from readfish._config import Conf
+    from readfish._cli_args import Chemistry
 
 
     rf.BossBits.gen_dummy_idx()
@@ -114,7 +117,7 @@ def analysis_mod_aeons(args_aeons):
     # Load TOML configuration
     conf = Conf.from_file(args.toml, read_until_client.channel_count, logger=logger)
 
-    worker = rf.AnalysisMod(
+    worker = rf.Analysis(
         read_until_client,
         conf=conf,
         logger=logger,
@@ -123,6 +126,7 @@ def analysis_mod_aeons(args_aeons):
         throttle=args.throttle,
         dry_run=args.dry_run,
         toml=args.toml,
+        chemistry=Chemistry.SIMPLEX
     )
     return worker
 
