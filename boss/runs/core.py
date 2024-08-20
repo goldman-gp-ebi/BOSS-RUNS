@@ -97,7 +97,7 @@ class BossRuns(Boss):
         :return: Boolean if any strategy has been switched on
         """
         for cname, cont in self.contigs_filt.items():
-            cont.check_buckets()
+            cont.check_buckets(threshold=self.args.bucket_threshold)
         # check if any switches are on
         switched_on = [c.switched_on for c in self.contigs.values()]
         return any(switched_on)

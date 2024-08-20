@@ -178,10 +178,12 @@ class Contig:
 
 
 
-    def check_buckets(self) -> None:
+    def check_buckets(self, threshold: float = 5.0) -> None:
         """
         Check if strategy needs to be activated in some of the buckets of a contig
         This happens if the mean coverage in a bucket is greater than the threshold
+
+        :param threshold: when to switch on the strategy buckets
         :return:
         """
         # coverage depth
@@ -191,7 +193,6 @@ class Contig:
         cmean_buckets = np.divide(csum_buckets, self.bucket_size)
         cmean_buckets = adjust_length(original_size=self.bucket_switches.shape[0], expanded=cmean_buckets)
         # flip strategy switches
-        threshold = 5
         self.bucket_switches[np.where(cmean_buckets >= threshold)] = 1
         switch_count = np.bincount(self.bucket_switches)
         states = len(switch_count)

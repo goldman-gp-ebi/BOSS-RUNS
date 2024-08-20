@@ -55,6 +55,7 @@ class Config:
         min_map_len = 2000              # min alignment length to consider overlaps
         tetra = true                    # perform tetranucleotide frequency tests
         filter_repeats = false          # perform repeat filtering
+        bucket_threshold = 5            # at which coverage to switch on the strategy in a bucket (debug)
 
         ########################################################################################
 
