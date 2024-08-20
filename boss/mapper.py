@@ -11,13 +11,13 @@ from .paf import Paf, paf_dict_type
 
 class Indexer:
 
-    def __init__(self, fasta: str, mmi: str, t: int = 6):
+    def __init__(self, fasta: str, mmi: str, t: int = 4):
         """
         Initialize simple indexing wrapper around mm2
 
         :param fasta: The path to the input FASTA file.
         :param mmi: The path to the output .mmi index file.
-        :param t: The number of threads to use for indexing, defaults to 6.
+        :param t: The number of threads to use for indexing.
         """
         self.aligner = mappy.Aligner(fn_idx_in=fasta, fn_idx_out=mmi, preset="map-ont", n_threads=t)
 
@@ -25,14 +25,14 @@ class Indexer:
 
 class Mapper:
 
-    def __init__(self, ref: str, mu: int = 400, workers: int = 8, default: bool = True):
+    def __init__(self, ref: str, mu: int = 400, workers: int = 4, default: bool = True):
         """
         Initialize a Mapper object; wrapper for minimap2's mappy implementation
         For the default case of mapping against some linear references
 
         :param ref: The path to the reference FASTA file.
         :param mu: Length of anchor bases for simulations, defaults to 400.
-        :param workers: The number of worker threads to use for mapping, defaults to 8.
+        :param workers: The number of worker threads to use for mapping
         :param default: Whether to use the default mappy.Aligner configuration, defaults to True.
         """
         self.mu = mu
