@@ -77,3 +77,10 @@ The other ones are for the walkthrough example of Chromosome 20 fishing.
 `pip install dist/boss_runs-0.1.0-py3-none-any.whl --force-reinstall --no-deps`
 
 
+## readfish files/funcs to check after updates
+
+targets.py
+_cli_base.main()
+_config.py.make_decision()
+
+    
