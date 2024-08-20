@@ -1,18 +1,81 @@
-"""
-wrapper around readfish functionality
+"""Run a targeted sequencing experiment on a device.
 
-- based on the `targets.py` entry-point of readfish
-- instead of launching it as an entry-point, we run _cli_base.main()
-- the only mod in that function is to return parser and args instead of sending it
-- from targets.py: subclass Analysis to modify run(): this contains most changes
-- main run() function of entry-point is only modified to use the AnalysisMod object
-- also overwrite the make_decision function -> BossBits.make_decision_boss()
-- that function originally lives in _config.py
+When given a :doc:`TOML <toml>` experiment configuration ``readfish targets`` will:
+    #. Initialise a connection to the sequencing device
+    #. Load the experiment configuration
+    #. Initialise a connection to the Read Until API
+    #. Initialise a connection to your chosen basecaller
+    #. Initialise the read aligner
 
-for future changes check:
-_cli_base.main()
-targets.py (Analysis.run(), run())
-_config.py.make_decision()
+Then, during sequencing the start of each read is sampled.
+These chunks of raw data are processed by the basecaller to produce FASTA, which is then aligned against the chosen reference genome.
+The result of the alignment is used, along with the targets provided in the :doc:`TOML <toml>` file, to make a decision on each read.
+
+In the new **experimental** Duplex mode, it is possible to override a decision for a read based on the action taken for a previous read.
+This is done by passing `--chemistry` and setting either duplex, or duplex simple.
+`duplex_simple` accepts a read if the previous channels read was stop receiving, `duplex` checks that the previous reads alignment was on the same contig and opposite strand.
+The default chemistry is simplex.
+
+Running this should result in a very short (<1kb, ideally 400-600 bases) unblock peak at the start of a read length histogram and longer sequenced reads.
+
+Example run command::
+
+   readfish targets --device X3 \\
+           --experiment-name "test" \\
+           --toml my_exp.toml \\
+           --log-file rf.log \\
+           --debug-log chunks.tsv
+
+Example experimental duplex command::
+
+    readfish targets --device X3 \\
+           --experiment-name "test" \\
+           --toml my_exp.toml \\
+           --log-file rf.log \\
+           --debug-log chunks.tsv
+           --chemistry duplex
+
+In the debug_log chunks.tsv file, if this argument is passed, each line represents detailed information about a batch of
+read signal that has been processed in an iteration.
+
+The format of each line is as follows:
+loop_counter  number_reads  read_id  channel  read_number  seq_length  seen_count
+decision  action  condition  barcode  previous_action  timestamp  action_overridden
+
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| Parameter         | Type        | Description                                                                                                   |
++===================+=============+===============================================================================================================+
+| loop_counter      | int         | The iteration number for the loop.                                                                            |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| number_reads      | int         | The number of reads processed in this iteration.                                                              |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| read_id           | str         | UUID4 string representing the reads unique read_id.                                                           |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| channel           | int         | Channel number the read is being sequenced on.                                                                |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| read_number       | int         | The number this read is in the sequencing run as a whole.                                                     |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| seq_length        | int         | Length of the base-called signal chunk (includes any previous chunks).                                        |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| seen_count        | int         | Number of times this read has been seen in previous iterations.                                               |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| decision          | str         | The name of the Decision variant taken for this read, see :ref:`regions-sub-tables` for values.               |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| action            | str         | The name of the Action variant sent to the sequencer for this read, see :ref:`regions-sub-tables` for values. |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| condition         | str         | Name of the Condition that the read has been addressed with.                                                  |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| barcode           | str or None | The name of the Barcode for this read if present, otherwise None.                                             |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| previous_action   | str or None | Name of the last Action taken for a read sequenced by this channel or None if first read on a chann           |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| action_overridden | bool        | Indicates if the action has been overridden. Currently, actions are always overridden to be `stop_receiving`. |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+| timestamp         | float       | Current time as given by the time module in seconds.                                                          |
++-------------------+-------------+---------------------------------------------------------------------------------------------------------------+
+
+Actions being overridden occurs when the readfish run is a dry run and the action is unblock, or when the read is the first read seen for a channel by readfish.
+This prevents trying to unblock reads of unknown length.
 
 
 """
@@ -20,6 +83,7 @@ _config.py.make_decision()
 # Core imports
 from __future__ import annotations
 import argparse
+from packaging.version import Version
 import logging
 import time
 from timeit import default_timer as timer
@@ -59,17 +123,324 @@ from readfish.plugins.utils import (
 )
 
 
-
-# TODO custom import
-from readfish.entry_points import targets
-from _cli_base import main as main_args
+# TODO custom imports
+from boss._cli_base import main as main_args
 import numpy as np
 import sys
 import os
 import mappy
 
 
-class AnalysisMod(targets.Analysis):
+_help = "Run targeted sequencing"
+_cli = DEVICE_BASE_ARGS + (
+    (
+        "--toml",
+        dict(
+            metavar="TOML",
+            required=True,
+            help="TOML file specifying experimental parameters",
+        ),
+    ),
+    (
+        "--no-debug-log",
+        dict(
+            help="Disable debug output of information about chunks seen into a .tsv formatted log. Default enabled.",
+            action="store_false",
+            dest="debug_log",
+        ),
+    ),
+    (
+        "--padding",
+        dict(
+            help="Number of bases to pad the target sequences with",
+            default=0,
+            type=int,
+            metavar="PADDING",
+        ),
+    ),
+)
+# When sequencing in duplex mode, overriding a decided `Action` on a currently sequenced molecule
+# is not allowed if the previous molecules decision was one of these.
+DISALLOWED_DUPLEX_DECISIONS = {Decision.first_read_override, Decision.duplex_override}
+
+
+class Analysis:
+    """
+    Analysis class where the read until magic happens. Comprises of one run
+    function that is run threaded in the run function at the base of this file.
+    Arguments listed in the __init__ docs.
+
+    :param client: An instance of the ReadUntilClient object.
+    :param conf: An instance of the Conf object.
+    :param logger: The command level logger for this module.
+    :param debug_log: Whether to output the Debug Log. log Name is generated.
+    :param throttle: The time interval (seconds) between requests to the ReadUntilClient.
+    :param unblock_duration: Time, in seconds, to apply unblock voltage.
+    :param dry_run: If True unblocks are replaced with `stop_receiving` commands.
+    :param toml: The path to the toml file containing experiment conf. Used as the path for checking if the TOML needs reloading.
+    :param chemistry: Instance of Chemistry Enum, representing the chemistry of the run (Simplex/Duplex). Used for
+        decision making on strands that may be part of a duplex pair.
+    """
+
+    def __init__(
+        self,
+        client: ReadUntilClient,
+        conf: Conf,
+        logger: logging.Logger,
+        debug_log: bool,
+        throttle: float,
+        unblock_duration: float,
+        dry_run: bool,
+        toml: str,
+        chemistry: Chemistry,
+    ):
+        self.client = client
+        self.conf = conf
+        self.logger = logger
+        self.debug_log = debug_log
+        self.throttle = throttle
+        self.unblock_duration = unblock_duration
+        self.dry_run = dry_run
+        self.live_toml = Path(f"{toml}_live").resolve()
+        self.run_information = self.client.connection.protocol.get_run_info()
+        self.chemistry = chemistry
+        # Generate a run specific read log
+        read_log_name = (
+            f"{self.run_information.run_id}_readfish.tsv" if debug_log else None
+        )
+
+        self.logger.info("Fetching Run Configuration")
+        self.break_reads_after_seconds = (
+            self.client.connection.analysis_configuration.get_analysis_configuration().read_detection.break_reads_after_seconds.value
+        )
+        self.sample_rate = self.client.connection.device.get_sample_rate().sample_rate
+        self.logger.info("Run Configuration Received")
+        self.logger.info(f"run_id={self.run_information.run_id}")
+        self.logger.info(f"break_reads_after_seconds={self.break_reads_after_seconds}")
+        self.logger.info(f"sample_rate={self.sample_rate}")
+        # Create our statistics tracker
+        self.loop_statistics = ReadfishStatistics(
+            read_log_name, self.break_reads_after_seconds
+        )
+        logger.info("Initialising Caller")
+        self.caller: CallerABC = self.conf.caller_settings.load_object(
+            "Caller", run_information=self.run_information, sample_rate=self.sample_rate
+        )
+        logger.info("Caller initialised")
+        caller_description = self.caller.describe()
+        self.logger.info(caller_description)
+        send_message(self.client.connection, caller_description, Severity.INFO)
+        logger.info("Initialising Aligner")
+        self.mapper: AlignerABC = self.conf.mapper_settings.load_object("Aligner")
+        self.logger.info("Aligner initialised")
+        # count how often a read is seen
+        self.chunk_tracker = ChunkTracker(self.client.channel_count)
+
+        # This is an object to keep track of the last action sent to the client for each channel
+        self.previous_action_tracker = PreviouslySentActionTracker()
+        # Keep track of previous alignments
+        self.duplex_tracker = DuplexTracker()
+
+        # We assume that sequencing is already running.
+        # If the run is not in sequencing phase when the read until loop starts will
+        # be set to false and the first read seen can be unblocked.
+        self.readfish_started_during_sequencing = True
+
+        # This is a flag to prevent repeated logging of the same message
+        self.log_once_in_loop = True
+
+    @property
+    def wait_for_sequencing(self) -> bool:
+        """
+        Wait for minKNOW to report PHASE_SEQUENCING before starting readfish tight loop.
+        The check occurs in out RUClient wrapper.
+
+        :return: True if we are waiting for PHASE_SEQUENCING, False otherwise
+
+        """
+        if self.client.wait_for_sequencing_to_start:
+            if self.log_once_in_loop:
+                self.logger.info(
+                    f"MinKNOW is reporting {protocol_service.ProtocolPhase.Name(self.client.current_protocol_phase)}, waiting for PHASE_SEQUENCING to begin."
+                )
+                self.log_once_in_loop = not self.log_once_in_loop
+            self.readfish_started_during_sequencing = False  # We are not in sequencing phase, so we can unblock the first read we see as we will be sequencing it from the start
+            return True
+        return False
+
+    def reload_toml(self, last_toml_mtime: float) -> float:
+        """
+        Reload the toml to refresh the conf with any updates.
+        Reloading is determined by checking the modified time of the toml file.
+        If it is more recent, reload the conf.
+
+        :param last_live_mtime: The last modified time for the toml file.
+
+        :return: The last modified time for the toml file, updated if changed.
+        """
+        if (
+            self.live_toml.is_file()
+            and self.live_toml.stat().st_mtime > last_toml_mtime
+        ):
+            try:
+                self.conf = Conf.from_file(
+                    self.live_toml, self.client.channel_count, self.logger
+                )
+            # FIXME: Broad exception
+            except Exception:
+                pass
+            last_toml_mtime = self.live_toml.stat().st_mtime
+        return last_toml_mtime
+
+    def check_override_action(
+        self,
+        control: bool,
+        action: Action,
+        result: Result,
+        seen_count: int,
+        condition: _Condition,
+        stop_receiving_action_list: list[tuple[int, int]],
+        unblock_batch_action_list: list[tuple[int, int]],
+    ) -> tuple[Action, bool, str | None]:
+        """
+        Check the chosen Action and amend it based on conditional checks.
+        The action lists are appended to in place, so no return is required.
+
+        Checks include:
+            1. If the read is in a control region, the action is always stop_receiving.
+            1. If the read is below the minimum chunks, use value in toml or default to proceed
+            1. If the read is above the maximum chunks, use value in toml or default unblock--throttle
+            1. First read seen for channel and readfish started during sequencing, override to stop_receiving
+            1. If action is unblock and we are dry-running, override to stop_receiving
+            1. If we are running in duplex chemistry, check the previous reads final decision and Action, and potentially sequence
+                the current read, instead of unblocking it.
+
+        :param control: Indicates read from a channel in a control region
+        :param action: What action was decided for this read before any meddling
+        :param result: Information about the current read.
+        :param seen_count: Number of times other chunks from the read have been observed.
+        :param condition: The set of conditions for deciding the action.
+        :param stop_receiving_action_list: List to append channels and read numbers for which 'stop receiving' action is decided.
+        :param unblock_batch_action_list: List to append channels, read numbers, and read IDs for which 'unblock' action is decided.
+
+        :return: A tuple containing the previous action taken for this read,
+          boolean indicating if the action was overridden, and the name of the action overridden too.
+
+        """
+
+        # Easy dub
+        if control:
+            action = Action.stop_receiving
+        else:
+            # TODO: Document the less than logic here
+            below_min_chunks = seen_count < condition.min_chunks
+            above_max_chunks = seen_count > condition.max_chunks
+
+            # TODO: This will also factor into the precedence and documentation
+            # If we have seen this read more than the max chunks and want to
+            #   evaluate it again (Action.proceed) then we will overrule that
+            #   action using the above_max_chunks_action, unblock by default
+            if above_max_chunks and action is Action.proceed:
+                action = condition.above_max_chunks
+                result.decision = Decision.above_max_chunks
+
+            # If we are below min chunks and we get an action that is not PROCEED
+            #   then we will overrule that action using the below_min_chunks_action
+            #   which by default is proceed.
+            if below_min_chunks and action is not Action.proceed:
+                action = condition.below_min_chunks
+                result.decision = Decision.below_min_chunks
+
+        # previous_action will be None if the read has not been seen before.
+        previous_action = self.previous_action_tracker.get_action(result.channel)
+        action_overridden = False
+        # If --duplex flag override decisions made based on the strand and contig alignment of the previous read.
+        # Unfinished bruv
+        if (
+            self.chemistry is Chemistry.DUPLEX
+            # Easy checks first, so wdon't do more complex processing unless we have to
+            and action == Action.unblock
+            and previous_action is Action.stop_receiving
+        ):
+            # Check if we think this read is possibly duplex
+            possible_duplex = any(
+                self.duplex_tracker.possible_duplex(
+                    result.channel, result.read_id, al.ctg, al.strand
+                )
+                for al in result.alignment_data
+            )
+            # Check the previous decision for this channel was not already an override
+            previous_decision_allowed = (
+                self.duplex_tracker.get_previous_decision(result.channel)
+                not in DISALLOWED_DUPLEX_DECISIONS
+            )
+            if possible_duplex and previous_decision_allowed:
+                self.logger.debug(
+                    f"Overriding read {result.read_id} as it is possibly second half of a duplex"
+                    f"- previous read action {previous_action}, current_action: {action},"
+                    f" previous_decision: {self.duplex_tracker.get_previous_decision(result.channel)}"
+                )
+                action_overridden = True
+                result.decision = Decision.duplex_override
+                action = Action.stop_receiving
+        # Duplex
+        elif (
+            self.chemistry is Chemistry.DUPLEX_SIMPLE
+            and previous_action is Action.stop_receiving
+            and action is Action.unblock
+        ):
+            previous_decision_allowed = (
+                self.duplex_tracker.get_previous_decision(result.channel)
+                not in DISALLOWED_DUPLEX_DECISIONS
+            )
+            if previous_decision_allowed:
+                self.logger.debug(
+                    f"Overriding to duplex - previous read action {previous_action}, current_action: {action},"
+                    f" previous_decision: {self.duplex_tracker.get_previous_decision(result.channel)}"
+                )
+                action = Action.stop_receiving
+                action_overridden = True
+                result.decision = Decision.duplex_override
+
+        # Override to stop receiving if this is the first read ona channel and we started mid sequencing
+        if previous_action is None and self.readfish_started_during_sequencing:
+            self.logger.debug(
+                f"This is the first suitable read chunk from channel {result.channel}. Translocated read length unknown, sequencing."
+            )
+            action_overridden = True
+            result.decision = Decision.first_read_override
+            action = Action.stop_receiving
+
+        if action is Action.stop_receiving:
+            stop_receiving_action_list.append((result.channel, result.read_id))
+
+        elif action is Action.unblock:
+            if self.dry_run:
+                # Log an 'unblock' action to previous action, but send a 'stop receiving' to prevent further read processing.
+                action_overridden = True
+                stop_receiving_action_list.append((result.channel, result.read_id))
+            else:
+                unblock_batch_action_list.append((result.channel, result.read_id))
+
+        # If we have made a final decision for this read and we shouldn't see it again!
+        if action is Action.unblock or action is Action.stop_receiving:
+            # Add decided Action
+            self.previous_action_tracker.add_action(result.channel, action)
+            # Add duplex based tracking if we are in duplex mode
+            if self.chemistry is Chemistry.DUPLEX_SIMPLE:
+                self.duplex_tracker.set_decision(result.channel, result.decision)
+            elif self.chemistry is Chemistry.DUPLEX:
+                self.duplex_tracker.set_decision(result.channel, result.decision)
+                self.duplex_tracker.set_alignments(
+                    result.channel,
+                    [(al.ctg, Strand(al.strand)) for al in result.alignment_data],
+                )
+
+        return (
+            previous_action,
+            action_overridden,
+            action.name if action_overridden else None,
+        )
 
     def run(self):
         """Run the read until loop, in one continuous while loop."""
@@ -83,6 +454,7 @@ class AnalysisMod(targets.Analysis):
 
         last_live_toml_mtime = 0
         self.logger.info("Starting main loop")
+        self.logger.info("Generating aligner description, if possible...")
         mapper_description = self.mapper.describe(self.conf.regions, self.conf.barcodes)
         self.logger.info(mapper_description)
         send_message(self.client.connection, mapper_description, Severity.INFO)
@@ -141,7 +513,7 @@ class AnalysisMod(targets.Analysis):
                 # boss decisions
                 result.decision = boss.make_decision_boss(self.conf, result)
                 action = condition.get_action(result.decision)
-                seen_count = self.chunk_tracker.seen(result.channel, result.read_number)
+                seen_count = self.chunk_tracker.seen(result.channel, result.read_id)
                 #  Check if there any conditions that override the action chose, exceed_max_chunks etc...
                 (
                     previous_action,
@@ -161,7 +533,6 @@ class AnalysisMod(targets.Analysis):
                     read_in_loop=number_reads,
                     read_id=result.read_id,
                     channel=result.channel,
-                    read_number=result.read_number,
                     seq_len=len(result.seq),
                     counter=seen_count,
                     mode=result.decision.name,
@@ -212,8 +583,7 @@ class AnalysisMod(targets.Analysis):
             self.logger.info("Finished analysis of reads as client stopped.")
 
 
-# TODO the only change in this function is the renamed AnalysisMod object
-# TODO to inject the modified run() function above
+# TODO only changing typehint here to allow pass-through
 def run(
     parser: argparse.ArgumentParser, args: argparse.Namespace, extras: list[Any]
 ) -> int:
@@ -249,6 +619,13 @@ If there isn't a newer version of readfish and readfish is failing, please open 
     https://github.com/LooseLab/readfish/issues"""
         )
 
+    if minknow_version < Version("6.0.0"):
+        logger.critical(
+            f"This version of readfish ({__version__}) is not compatible with less than MinKNOW 6.X.X, you downgrade to at least readfish 2024.2.0"
+            f"This won't work, exiting..."
+        )
+        raise SystemExit(1)
+
     # Fetch sequencing device
     position = get_device(args.device, host=args.host, port=args.port)
 
@@ -259,6 +636,13 @@ If there isn't a newer version of readfish and readfish is failing, please open 
         filter_strands=True,
         cache_type=AccumulatingCache,
         timeout=args.wait_for_ready,
+        prefilter_classes={
+            "strand",
+            "strand2",
+            "short_strand",
+            "adapter",
+            "unknown_positive",
+        },
     )
 
     # Load TOML configuration
@@ -283,9 +667,10 @@ If there isn't a newer version of readfish and readfish is failing, please open 
         first_channel=1,
         last_channel=read_until_client.channel_count,
         max_unblock_read_length_seconds=args.max_unblock_read_length_seconds,
+        accepted_first_chunk_classifications=["strand", "strand2", "short_strand", "adapter", "unknown_positive"],
     )
 
-    worker = AnalysisMod(
+    worker = Analysis(
         read_until_client,
         conf=conf,
         logger=logger,
@@ -314,8 +699,24 @@ If there isn't a newer version of readfish and readfish is failing, please open 
     return 0
 
 
+"""
+notes on this wrapper around readfish functionality
+
+- based on the `targets.py` entry-point of readfish
+- instead of launching it as an entry-point, we run _cli_base.main()
+- the only mod in that function is to return parser and args instead of sending it
+- from targets.py: modify run(): this contains most changes
+- main run() function of entry-point is only modified to take different object with args
+- also overwrite the make_decision function -> BossBits.make_decision_boss()
+- that function originally lives in _config.py
+
+for future changes check:
+_cli_base.main()
+targets.py (Analysis.run(), run())
+_config.py.make_decision()
 
 
+"""
 
 
 class BossBits:
@@ -353,14 +754,12 @@ class BossBits:
         # if there is no strategy, generate dummy to start with
         # is_empty = not any(self.mask_path.iterdir())
         # if is_empty:
-        self.logger.info("Creating dummy strategy")
-        contig_strats = {'init': np.ones(1)}
-        np.savez(self.mask_path / "boss", **contig_strats)
-
-
-    @staticmethod
-    def _reload_npy(mask_files):
-        return {path.stem: np.load(path) for path in mask_files}
+        if not Path(self.mask_path / 'boss.npz').is_file():
+            self.logger.info("Creating dummy strategy")
+            contig_strats = {'init': np.ones(1)}
+            np.savez(self.mask_path / "boss", **contig_strats)
+        else:
+            self.logger.info("Loading starting strategy")
 
 
     @staticmethod
@@ -379,17 +778,11 @@ class BossBits:
     def _reload_masks(self):
         """
         Reload updated decision masks.
-        Loads all present .npy/.npz files
         """
-        # can use multiple .npy or a single .npz file
         # BOSS* uses a single .npz in all modes now
-        new_masks = list(self.mask_path.glob("*.npy"))
-        if new_masks:
-            reload_func = self._reload_npy
-        elif not new_masks:
-            new_masks = list(self.mask_path.glob("*.npz"))
-            reload_func = self._reload_npz
-        else:
+        new_masks = list(self.mask_path.glob("boss.npz"))
+        reload_func = self._reload_npz
+        if not new_masks:
             raise FileNotFoundError("No mask files present")
 
         # Do we actually update this time?
@@ -578,8 +971,8 @@ def get_args(arg_list: list = None) -> tuple[argparse.ArgumentParser, argparse.N
         # '--port', port,
     ]
     if arg_list:
-        argv.append("--log-file")
-        argv.append("readfish.log")
+        argv.append("--debug-log")
+        argv.append("readfish_chunks.tsv")
     parser, args = main_args(argv=argv)
     return parser, args
 
