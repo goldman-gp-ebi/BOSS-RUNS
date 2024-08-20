@@ -65,7 +65,7 @@ class LiveRun:
                 if not os.path.exists(f'{out_path}/fastq_pass'):
                     os.mkdir(f'{out_path}/fastq_pass')
             else:
-                raise ValueError("Device not found.")
+                raise ValueError(f"Error: target device {device} not available. Please make sure to supply correct name of sequencing position in MinKNOW")
         return out_path
 
 
@@ -98,8 +98,7 @@ class LiveRun:
         try:
             target_device = pos_dict[device]
         except KeyError:
-            logging.info(f"Error: target device {device} not available")
-            logging.info("Error: Please make sure to supply correct name of sequencing position in MinKNOW.")
+            logging.info(f"Error: target device {device} not available. Please make sure to supply correct name of sequencing position in MinKNOW")
             sys.exit()
         # connect to the device and navigate api to get output path
         device_connection = target_device.connect()
