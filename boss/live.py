@@ -84,12 +84,12 @@ class LiveRun:
         """
         logging.info(f"minknow API Version {minknow_api_version}")
         # minknow_api.manager supplies Manager (wrapper around MinKNOW's Manager gRPC)
-        if minknow_api_version.startswith("5"):
+        if minknow_api_version.startswith("6"):
             if not port:
                 port = 9502
             manager = Manager(host=host, port=int(port))
         else:
-            raise NotImplementedError("Unsupported version of minknow_api")
+            raise NotImplementedError("Unsupported version of minknow_api. MinKnow <6 is not supported.")
 
         # Find a list of currently available sequencing positions.
         positions = list(manager.flow_cell_positions())
