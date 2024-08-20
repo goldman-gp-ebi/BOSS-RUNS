@@ -17,7 +17,11 @@ Snakemake file to prepare data for BOSS simulations. Produces:
 - offsets of truncated mappings
 - offsets of full-length mappings
 
-- TODO add source tagging 
+- TODO add source tagging  
+
+input reads must end with .fq for now -> TODO improve this
+call with:
+snakemake -s ../BOSS-RUNS/scripts/prepare_simulation_data.smk --config ref=ref.fa reads=reads.fq -n 
 """
 
 
