@@ -53,6 +53,10 @@ class ReadlengthDist:
 
         # calc current stats of read lengths
         observed_read_lengths = np.nonzero(self.read_lengths)
+        # if this function was called before any reads are observed, we just return
+        if len(observed_read_lengths[0]) == 0:
+            logging.info('Attempted update of read lengths before observing any reads')
+            return
         length_sum = np.sum(observed_read_lengths * self.read_lengths[observed_read_lengths])
         self.lam = length_sum / np.sum(self.read_lengths[observed_read_lengths])
         self.longest_read = np.max(np.where(self.read_lengths))
