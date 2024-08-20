@@ -93,17 +93,10 @@ class Contig:
 
         :return:
         """
-        # initialise entropy
-        initial_ent = np.zeros(shape=self.length)
-        initial_ent.fill(self.ent0[0])
-        # entropy_sum = np.sum(initial_ent)
-        # score array
-        self.initial_scores = np.zeros(shape=self.length)
-        self.initial_scores.fill(self.score0[0])
-        # create copies of the scores, entropy & sum of entropy
-        self.scores = np.copy(self.initial_scores)
-        self.entropy = np.copy(initial_ent)
-        # self.eBR = entropy_sum
+        # initialise entropy and scores
+        self.initial_scores = np.full(fill_value=self.score0[0], shape=self.length)
+        self.scores = np.full(fill_value=self.score0[0], shape=self.length)
+        self.entropy = np.full(fill_value=self.ent0[0], shape=self.length)
 
 
 
