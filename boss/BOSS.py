@@ -25,13 +25,18 @@ def main(arg_list: list = None):
     if args.live_run:
         # initialise mode
         if args.ref:
+            # runs initialises then launches readfish
             exp = br_core.BossRuns(args=args)
+            exp.init()
+            exp.launch_live_components()
             func = exp.process_batch_runs
         else:
+            # aoens needs readfish running to have channel numbers available
             exp = ba_core.BossAeons(args=args)
+            exp.launch_live_components()
+            exp.init()
             func = exp.process_batch_aeons
         # launch main loop
-        exp.init()
         try:
             while True:
                 next_update = exp.process_batch(func)

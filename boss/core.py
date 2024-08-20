@@ -29,14 +29,6 @@ class Boss:
         self._init_file_struct()
         # object to record read lengths
         self.rl_dist = ReadlengthDist()
-        # launch readfish and initialise connection to sequencer if live experiment
-        if hasattr(self.args, "live_run") and getattr(self.args, "live_run"):
-            LiveRun.launch_readfish(
-                toml=self.args.toml_readfish,
-                device=self.args.device,
-                name=self.name
-            )
-            self._init_live()
 
 
 
@@ -118,6 +110,17 @@ class Boss:
         logging.info(f"batch took: {passed}")
         logging.info(f"finished update, waiting for {next_update}s ... \n")
         return next_update
+
+
+    def launch_live_components(self):
+        # launch readfish and initialise connection to sequencer if live experiment
+        if hasattr(self.args, "live_run") and getattr(self.args, "live_run"):
+            LiveRun.launch_readfish(
+                toml=self.args.toml_readfish,
+                device=self.args.device,
+                name=self.name
+            )
+            self._init_live()
 
 
     def process_batch(self, main_processing_func: callable) -> int:
