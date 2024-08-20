@@ -880,6 +880,10 @@ class BossBits:
             self.logger.warning(f"{contig} is not in mask dict")
             return 1
         arr = self.masks.get(contig)
+        # reject refs have array size 1
+        if arr.shape[0] == 1:
+            return 0
+        # otherwise query the strategy array
         try:
             d = arr[:, int(reverse)][start_pos // self.scale_factor]
             return d

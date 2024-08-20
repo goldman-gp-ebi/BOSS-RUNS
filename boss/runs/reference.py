@@ -107,7 +107,7 @@ class Contig:
         :return:
         """
         if self.rej:
-            self.strat = np.zeros(dtype="bool", shape=(self.length // window, 2))
+            self.strat = np.zeros(dtype="bool", shape=1)
         else:
             self.strat = np.ones(dtype="bool", shape=(self.length // window, 2))
 
