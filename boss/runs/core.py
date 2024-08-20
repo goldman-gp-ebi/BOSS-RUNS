@@ -173,12 +173,14 @@ class BossRuns(Boss):
                                         expanded=benefit)
             smu_adj = adjust_length(original_size=target_size,
                                         expanded=benefit)
-            assert fhat_exp.shape == benefit_adj.shape == smu_adj.shape
+            fhat_adj = adjust_length(original_size=target_size,
+                                     expanded=fhat_exp)
+            assert fhat_adj.shape == benefit_adj.shape == smu_adj.shape
             # find the current decision strategy
             strat, threshold = self.scoring.find_strat_thread(
                 benefit=benefit_adj,
                 smu=smu_adj,
-                fhat=fhat_exp,
+                fhat=fhat_adj,
                 time_cost=self.rl_dist.time_cost
             )
             # distribute the strategy to the contigs
