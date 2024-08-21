@@ -65,7 +65,8 @@ class FastqBatch:
         read_sequences = {}
         read_qualities = {}
         # to make sure it's a string
-        assert type(fastq_file) is str
+        if not isinstance(fastq_file, str):
+            raise TypeError('Fastq file must be a string')
         # loop over all reads in the fastq file
         # if we consider all channels
         if not self.channels:
