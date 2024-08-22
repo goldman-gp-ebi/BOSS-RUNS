@@ -1,10 +1,7 @@
 import pytest
-
 import numpy as np
 
 import boss.runs.sequences as brs
-from boss.batch import FastqBatch
-from boss.paf import Paf
 
 
 # with deletions (default) there are 5 states
@@ -65,31 +62,12 @@ def test_diploid_priors(del_err, b, g):
 
 
 
-
-
-# CoverageConverter
-@pytest.fixture
-def cov_conv():
-    return brs.CoverageConverter()
-
-
-@pytest.fixture
-def zymo_reads():
-    fq = "../data/ERR3152366_10k.fq"
-    batch = FastqBatch(fq_files=[fq])
-    return batch
-
-
-@pytest.fixture
-def paf_dict():
-    return Paf.parse_PAF(paf_file="../data/ERR3152366_10k.paf", min_len=1)
-
-
-def test_convert_records(cov_conv, zymo_reads, paf_dict):
-    incr = cov_conv.convert_records(
+def test_convert_records(zymo_read_batch, paf_dict):
+    cc = brs.CoverageConverter()
+    incr = cc.convert_records(
         paf_dict=paf_dict,
-        seqs=zymo_reads.read_sequences,
-        quals=zymo_reads.read_qualities
+        seqs=zymo_read_batch.read_sequences,
+        quals=zymo_read_batch.read_qualities
     )
     assert incr
     assert len(incr) == 8

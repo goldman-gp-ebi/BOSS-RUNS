@@ -7,20 +7,11 @@ import boss.config
 
 
 
-
 @pytest.fixture
-def args():
-    conf = boss.config.Config()
-    # assign some args since we don't load the full config
-    conf.args.toml_readfish = "TEST"
-    conf.args.split_flowcell = False
-    conf.args.live_run = True
-    return conf.args
-
-
-@pytest.fixture
-def Boss(args):
-    return boss.core.Boss(args=args)
+def Boss(args_fake_real):
+    b = boss.core.Boss(args=args_fake_real)
+    b.launch_live_components()
+    return b
 
 
 

@@ -1,5 +1,4 @@
 import pytest
-import subprocess
 import time
 from pathlib import Path
 
@@ -8,12 +7,12 @@ import boss.aeons.simulation
 
 
 @pytest.fixture
-def args():
+def args(fastq_file):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
     args.live_run = False
-    args.fq = "../data/ERR3152366_10k.fq"
+    args.fq = fastq_file
     args.maxb = 8
     args.batchsize = 100
     args.dumptime = 10000

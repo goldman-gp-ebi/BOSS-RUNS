@@ -9,15 +9,15 @@ import boss.config
 
 
 @pytest.fixture
-def args():
+def args(fasta_file, fastq_file, paf_file, paf_file_trunc):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
     args.live_run = False
-    args.ref = "../data/zymo.fa"
-    args.fq = "../data/ERR3152366_10k.fq"
-    args.paf_full = "../data/ERR3152366_10k.paf"
-    args.paf_trunc = "../data/ERR3152366_10k_trunc.paf"
+    args.ref = fasta_file
+    args.fq = fastq_file
+    args.paf_full = paf_file
+    args.paf_trunc = paf_file_trunc
     args.maxb = 8
     args.batchsize = 100
     args.dumptime = 10000

@@ -1,7 +1,5 @@
 import logging
-
 import pytest
-
 
 import boss.runs.reference as refc
 
@@ -43,12 +41,18 @@ def test_contig_seq():
 
 
 @pytest.mark.parametrize("ref, mmi, reject_refs, nsites", [
-    ("../data/zymo.fa", None, "", 31012581),
-    ("../data/zymo.fa", "../data/zymo.fa.mmi", "", 31012581),
-    ("../data/zymo.fa", "../data/zymo.fa.mmi", "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526),
+    ("fasta_file", None, "", 31012581),
+    ("fasta_file", "mmi_file", "", 31012581),
+    ("fasta_file", "mmi_file", "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526),
 ])
-def test_reference(ref, mmi, reject_refs, nsites):
-    r = refc.Reference(ref=ref, mmi=mmi, reject_refs=reject_refs)
+def test_reference(ref, mmi, reject_refs, nsites, request):
+    # only grab fixture if mmi is actually passed as param
+    mmi = request.getfixturevalue(mmi) if mmi else None
+    r = refc.Reference(
+        ref=request.getfixturevalue(ref),
+        mmi=mmi,
+        reject_refs=reject_refs
+    )
     assert len(r.contigs) == 9
     assert r.n_sites == nsites
 
@@ -59,25 +63,20 @@ def test_reference_notafile():
 
 
 @pytest.mark.xfail(raises=ValueError)
-def test_reference_notfasta():
-    _ = refc.Reference(ref="../data/ERR3152366_10k.fq")   # TODO trigger that one
+def test_reference_notfasta(fastq_file):
+    _ = refc.Reference(ref=fastq_file)
 
 
 
 @pytest.mark.xfail(raises=FileNotFoundError)
-def test_reference_unrealmmi():
-    _ = refc.Reference(ref="../data/zymo.fa", mmi="not_a_real_file")
+def test_reference_unrealmmi(fasta_file):
+    _ = refc.Reference(ref=fasta_file, mmi="not_a_real_file")
 
 
-@pytest.fixture
-def reference():
-    r = refc.Reference(ref="../data/zymo.fa", mmi="../data/zymo.fa.mmi")
-    return r
-
-
-def test_contig_dicts(reference):
-    cs = reference.contig_sequences()
-    cl = reference.contig_lengths()
+def test_contig_dicts(fasta_file, mmi_file):
+    r = refc.Reference(ref=fasta_file, mmi=mmi_file)
+    cs = r.contig_sequences()
+    cl = r.contig_lengths()
     assert isinstance(cs, dict)
     assert isinstance(cl, dict)
     assert len(cs) == 9

@@ -6,16 +6,10 @@ import boss.batch
 from boss.aeons.sequences import SequencePool
 
 
-@pytest.fixture
-def batch():
-    f = list(Path("../data/fastq_pass/").glob("F*"))
-    b = boss.batch.FastqBatch(f)
-    return b
-
 
 @pytest.fixture
-def repeat_filter(batch):
-    seqpool = SequencePool(batch.read_sequences)
+def repeat_filter(zymo_read_batch_big):
+    seqpool = SequencePool(zymo_read_batch_big.read_sequences)
     rf = boss.aeons.repeats.RepeatFilter(name="boss", seqpool=seqpool)
     return rf
 
@@ -32,25 +26,25 @@ def test_init(repeat_filter):
     assert len(repeat_filter.repeats) > 20
 
 
-def test_filter_batch(repeat_filter, batch):
-    filtered_seqs = repeat_filter.filter_batch(seq_dict=batch.read_sequences)
-    assert len(batch.read_sequences) == 5000
+def test_filter_batch(repeat_filter, zymo_read_batch_big):
+    filtered_seqs = repeat_filter.filter_batch(seq_dict=zymo_read_batch_big.read_sequences)
+    assert len(zymo_read_batch_big.read_sequences) == 5000
     assert len(filtered_seqs) == 4988
 
 
-def test_get_sequence(repeat, batch):
-    seqpool = SequencePool(batch.read_sequences)
+def test_get_sequence(repeat, zymo_read_batch_big):
+    seqpool = SequencePool(zymo_read_batch_big.read_sequences)
     repeat.get_sequence(seqpool=seqpool.sequences)
 
 
-def test_fasta(repeat, batch):
+def test_fasta(repeat, zymo_read_batch_big):
     # test without grabbing sequence
     fa = repeat.fasta()
     assert fa == ''
     # assign new id and grab sequence
     repeat.rid = "b5ffbdab-29be-4afa-8346-2d5c4eba25ce"
-    # logging.info(batch.read_sequences.keys())
-    seqpool = SequencePool(batch.read_sequences)
+    # logging.info(zymo_read_batch_big.read_sequences.keys())
+    seqpool = SequencePool(zymo_read_batch_big.read_sequences)
     repeat.get_sequence(seqpool=seqpool.sequences)
     fa = repeat.fasta()
     assert fa.startswith('>b5ffbdab')

@@ -9,14 +9,15 @@ import boss.config
 
 
 @pytest.fixture
-def args():
+def args(fasta_file, mmi_file):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
     args.toml_readfish = "TEST"
     args.split_flowcell = False
     args.live_run = True
-    args.ref = "../data/zymo.fa"
+    args.ref = fasta_file
+    args.mmi = mmi_file
     return args
 
 
@@ -50,6 +51,7 @@ def test__init_dummy_strats(BossRuns, modes):
 
 def test_process_batch(BossRuns):
     BossRuns.init()
+    BossRuns.launch_live_components()
     assert BossRuns.batch == 0
     tic = time.time()
     # we need to switch bucket switches manually here

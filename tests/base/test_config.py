@@ -1,16 +1,8 @@
 from types import SimpleNamespace
 
+import pytest
+
 import boss.config
-
-
-
-arg_lists = {
-    "boss-runs": ['--toml', "./config/BOSS_RUNS.toml", '--toml_readfish', "./config/BOSS_RUNS_RF.toml"],
-    "boss-runs-sim": ['--toml', "./config/BOSS_RUNS_SIM.toml"],
-    "boss-aeons": ['--toml', "./config/BOSS_AEONS.toml", '--toml_readfish', "./config/BOSS_AEONS_RF.toml"],
-    "boss-aeons-sim": ['--toml', "./config/BOSS_AEONS_SIM.toml"],
-}
-
 
 
 
@@ -24,8 +16,8 @@ def test_defaults():
 
 
 
-def test_config_runs():
-    conf = boss.config.Config(parse=True, arg_list=arg_lists['boss-runs'])
+def test_config_runs(arg_dict):
+    conf = boss.config.Config(parse=True, arg_list=arg_dict['boss-runs'])
     assert conf.args.name == "runs"
     assert conf.args.device == "MS00000"
     assert conf.args.ref == "../data/zymo.fa"
@@ -35,8 +27,8 @@ def test_config_runs():
     assert conf.args.split_flowcell is True
 
 
-def test_config_runs_sim():
-    conf = boss.config.Config(parse=True, arg_list=arg_lists['boss-runs-sim'])
+def test_config_runs_sim(arg_dict):
+    conf = boss.config.Config(parse=True, arg_list=arg_dict['boss-runs-sim'])
     assert conf.args.name == "runs"
     assert conf.args.device == "TEST"
     assert conf.args.live_run is False
@@ -44,8 +36,9 @@ def test_config_runs_sim():
     assert hasattr(conf.args, "toml_readfish") is False
 
 
-def test_config_aeons():
-    conf = boss.config.Config(parse=True, arg_list=arg_lists['boss-aeons'])
+
+def test_config_aeons(arg_dict):
+    conf = boss.config.Config(parse=True, arg_list=arg_dict['boss-aeons'])
     assert conf.args.name == "aeons"
     assert conf.args.device == "MS00000"
     assert conf.args.ref == ""
@@ -56,13 +49,19 @@ def test_config_aeons():
     assert conf.args.lowcov == 1
 
 
-def test_config_aeons_sim():
-    conf = boss.config.Config(parse=True, arg_list=arg_lists['boss-aeons-sim'])
+@pytest.mark.xfail(raises=ValueError)
+def test_config_aeons_broken(arg_dict):
+    _ = boss.config.Config(parse=True, arg_list=arg_dict['boss-aeons-broken'])
+
+
+def test_config_aeons_sim(arg_dict):
+    conf = boss.config.Config(parse=True, arg_list=arg_dict['boss-aeons-sim'])
     assert conf.args.name == "aeons"
     assert conf.args.device == "TEST"
     assert conf.args.live_run is False
     assert conf.args.sim_run is True
     assert hasattr(conf.args, "toml_readfish") is False
+
 
 
 

@@ -6,41 +6,10 @@ from io import StringIO
 import numpy as np
 
 import boss.batch
-from boss.sampler import Sampler
 from boss.paf import Paf
 
 
 np.random.seed(1)
-
-
-sources = ["../data/ERR3152366_10k.fq", "../data/ERR3152366_10k.fq.gz"]
-paf_files = ["../data/ERR3152366_10k.paf", "../data/ERR3152366_10k_trunc.paf"]
-
-
-@pytest.fixture
-def sampler():
-    # initialise the wrapper class for the fastq and paf streaming
-    s = boss.sampler.Sampler(
-            source=sources[0],
-            paf_full=paf_files[0],
-            paf_trunc=paf_files[1],
-            maxbatch=10,
-            batchsize=5,
-    )
-    return s
-
-
-@pytest.fixture
-def fq_files():
-    f = Path("../data/fastq_pass/").glob("F*")
-    f = list(f)
-    f.sort()
-    # make one filepath str to test input types
-    f[1] = str(f[1])
-    # add file without ch=
-    f.append("../data/fastq_pass_no_ch/ERR3152366_1k_0.fq")
-    return f
-
 
 
 @pytest.mark.parametrize("channels, rlen, total", [
@@ -49,9 +18,9 @@ def fq_files():
     ({464, 456, 32, 24, 16, 8, 351, 343, 0, 555}, 518, 135997),
     ({}, 319, 8261497),
 ])
-def test_batch(fq_files, channels, rlen, total):
-    logging.info(fq_files)
-    batch = boss.batch.FastqBatch(fq_files, channels=channels)
+def test_batch(fq_file_mix, channels, rlen, total):
+    logging.info(fq_file_mix)
+    batch = boss.batch.FastqBatch(fq_file_mix, channels=channels)
     # grab a random element for testing
     rid, seq = list(batch.read_sequences.items())[0]
     assert rid in batch.read_ids
@@ -67,21 +36,14 @@ def test_batch_type():
     assert batch
 
 
-
-@pytest.fixture
-def read_cache():
-    rc = boss.batch.ReadCache(batchsize=10, dumptime=10_000)
-    return rc
-
-
 def test_init(read_cache):
     assert read_cache
     assert Path("00_reads/control_0.fa").is_file()
 
 
-def test_update_times_aeons(read_cache, fq_files):
+def test_update_times_aeons(read_cache, fq_file_mix):
     np.random.seed(1)
-    batch = boss.batch.FastqBatch(fq_files)
+    batch = boss.batch.FastqBatch(fq_file_mix)
     # create some arbitrary decisions
     reads_decision = {}
     for rid, seq in batch.read_sequences.items():
@@ -94,14 +56,8 @@ def test_update_times_aeons(read_cache, fq_files):
     assert read_cache.time_boss == 5_819_980
 
 
-def test_update_times_runs(read_cache):
-    s = boss.sampler.Sampler(
-        source=sources[0],
-        paf_full=paf_files[0],
-        paf_trunc=paf_files[1],
-        maxbatch=10,
-        batchsize=50,
-    )
+def test_update_times_runs(read_cache, sampler):
+    s = sampler
     r_seqs, r_quals, paf_f, paf_t = s.sample()
     total_bases = np.sum([len(s) for s in r_seqs.values()])
     total_n = len(r_seqs)
@@ -133,12 +89,9 @@ def test_update_times_runs(read_cache):
 
 
 
-def test_fill_cache(read_cache):
-    s = boss.sampler.Sampler(
-        source=sources[0],
-        maxbatch=10,
-        batchsize=50,
-    )
+def test_fill_cache(read_cache, sampler_nopaf):
+    s = sampler_nopaf
+
     r_seqs, r_quals, paf_f, paf_t = s.sample()
     # create some arbitrary decisions
     reads_decision = {}
@@ -166,3 +119,5 @@ def test_fill_cache(read_cache):
 
     assert len(read_cache.cache_boss) == 0
     assert len(read_cache.cache_control) == 0
+
+

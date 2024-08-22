@@ -16,6 +16,13 @@ ARG_LIST_RUNS = ["config/BOSS_RUNS_RF.toml", "MS00000", "bossruns"]
 ARG_LIST_AEONS = ["config/BOSS_AEONS_RF.toml", "MS00000", "bossaeons"]
 
 
+
+# TODO implement a test with simulated device
+# def test_connect_sequencer_sim():
+#     op = boss.live.LiveRun.connect_sequencer(device="MS00000")
+#     assert op == "./data"
+
+
 @pytest.fixture
 def args_runs():
     _, args = rf.get_args(ARG_LIST_RUNS)
