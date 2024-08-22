@@ -266,7 +266,7 @@ class Reference:
             raise FileNotFoundError("Reference file not found")
         ref_suff = Path(ref).suffixes
         if not any([r in {".fa", ".fasta"} for r in ref_suff]):
-            raise ValueError("Reference needs to be either fa, fasta")
+            raise ValueError("Reference needs to be either .fa or .fasta (optionally gzipped).")
         # create index if not present
         if not self.mmi:
             logging.info(f"Indexing reference: {self.ref}")
