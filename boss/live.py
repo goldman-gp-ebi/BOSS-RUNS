@@ -161,15 +161,19 @@ class LiveRun:
 
 
     @staticmethod
-    def launch_readfish(toml: str, device: str, name: str) -> None:
+    def launch_readfish(toml: str, device: str, name: str) -> str:
         """
         Wrapper to launch readfish into the background
 
         :param toml: TOML config for readfish
         :param device: Flowcell position
         :param name: Name of BOSS experiment
-        :return:
+        :return: name of the readfish log file
         """
+        if device == "TEST":  # exit for testing purposes
+            return ''
+        if not Path(toml).exists():
+            raise FileNotFoundError("Specified readfish toml does not exist.")
         # find the script to launch readfish
         module_path = inspect.getfile(LiveRun)
         logging.info(module_path)
@@ -177,15 +181,12 @@ class LiveRun:
         if not script_path.is_file():
             raise FileNotFoundError("readfish_boss.py not found. Something went wrong..")
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        readfish_comm = f'python {script_path} {toml} {device} {name} >{stamp}_readfish.log 2>&1'
+        readfish_log = f'{stamp}_readfish.log'
+        readfish_comm = f'python {script_path} {toml} {device} {name} >{readfish_log} 2>&1'
         logging.info(readfish_comm)
-        if device == "TEST":  # exit for testing purposes
-            return
-        if not Path(toml).exists():
-            raise FileNotFoundError("Specified readfish toml does not exist.")
         # launch readfish into the background
         logging.info("Launching readfish")
         subprocess.Popen(readfish_comm, shell=True)
-
+        return readfish_log
 
 
