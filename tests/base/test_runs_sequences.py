@@ -62,15 +62,47 @@ def test_diploid_priors(del_err, b, g):
 
 
 
-def test_convert_records(zymo_read_batch, paf_dict):
+def test_convert_records(zymo_read_batch, paf_dict, zymo_ref):
     cc = brs.CoverageConverter()
+
     incr = cc.convert_records(
         paf_dict=paf_dict,
         seqs=zymo_read_batch.read_sequences,
         quals=zymo_read_batch.read_qualities
     )
+
     assert incr
     assert len(incr) == 8
+    # check that correct ref is present
+    assert incr['NZ_CP041013.1']
+    # correct number of reads from that ref
+    assert len(incr['NZ_CP041013.1']) == 469
+    # coordinates on the ref of the first mapping
+    assert incr['NZ_CP041013.1'][0][: 2] == (4245280, 4254995)
+    # seq of the first mapping on the ref
+    assert np.allclose(incr['NZ_CP041013.1'][0][2][:20],
+                       np.array([0, 1, 1, 2, 1, 2, 1, 0, 1, 1, 2, 0, 1, 2, 0, 0, 0, 0, 1, 1],
+                             dtype=np.uint8))
+    # qual threshold for that sequence
+    assert np.sum(incr['NZ_CP041013.1'][0][3][:20]) == 20
+    # collect the ration of positions that are different from the reference
+    nonref_fraction = []
+    for refname, adds in incr.items():
+        for i in range(len(adds)):
+            start, end, seq, qual = adds[i]
+            # grab the reference sequence
+            refarr = zymo_ref.contigs[refname].seq_int[start: end]
+            # check where the mapping differs
+            nonref = np.where(refarr != seq)[0].shape[0]
+            nonref_fraction.append(nonref / len(refarr))
+    nonref_fraction = np.array(nonref_fraction)
+    # how many of the mappings have more than 15 percent divergence
+    lessthan_p15_nonref = np.where(nonref_fraction < 0.15)[0].shape[0]
+    # the total fraction of reads with <15% div should be that number
+    assert np.allclose(lessthan_p15_nonref / len(nonref_fraction), 0.859758771929)
+
+
+
 
 
 @pytest.fixture
