@@ -659,21 +659,21 @@ class CoverageConverter:
         # set up translation dict for bases
         transDict = {'A': '0', 'C': '1', 'G': '2', 'T': '3'}
         self.base2int = str.maketrans(transDict)
-        # translation dict for qualities (phred encoded)
-        transDict_qual = {chr(min(126, q + 33)): f'{q},' for q in range(94)}
-        self.qual2int = str.maketrans(transDict_qual)
         # and a translation dict for the cigar ops
-        transDict_cig = {'M': '0', 'D': '1', 'I': '2', 'S': '3'}
+        transDict_cig = {'M': '6', 'D': '7', 'I': '8', 'S': '9'}
         self.cig2int = str.maketrans(transDict_cig)
         # compile regex for cigar ops
-        self.cigar_regex = re.compile("(\d+)([MIDNSHP=XB])")
+        self.cigar_regex = re.compile(r"(\d+)([MIDNSHP=XB])")
         # quality threshold
         self.qt = qt
 
 
 
-    def convert_records(self, paf_dict: paf_dict_type, seqs: dict[str, str], quals: dict[str, str]
-                        ) -> defaultdict[Any, list]:
+    def convert_records(
+            self,
+            paf_dict: paf_dict_type,
+            seqs: dict[str, str],
+            quals: dict[str, str]) -> defaultdict[Any, list]:
         """
         Convert mappings to coverage counts
 
@@ -694,28 +694,31 @@ class CoverageConverter:
             else:
                 rec = rec[0]
 
-            # range of coverage of the read
-            start = min(rec.tstart, rec.tend)
-            end = max(rec.tstart, rec.tend)
-
             # handle strands
-            if rec.rev:   # reverse
+            if rec.rev:
                 seq = reverse_complement(seqs[rec.qname])
                 qual = quals[rec.qname][::-1]
-                offcut = rec.qlen - rec.qend
+                start = rec.qlen - rec.qend
+                end = rec.qlen - rec.qstart
             else:
                 seq = seqs[rec.qname]
                 qual = quals[rec.qname]
-                offcut = rec.qstart
+                start = rec.qstart
+                end = rec.qend
 
             # get array of counts for each base and indels
             query_arr, qual_arr = self._parse_cigar(
                 cigar_string=rec.cigar,
                 read_string=seq,
                 qual_string=qual,
-                offcut=offcut
+                start=start,
+                end=end
             )
+
             # make sure the arrays are the correct length
+            # range of coverage of the read
+            start = min(rec.tstart, rec.tend)
+            end = max(rec.tstart, rec.tend)
             assert (end - start) == query_arr.shape[0]
             assert (end - start) == qual_arr.shape[0]
             # eliminate low qual coverage
@@ -728,44 +731,30 @@ class CoverageConverter:
 
 
 
-    def _parse_cigar(self, cigar_string: str, read_string: str, qual_string: str, offcut: int) -> tuple[NDArray, NDArray]:
+    def _parse_cigar(
+            self,
+            cigar_string: str,
+            read_string: str,
+            qual_string: str,
+            start: int,
+            end: int) -> tuple[NDArray, NDArray]:
         """
         Parse cigar string to integer base observations
 
         :param cigar_string: A CIGAR string
         :param read_string: Read that the CIGAR string describes
         :param qual_string: string of base qualities (phred)
-        :param offcut: piece of the read at the start, which did not map. Offset for the query_pos
+        :param start: starting position of the aligned bit on the read
+        :param end: end position of the aligned bit on the read
         :return: tuple of integerised base and quality arrays of query at each pos
         """
         # translate sequence and qualities to integers
         read_integer = read_string.translate(self.base2int)
         int_seq = np.frombuffer(read_integer.encode(), 'u1') - ord('0')
-        qual_integer = qual_string.translate(self.qual2int)
-        int_qual = np.array(qual_integer.split(',')[:-1], dtype="uint8")
-        # split up the cigar
-        lengths, ops = self._prep_cigar(cigar_string)
-        # loop cigar operators
-        query_array, qual_array = self._loop_cigar(
-            cigar_lengths=lengths,
-            cigar_ops=ops,
-            int_seq=int_seq,
-            int_qual=int_qual,
-            qpos=offcut
-        )
-        return np.array(query_array), np.array(qual_array)
-
-
-
-    def _prep_cigar(self, cigar_string: str) -> tuple[NDArray, NDArray]:
-        """
-        Get arrays for lengths and codes of cigar ops
-
-        :param cigar_string: CIGAR string of an alignment
-        :return: Tuple of arrays for lengths and codes of cigar operations
-        """
-        # takes a cigar string and returns arrays for lengths and opcodes
-        # first split cigar into tuples of length, opcode
+        # qualities are simply transformed to ascii with frombuffer
+        # then subtract 33 for the phred score offset
+        int_qual = np.frombuffer(qual_string.encode('ascii'), dtype=np.uint8) - 33
+        # split cigar into tuples of length, opcode
         parts = self.cigar_regex.findall(cigar_string)
         # cast into lists
         lengths, ops = zip(*parts)
@@ -774,48 +763,25 @@ class CoverageConverter:
         # for the opcodes, first put them into a string and translate to integers
         ops_seq = ''.join(ops)
         ops_tr = ops_seq.translate(self.cig2int)
-        opsSeq = np.frombuffer(ops_tr.encode(), 'u1') - ord('0')
-        return lengths_arr, opsSeq
-
-
-
-    #@njit
-    def _loop_cigar(self, cigar_lengths: NDArray, cigar_ops: NDArray, int_seq: NDArray, int_qual: NDArray, qpos: int) -> tuple[list, list]:
-        """
-        Parse a cigar string given it's deconstructed components
-
-        :param cigar_lengths: Array of length of operations
-        :param cigar_ops: Array of cigar operations
-        :param int_seq: Interget sequence of read
-        :param int_qual: Integer quality of read
-        :param qpos: Offcut length
-        :return: Tuple of query and quality lists
-        """
-        query = []
-        qual = []
-        for count, operation in zip(cigar_lengths, cigar_ops):
-            # MATCH
-            if operation == 0:
-                query.extend(int_seq[qpos: qpos + count])
-                qual.extend(int_qual[qpos: qpos + count])
-                qpos += count
-            # GAP
-            elif operation == 1:
-                query.extend([4] * count)
-                qual.extend([20] * count)
-            # INSERTION
-            elif operation == 2:
-                # query_array[array_pos, 5] += 1  # UNUSED
-                # query_array[array_pos, 6] += count # UNUSED
-                qpos += count
-            # OTHER, e.g. softclip
-            elif operation == 3:
-                # soft clipped bases are skipped
-                # minimap2 does not report softclipped reads anyway
-                qpos += count
-            else:
-                logging.info(f'Invalid cigar operation {operation}')
-        return query, qual
+        ops_arr = np.frombuffer(ops_tr.encode(), 'u1') - ord('0')
+        # create an array that's the same length of rec.alignment_block_length
+        # this consists of repeated opcodes
+        cig_rep = np.repeat(ops_arr, lengths_arr)
+        # all positions that are not insertions
+        notins = np.where(cig_rep != 8)
+        notdel = np.where(cig_rep != 7)
+        cig_rep_qual = np.copy(cig_rep)
+        # put the read sequence into the alignment block where it's not D
+        cig_rep[notdel] = int_seq[start: end]
+        # then grab the nuc that are not inserted
+        query_arr = cig_rep[notins]
+        # perform basically the same with the quality scores
+        cig_rep_qual[notdel] = int_qual[start: end]
+        qual_arr = cig_rep_qual[notins]
+        # transform D to 4 in the sequence, to 20 in the qual
+        qual_arr[query_arr == 7] = 20
+        query_arr[query_arr == 7] = 4
+        return query_arr, qual_arr
 
 
 
