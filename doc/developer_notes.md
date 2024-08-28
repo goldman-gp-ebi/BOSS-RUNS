@@ -54,19 +54,15 @@ Most tests can be run stand-alone with
 
 ```shell
 cd tests
-pytest --ignore=playback --cov --cov-report html 
+pytest base/ --cov --cov-report html 
 ```
 
 Some tests need to have playback sequencing running in the background.
-These can be run with
 
 ```shell
 cd tests
 pytest playback 
 ```
-
-In the playback case, some tests (infinite loops) will run for a while and xfail on purpose by a timeout.
-In that case, the correct behaviour can only be checked by looking at the corresponding logfiles.
 
 Upper case TOML config files in `tests/config` are for the test suite. 
 The other ones are for the walkthrough example of Chromosome 20 fishing.
@@ -77,7 +73,16 @@ The other ones are for the walkthrough example of Chromosome 20 fishing.
 `pip install dist/boss_runs-0.1.0-py3-none-any.whl --force-reinstall --no-deps`
 
 
-## readfish files/funcs to check after updates
+## notes on the readfish wrapper 
+
+- readfish_boss is based on the `targets.py` entry-point of readfish
+- instead of launching it as an entry-point, we run _cli_base.main()
+- the only mod in that function is to return parser and args instead of sending it
+- targets.py is almost the same as the original, bar a few changed lines
+- also overwrite the make_decision function -> BossBits.make_decision_boss()
+- that function originally lives in _config.py
+
+files/funcs to check after updates
 
 targets.py
 _cli_base.main()
