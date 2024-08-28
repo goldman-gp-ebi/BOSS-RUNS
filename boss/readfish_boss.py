@@ -589,7 +589,7 @@ class Analysis:
 # TODO changing typehints here to allow pass-through and testing
 def run(
     parser: argparse.ArgumentParser, args: argparse.Namespace, extras: list[Any]
-) -> int:
+) -> int | tuple[Conf, logging.Logger]:
     """Run function for targets.py
 
     Imported in `_cli_base.py`.
@@ -664,6 +664,10 @@ If there isn't a newer version of readfish and readfish is failing, please open 
         f"'readfish {args.command}' connected to this device.",
         Severity.WARN,
     )
+
+    # TODO for testing purposes
+    if hasattr(args, 'return_conf'):
+        return conf, logger
 
     # start the client running
     read_until_client.run(
