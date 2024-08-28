@@ -45,6 +45,35 @@ class LiveRun:
 
 
     @staticmethod
+    def _grab_channels(channels_toml: str, run_name: str) -> set:
+        """
+        Look into the channels toml that readfish writes
+        This toml contains lists of channels assigned to each region
+        Grab the channel numbers for the BOSS region
+
+        :param channels_toml: Path to channels TOML from readfish
+        :param run_name: experiment name of BOSS region
+        :return: Set of channel numbers from which to consider data
+        """
+        toml_dict = rtoml.load(Path(channels_toml))
+        # find the corresponding condition
+        correct_key = ''
+        for key in toml_dict["conditions"].keys():
+            name = toml_dict["conditions"][key]["name"]
+            if name == run_name:
+                correct_key = key
+                break
+
+        if not correct_key:
+            raise ValueError(f"Experiment name {run_name} in .toml not found in channel-specification toml.")
+
+        selected_channels = set(toml_dict["conditions"][correct_key]["channels"])
+        logging.info("grabbing channel numbers ...")
+        return selected_channels
+
+
+
+    @staticmethod
     def connect_sequencer(device: str, host: str = 'localhost', port: int = None) -> str:
         """
         Connect to the running sequencer to get the path to its output directory
@@ -67,7 +96,6 @@ class LiveRun:
             else:
                 raise ValueError(f"Error: target device {device} not available. Please make sure to supply correct name of sequencing position in MinKNOW")
         return out_path
-
 
 
     @staticmethod
@@ -107,34 +135,6 @@ class LiveRun:
         logging.info(f"connected to run_id: {run_id}")
         out_path = current_run.output_path
         return out_path
-
-
-    @staticmethod
-    def _grab_channels(channels_toml: str, run_name: str) -> set:
-        """
-        Look into the channels toml that readfish writes
-        This toml contains lists of channels assigned to each region
-        Grab the channel numbers for the BOSS region
-
-        :param channels_toml: Path to channels TOML from readfish
-        :param run_name: experiment name of BOSS region
-        :return: Set of channel numbers from which to consider data
-        """
-        toml_dict = rtoml.load(Path(channels_toml))
-        # find the corresponding condition
-        correct_key = ''
-        for key in toml_dict["conditions"].keys():
-            name = toml_dict["conditions"][key]["name"]
-            if name == run_name:
-                correct_key = key
-                break
-
-        if not correct_key:
-            raise ValueError(f"Experiment name {run_name} in .toml not found in channel-specification toml.")
-
-        selected_channels = set(toml_dict["conditions"][correct_key]["channels"])
-        logging.info("grabbing channel numbers ...")
-        return selected_channels
 
 
 
