@@ -125,11 +125,9 @@ from readfish.plugins.utils import (
 
 
 # TODO custom imports
-from boss._cli_base import main as main_args
-import numpy as np
+from boss.dynamic_readfish import BossBits, get_args
 import sys
-import os
-import mappy
+
 
 
 _help = "Run targeted sequencing"
@@ -463,7 +461,7 @@ class Analysis:
         self.logger.info(mapper_description)
         send_message(self.client.connection, mapper_description, Severity.INFO)
 
-        # boss - initialise parts needed for dynamic decisions
+        # TODO initialise parts needed for dynamic decisions
         boss = BossBits(conf=self.conf, logger=self.logger, mapper=self.mapper)
 
 
@@ -489,7 +487,7 @@ class Analysis:
                 time.sleep(self.throttle)
                 continue
 
-            # boss load updated decision masks and contigs
+            # TODO load updated decision masks and contigs
             reload_mapper, mapper = boss.reload(conf=self.conf)
             if reload_mapper:
                 self.mapper = mapper  # replace the mapper with new one
@@ -514,7 +512,7 @@ class Analysis:
                     result.channel, result.barcode
                 )
                 # result.decision = make_decision(self.conf, result)
-                # boss decisions
+                # TODO decisions
                 result.decision = boss.make_decision_boss(self.conf, result)
                 action = condition.get_action(result.decision)
                 seen_count = self.chunk_tracker.seen(result.channel, result.read_id)
@@ -588,7 +586,7 @@ class Analysis:
             self.logger.info("Finished analysis of reads as client stopped.")
 
 
-# TODO only changing typehint here to allow pass-through
+# TODO changing typehints here to allow pass-through and testing
 def run(
     parser: argparse.ArgumentParser, args: argparse.Namespace, extras: list[Any]
 ) -> int:
