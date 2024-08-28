@@ -54,9 +54,14 @@ def check_for_new_files(request):
     after_dirs = set([x for x in p.glob('**/*') if x.is_dir()])
     new_files = [f for f in after_files if f not in before_files]
     new_dirs = [f for f in after_dirs if f not in before_dirs]
+    if 'keepfiles' in request.keywords:  # this allows tests to be marked with @pytest.mark.keepfiles
+        new_files = ''
+        new_dirs = ''
     if new_files:
         print("\n{} created by {}".format(new_files, request.node))
         for f in new_files:
+            if f.name.endswith('.log'):  # don't delete logs
+                continue
             f.unlink()
     if new_dirs:
         print("\n{} created by {}".format(new_dirs, request.node))
