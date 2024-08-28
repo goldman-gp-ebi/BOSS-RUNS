@@ -83,6 +83,7 @@ This prevents trying to unblock reads of unknown length.
 # Core imports
 from __future__ import annotations
 import argparse
+import traceback
 from packaging.version import Version
 import logging
 import time
@@ -287,8 +288,10 @@ class Analysis:
                     self.live_toml, self.client.channel_count, self.logger
                 )
             # FIXME: Broad exception
-            except Exception:
-                pass
+            except Exception as e:
+                if hasattr(e, "exceptions"):
+                    self.logger.error(getattr(e, "exceptions"))
+                    self.logger.error(traceback.format_exc())
             last_toml_mtime = self.live_toml.stat().st_mtime
         return last_toml_mtime
 
@@ -301,7 +304,7 @@ class Analysis:
         condition: _Condition,
         stop_receiving_action_list: list[tuple[int, int]],
         unblock_batch_action_list: list[tuple[int, int]],
-    ) -> tuple[Action, bool, str | None]:
+    ) -> tuple[Action, Action, bool, str | None]:
         """
         Check the chosen Action and amend it based on conditional checks.
         The action lists are appended to in place, so no return is required.
@@ -437,6 +440,7 @@ class Analysis:
                 )
 
         return (
+            action,
             previous_action,
             action_overridden,
             action.name if action_overridden else None,
@@ -516,6 +520,7 @@ class Analysis:
                 seen_count = self.chunk_tracker.seen(result.channel, result.read_id)
                 #  Check if there any conditions that override the action chose, exceed_max_chunks etc...
                 (
+                    action,
                     previous_action,
                     action_overridden,
                     overridden_action_name,
@@ -667,7 +672,13 @@ If there isn't a newer version of readfish and readfish is failing, please open 
         first_channel=1,
         last_channel=read_until_client.channel_count,
         max_unblock_read_length_seconds=args.max_unblock_read_length_seconds,
-        accepted_first_chunk_classifications=["strand", "strand2", "short_strand", "adapter", "unknown_positive"],
+        accepted_first_chunk_classifications=[
+            "strand",
+            "strand2",
+            "short_strand",
+            "adapter",
+            "unknown_positive",
+        ],
     )
 
     worker = Analysis(
