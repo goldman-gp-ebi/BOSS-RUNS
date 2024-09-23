@@ -23,7 +23,7 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 
 ## Changelog
 
-
+- 2024/09/23 0.3.0 compatibility with minknow 6, improved performance of paring coverage counts, improved pytests and test coverage
 - 2024/05/21 0.2.0 Updated internal readfish functionality to ensure compatibility with newest dorado versions
 
 
@@ -31,7 +31,7 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 ## Requirements
 
 - Linux
-- MinKNOW >=5.0 with guppy >=6.0 (or dorado)
+- MinKNOW >=6.0 with dorado ~=7.4
 
 
 
@@ -44,7 +44,7 @@ These commands will create an environment and install BOSS* alongside the necess
 
 
 ```shell
-mamba create -n boss python=3.10 pip gfatools minimap2 miniasm && mamba activate boss   
+mamba create -n boss python=3.10 pip bioconda::gfatools bioconda::minimap2 bioconda::miniasm && mamba activate boss   
 pip install boss_runs
 ```
 
@@ -91,7 +91,7 @@ A separate toml file needs to be given to BOSS that contains the configuration o
 Here's an example with two regions on a flowcell, where one is running this method and the second half acts as a control:
 
 ```toml
-[caller_settings.guppy]  # use .dorado here if using dorado
+[caller_settings.dorado]  
 config = 'dna_r10.4.1_e8.2_400bps_5khz_fast'
 address = 'ipc:///tmp/.guppy/5555'
 debug_log = 'live_reads.fq'
