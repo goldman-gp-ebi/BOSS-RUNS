@@ -9,6 +9,7 @@ from boss.sampler import Sampler
 from boss.batch import ReadCache
 from boss.batch import FastqBatch
 from boss.config import Config
+from boss.mapper import Indexer
 
 
 
@@ -75,10 +76,17 @@ def check_for_new_files(request):
             except OSError:
                 pass
 
+@pytest.fixture
+def zymo_index(fasta_file):
+    mmip = f'{fasta_file}.mmi'
+    _ = Indexer(fasta=fasta_file, mmi=mmip)
+    assert Path(mmip).is_file()
+    return mmip
+
 
 @pytest.fixture
-def zymo_ref():
-    r = Reference(ref=paths.fasta, mmi=paths.mmi)
+def zymo_ref(zymo_index):
+    r = Reference(ref=paths.fasta, mmi=zymo_index)
     return r
 
 @pytest.fixture
