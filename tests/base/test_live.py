@@ -6,25 +6,28 @@ import boss.live
 
 
 
+@pytest.fixture
+def dummy_sequencer():
+    seq = boss.live.Sequencer()
+    return seq
 
-def test_split_flowcell(data_loc):
-    channels = boss.live.LiveRun.split_flowcell(out_path=data_loc, run_name="aeons")
+
+
+def test_grab_channels(dummy_sequencer):
+    dummy_sequencer.grab_channels(run_name="aeons")
+    channels = dummy_sequencer.channels
     assert isinstance(channels, set)
     assert len(channels) == 256
 
 
 
 @pytest.mark.xfail(raises=ValueError)
-def test_split_flowcell_dummy(data_loc):
-    channels = boss.live.LiveRun.split_flowcell(out_path=data_loc, run_name="dummy")
+def test_grab_channels_wrongname(dummy_sequencer):
+    dummy_sequencer.grab_channels(run_name="dummy")
+    channels = dummy_sequencer.channels
     assert isinstance(channels, set)
     assert len(channels) == 0
 
-
-
-def test_connect_sequencer(data_loc):
-    op = boss.live.LiveRun.connect_sequencer(device="TEST")
-    assert op == data_loc
 
 
 
