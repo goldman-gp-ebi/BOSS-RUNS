@@ -91,10 +91,10 @@ class Config:
             if self.args.live_run:
                 # add path to readfish toml as arg
                 self.args.toml_readfish = toml_paths.toml_readfish
-                # exchange args between the tools
-                self._impute_args(self.args, args_readfish)
+                # check that experiment exists as readfish region
+                self._verify_region_names(self.args, args_readfish)
                 # validate readfish args
-                self._validate_readfish_conf(args_readfish, prom=self.args.prom)
+                self._validate_readfish_conf(args_readfish)
 
 
 
@@ -188,24 +188,16 @@ class Config:
 
 
     @staticmethod
-    def _impute_args(args: SimpleNamespace, args_readfish: dict) -> None:
+    def _verify_region_names(args: SimpleNamespace, args_readfish: dict) -> None:
         """
-        We set a few arguments in readfish, depending on the config given to BOSS
-        And vice-versa some arguments in BOSS are set depending on the readfish config
+        Verify that the experiment name of BOSS exists as region in readfish
 
         :param args: Config dictionary for BOSS
         :param args_readfish: Config dictionary for readfish
         :return:
         """
-        # check if there are multiple conditions in readfish
-        # this sets split_flowcell in BOSS
-        # alternative is to run only BOSS across an entire flowcell
         if type(args_readfish['regions']) is not list:
             raise ValueError("Readfish regions must be specified as array")
-        if len(args_readfish['regions']) >= 2:
-            args.split_flowcell = True
-        else:
-            args.split_flowcell = False
 
         # make sure the names of BOSS and regions on flowcell are the same
         region_names = {r['name'] for r in args_readfish['regions']}
