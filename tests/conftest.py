@@ -199,8 +199,3 @@ def readfish_toml_aeons_loc():
     return paths.readfish_toml_aeons
 
 
-@pytest.fixture
-def data_loc():
-    return paths.data
-
-
