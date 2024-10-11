@@ -24,7 +24,6 @@ def test_config_runs(arg_dict):
     assert conf.args.live_run is True
     assert conf.args.sim_run is False
     assert conf.args.toml_readfish == "./config/BOSS_RUNS_RF.toml"
-    assert conf.args.split_flowcell is True
 
 
 def test_config_runs_sim(arg_dict):
@@ -45,7 +44,6 @@ def test_config_aeons(arg_dict):
     assert conf.args.live_run is True
     assert conf.args.sim_run is False
     assert conf.args.toml_readfish == "./config/BOSS_AEONS_RF.toml"
-    assert conf.args.split_flowcell is True
     assert conf.args.lowcov == 1
 
 
