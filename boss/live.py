@@ -2,61 +2,120 @@ import logging
 import subprocess
 import os
 import time
-import sys
 import glob
 import inspect
 from pathlib import Path
 from datetime import datetime
 
 import rtoml
-from minknow_api.manager import Manager
+from minknow_api.manager import Manager, FlowCellPosition
 from minknow_api import __version__ as minknow_api_version
 
 
 
-class LiveRun:
 
-    @staticmethod
-    def split_flowcell(out_path: str, run_name: str) -> set:
+class Sequencer:
+
+    def __init__(self, position: FlowCellPosition = None):
         """
-        Perform the necessary steps if running multiple regions on a flowcell
+        class that represents a connected sequencing device
+
+        :param position: FlowCellPosition instance from minknow_api
+        """
+        self.position = position
+
+        if self.position:
+            self._grab_output_dir()
+            self._grab_device_type()
+        else:   # testing pass-through
+            self.channels = set()
+            self.out_path = '../data'
+            self.device_type = 'min'
+            if not os.path.exists(f'{self.out_path}/fastq_pass'):
+                os.mkdir(f'{self.out_path}/fastq_pass')
+
+
+
+
+    def _grab_output_dir(self) -> None:
+        """
+        Capture the output directory of MinKNOW,
+        i.e. where fastq files are deposited during sequencing
+        :return:
+        """
+        # connect to the device and navigate api to get output path
+        device_connection = self.position.connect()
+        current_run = device_connection.protocol.get_current_protocol_run()
+        run_id = current_run.run_id
+        logging.info(f"connected to run_id: {run_id}")
+        self.out_path = current_run.output_path
+        logging.info(f"grabbing Minknow's output path: \n{self.out_path}\n")
+
+
+
+    def _grab_device_type(self) -> None:
+        """
+        Get info on the type of device that the sequencing is running on.
+        Can be either minion, gridion, promethion, p2solo
+        Currently not used for anything
+
+        :return:
+        """
+        pro_device_types = {'P2_SOLO', 'PROMETHION'}
+        min_device_types = {'MINION'}
+        dt = self.position.device_type
+        if dt in pro_device_types:
+            self.device_type = 'pro'
+        elif dt in min_device_types:
+            self.device_type = 'min'
+        else:
+            logging.info(f'WARNING: device type {dt} not recognized. Using MINION flowcell layout as fallback')
+            self.device_type = 'min'
+
+
+
+    def grab_channels(self, run_name: str) -> None:
+        """
         Wait until we find a channels TOML spec that contains the channel
         numbers assigned to the BOSS region on the flowcell.
+        Result is the set of channel IDs from which data is used or empty set
 
-        :param out_path: General MinKNOW output path
         :param run_name: Experiment name from config TOML
-        :return: Set of channel IDs to consider data from
+        :return:
         """
-        channel_path = f'{out_path}/channels.toml'
-        logging.info(f'looking for channels specification at : {channel_path}')
+        self.channels_toml = f'{self.out_path}/channels.toml'
+        logging.info(f'looking for channels specification at : {self.channels_toml}')
         channels_found = False
         channels = []
         while not channels_found:
-            if not os.path.isfile(channel_path):
+            if not os.path.isfile(self.channels_toml):
                 logging.info("channels file does not exist (yet), waiting for 30s")
                 time.sleep(30)
             else:
-                channels = LiveRun._grab_channels(channels_toml=channel_path, run_name=run_name)
+                channels = self._parse_channels_toml(run_name=run_name)
                 channels_found = True
         # channels successfully found
-        logging.info(f"found channels specification: Using {len(channels)} channels.")
-        return channels
+        self.channels = channels
 
 
 
-    @staticmethod
-    def _grab_channels(channels_toml: str, run_name: str) -> set:
+    def _parse_channels_toml(self, run_name: str) -> set:
         """
         Look into the channels toml that readfish writes
         This toml contains lists of channels assigned to each region
         Grab the channel numbers for the BOSS region
 
-        :param channels_toml: Path to channels TOML from readfish
         :param run_name: experiment name of BOSS region
         :return: Set of channel numbers from which to consider data
         """
-        toml_dict = rtoml.load(Path(channels_toml))
-        # find the corresponding condition
+        toml_dict = rtoml.load(Path(self.channels_toml))
+        # if there is only one condition, we return empty set
+        # that way we can skip the regex when scanning new data
+        if len(toml_dict["conditions"]) == 1:
+            logging.info('Only one condition. Using all channels!')
+            return set()
+
+        # otherwise find the corresponding condition
         correct_key = ''
         for key in toml_dict["conditions"].keys():
             name = toml_dict["conditions"][key]["name"]
@@ -68,73 +127,66 @@ class LiveRun:
             raise ValueError(f"Experiment name {run_name} in .toml not found in channel-specification toml.")
 
         selected_channels = set(toml_dict["conditions"][correct_key]["channels"])
-        logging.info("grabbing channel numbers ...")
+        logging.info(f"found channels specification: Using {len(selected_channels)} channels.")
         return selected_channels
 
 
 
+
+class LiveRun:
+
+
     @staticmethod
-    def connect_sequencer(device: str, host: str = 'localhost', port: int = None) -> str:
+    def connect_sequencer(device: str, host: str = 'localhost', port: int = None) -> Sequencer:
         """
         Connect to the running sequencer to get the path to its output directory
 
         :param device: Device name on sequencing machine
         :param host: Host to connect to
         :param port: Possibility to overwrite default port
-        :return: Path of MinKNOW output directory
+        :return: Sequencer object that holds info about the flowcellposition
         """
+        LiveRun._check_minknow_api_version()
+        # try connecting to the sequencing device
         try:
-            out_path = LiveRun._grab_output_dir(device=device, host=host, port=port)
-            logging.info(f"grabbing Minknow's output path: \n{out_path}\n")
+            flowcellposition = LiveRun._grab_target_device(device=device, host=host, port=port)
+            sequencer = Sequencer(position=flowcellposition)
         except:
-            logging.info("Minknow's output dir could not be inferred from device name. Exiting.")
-            logging.info(f'\n{device}\n{host}\n{port}')
-            if device == "TEST":
-                out_path = "../data"
-                if not os.path.exists(f'{out_path}/fastq_pass'):
-                    os.mkdir(f'{out_path}/fastq_pass')
-            else:
-                raise ValueError(f"Error: target device {device} not available. Please make sure to supply correct name of sequencing position in MinKNOW")
-        return out_path
+            raise ValueError(f"Error: issue connecting to target device {device}, at host {host} and port {port}. \n"
+                             f"Please make sure to supply correct name of sequencing position in MinKNOW")
+        return sequencer
 
 
     @staticmethod
-    def _grab_output_dir(device: str, host: str = 'localhost', port: int = None) -> str:
+    def _check_minknow_api_version() -> None:
         """
-        Capture the output directory of MinKNOW,
-        i.e. where fastq files are deposited during sequencing
-        host and port should be optional if run on the sequencing machine
+        Check compatibility of the available minknow_api version. Hard exits if not compatible
+        :return:
+        """
+        logging.info(f"minknow API Version {minknow_api_version}")
+        # minknow_api.manager supplies Manager (wrapper around MinKNOW's Manager gRPC)
+        if not minknow_api_version.startswith("6"):
+            raise NotImplementedError("Unsupported version of minknow_api. MinKnow <6 is not supported.")
+
+
+
+    @staticmethod
+    def _grab_target_device(device: str, host: str = 'localhost', port: int = 9502) -> FlowCellPosition:
+        """
+        Get the flowcell position that runs the sequencing process
 
         :param device: device name of the 'position' in the sequencing machine
         :param host: hostname to connect to for MinKNOW
         :param port: override default port to connect to
-        :return: String of path where sequencing data is put my MinKNOW
+        :return: instance of FlowCellPosition from minknow_api
         """
-        logging.info(f"minknow API Version {minknow_api_version}")
-        # minknow_api.manager supplies Manager (wrapper around MinKNOW's Manager gRPC)
-        if minknow_api_version.startswith("6"):
-            if not port:
-                port = 9502
-            manager = Manager(host=host, port=int(port))
-        else:
-            raise NotImplementedError("Unsupported version of minknow_api. MinKnow <6 is not supported.")
-
         # Find a list of currently available sequencing positions.
+        manager = Manager(host=host, port=int(port))
         positions = list(manager.flow_cell_positions())
         pos_dict = {pos.name: pos for pos in positions}
         # index into the dict of available devices
-        try:
-            target_device = pos_dict[device]
-        except KeyError:
-            logging.info(f"Error: target device {device} not available. Please make sure to supply correct name of sequencing position in MinKNOW")
-            sys.exit()
-        # connect to the device and navigate api to get output path
-        device_connection = target_device.connect()
-        current_run = device_connection.protocol.get_current_protocol_run()
-        run_id = current_run.run_id
-        logging.info(f"connected to run_id: {run_id}")
-        out_path = current_run.output_path
-        return out_path
+        target_device = pos_dict[device]
+        return target_device
 
 
 
