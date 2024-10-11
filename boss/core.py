@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from types import SimpleNamespace
 
-from boss.live import LiveRun
+from boss.live import LiveRun, Sequencer
 from boss.readlengthdist import ReadlengthDist
 from boss.batch import FastqBatch
 
@@ -61,19 +61,25 @@ class Boss:
 
         :return:
         """
-        # connect to sequencing machine and grab the output directory
-        out_path = LiveRun.connect_sequencer(device=self.args.device,
-                                             host=self.args.host,
-                                             port=self.args.port)
-        self.args.fq = f'{out_path}/fastq_pass'
-        # grab channels of the condition
-        # for this readfish needs to be up and running already
-        if self.args.split_flowcell:
-            channels = LiveRun.split_flowcell(out_path=out_path, run_name=self.args.name)
+        # connect to sequencing machine
+        # early exit for pytests
+        if self.args.device == "TEST":
+            sequencer = Sequencer()
+
         else:
-            # if we use a whole flowcell, leave channels empty to use all data
-            channels = set()
-        self.channels = channels
+            sequencer = LiveRun.connect_sequencer(device=self.args.device,
+                                                  host=self.args.host,
+                                                  port=self.args.port)
+            sequencer.grab_channels(run_name=self.args.name)
+
+        # get the relevant infos from the Sequencer
+        self.args.fq = f'{sequencer.out_path}/fastq_pass'
+        assert Path(self.args.fq).is_dir()
+        # readfish needs to have placed the channels.toml at this point
+        # channels can be an empty set if there is only one condition
+        # then data from all channels will be used (i.e. later regex skipped)
+        self.channels = sequencer.channels
+
 
 
     def _get_new_data(self) -> tuple[dict, dict]:
