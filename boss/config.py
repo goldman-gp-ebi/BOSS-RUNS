@@ -42,7 +42,6 @@ class Config:
         host = "localhost"              # host of sequencing device
         port = 9502                     # port of sequencing device
         data_wait = 100                 # wait for X Mb of data before first update
-        prom = false                    # switch for using a PromethION flowcell (experimental)
 
         [optional]
         reject_refs = ""                # comma-separated list of headers in reference from which to always reject
@@ -216,17 +215,16 @@ class Config:
 
 
     @staticmethod
-    def _validate_readfish_conf(args_rf: dict, prom: bool) -> int:
+    def _validate_readfish_conf(args_rf: dict) -> int:
         """
         Minimalist version of readfish validate entry-point
         to validate parsed toml config for readfish
 
         :param args_rf: Dict of arguments parsed for readfish
-        :param prom: Boolean whether we use a PromethION flowcell
         :return: indicator
         """
         from readfish._config import Conf
-        channels = 3000 if prom else 512
+        channels = 512
         try:
             _ = Conf.from_dict(args_rf, channels)
         except:
