@@ -73,20 +73,25 @@ def test_launch_readfish(readfish_toml_loc, playback_dir):
 
 
 def test_connect_sequencer(playback_dir):
-    op = boss.live.LiveRun.connect_sequencer(device="MS00000")
-    assert Path(op) == Path(playback_dir)
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    assert Path(sequencer.out_path) == Path(playback_dir)
+    assert sequencer.device_type == 'min'
 
 
 
 def test_scan_dir(playback_dir):
-    op = boss.live.LiveRun.connect_sequencer(device="MS00000")
-    assert Path(op) == Path(playback_dir)
-    _ = boss.live.LiveRun.scan_dir(fastq_pass=str(Path(op) / 'fastq_pass'), processed_files=set())
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    assert Path(sequencer.out_path) == Path(playback_dir)
+    new_fqs = boss.live.LiveRun.scan_dir(fastq_pass=str(Path(sequencer.out_path) / 'fastq_pass'), processed_files=set())
+    assert isinstance(new_fqs, list)
+    assert len(new_fqs) > 0
 
 
 
-def test_split_flowcell(playback_dir):
-    channels = boss.live.LiveRun.split_flowcell(out_path=playback_dir, run_name="runs")
+def test_grab_channels(playback_dir):
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    sequencer.grab_channels(run_name="runs")
+    channels = sequencer.channels
     assert isinstance(channels, set)
     assert len(channels) == 256
 
