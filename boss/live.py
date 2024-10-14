@@ -48,7 +48,7 @@ class Sequencer:
         current_run = device_connection.protocol.get_current_protocol_run()
         run_id = current_run.run_id
         logging.info(f"connected to run_id: {run_id}")
-        self.out_path = current_run.output_path
+        self.out_path = str(current_run.output_path)
         logging.info(f"grabbing Minknow's output path: \n{self.out_path}\n")
 
 
@@ -56,7 +56,7 @@ class Sequencer:
     def _grab_device_type(self) -> None:
         """
         Get info on the type of device that the sequencing is running on.
-        Can be either minion, gridion, promethion, p2solo
+        Can be either minion, gridion, promethion, p2_solo
         Currently not used for anything
 
         :return:
@@ -137,7 +137,7 @@ class LiveRun:
 
 
     @staticmethod
-    def connect_sequencer(device: str, host: str = 'localhost', port: int = None) -> Sequencer:
+    def connect_sequencer(device: str, host: str = 'localhost', port: int = 9502) -> Sequencer:
         """
         Connect to the running sequencer to get the path to its output directory
 
