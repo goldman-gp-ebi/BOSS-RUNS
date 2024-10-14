@@ -24,7 +24,8 @@ paths = SimpleNamespace(
     fastq_dir="../data/fastq_pass",
     fastq_dir_noch="../data/fastq_pass_no_ch/",
     readfish_toml='./config/BOSS_RUNS_RF.toml',
-    readfish_toml_aeons='./config/BOSS_AEOS_RF.toml',
+    readfish_toml_singleregion='./config/BOSS_RUNS_RF_singleregion.toml',
+    readfish_toml_aeons='./config/BOSS_AEONS_RF.toml',
 )
 
 arg_dicts = {
@@ -192,6 +193,11 @@ def args_fake_real():
 @pytest.fixture
 def readfish_toml_loc():
     return paths.readfish_toml
+
+
+@pytest.fixture
+def readfish_toml_loc_singleregion():
+    return paths.readfish_toml_singleregion
 
 
 @pytest.fixture
