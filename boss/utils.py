@@ -1,5 +1,6 @@
 import subprocess
 from types import SimpleNamespace
+from importlib.metadata import version
 
 import numpy as np
 from numpy.typing import NDArray
@@ -30,6 +31,7 @@ def init_logger(logfile: str, args: SimpleNamespace) -> None:
                         handlers=[logging.FileHandler(f"{logfile}"), logging.StreamHandler()])
 
     logging.info("BOSS RUNS/AEONS")
+    logging.info(f"{version('boss_runs')}")
     logging.info('\n')
     for a, aval in args.__dict__.items():
         logging.info(f'{a} {aval}')
