@@ -70,6 +70,26 @@ Upper case TOML config files in `tests/config` are for the test suite.
 The other ones are for the walkthrough example of Chromosome 20 fishing.
 
 
+## test script 
+
+```
+mamba create -n btest python=3.10 pip bioconda::gfatools bioconda::minimap2 bioconda::miniasm && mamba activate btest   
+pip install boss_runs
+pip install pytest pytest-cov pytest-timeout
+git clone --recurse-submodules https://github.com/goldman-gp-ebi/BOSS-RUNS.git
+cp -r BOSS-RUNS/data/BOSS_test_data/* BOSS-RUNS/data/
+cd BOSS-RUNS/tests
+pytest base/ --cov --cov-report html
+```
+
+## Endpoints
+
+- boss takes the output path of the sequencing protocol 
+- boss takes the channels toml spec from readfish after getting the output path
+- boss scans the output dir to get fastq files
+- rf takes new masks and contigs from boss
+
+
 ## Test packaged version
 
 `pip install dist/boss_runs-0.1.0-py3-none-any.whl --force-reinstall --no-deps`
@@ -91,3 +111,8 @@ _cli_base.main()
 _config.py.make_decision()
 
     
+
+## Example simulation and analysis
+
+https://github.com/W-L/boss_simulation_example
+
