@@ -87,7 +87,7 @@ class BossRunsSim(BossRuns):
                 # REJECT READ
                 paf_dict[str(rec.qname)].append(rec)
                 n_rejected += 1
-                reads_decision[rid] = reads_decision[rid][self.mu:]
+                reads_decision[rid] = reads_decision[rid][:self.mu]
 
 
         n_mapped = len(mapped_reads)
