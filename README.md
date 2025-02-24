@@ -23,6 +23,7 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 
 ## Changelog
 
+- 2025/02/24 0.3.1 improved pytests, updated documentation
 - 2024/09/23 0.3.0 compatibility with minknow 6, improved performance of paring coverage counts, improved pytests and test coverage
 - 2024/05/21 0.2.0 Updated internal readfish functionality to ensure compatibility with newest dorado versions
 
