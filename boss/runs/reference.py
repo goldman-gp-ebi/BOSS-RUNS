@@ -43,7 +43,10 @@ class Contig:
     def _seq2int(self) -> NDArray:
         """
         Transform nucleotide strings to integer arrays.
-        Unknown bases are set to integer 0.
+        Unknown bases are set to integer 0, i.e. non-canonical nucleotides are not accounted for
+        and get assigned an incorrect prior. This just means that more data might have to be
+        collected to resolve the site. The alternative would be to implement priors for all IUPAC
+        codes, which would be lots of work for very little gain.
 
         :return: Array of integers representing nucleotides
         """
