@@ -13,7 +13,7 @@ name = "boss_runs"
 description = "Dynamic, adaptive sampling during nanopore sequencing"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "readfish[all]==2024.3.0",
     "Bottleneck~=1.3.7",
