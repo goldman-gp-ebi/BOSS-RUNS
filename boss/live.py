@@ -103,13 +103,17 @@ class Sequencer:
         logging.info(f'looking for channels specification at : {self.channels_toml}')
         channels_found = False
         channels = []
+        retry_counter = 0
         while not channels_found:
             if not os.path.isfile(self.channels_toml):
                 logging.info("channels file does not exist (yet), waiting for 30s")
                 time.sleep(30)
+                retry_counter += 1
             else:
                 channels = self._parse_channels_toml(run_name=run_name)
                 channels_found = True
+            if retry_counter > 5:
+                raise RuntimeError(f"Channels file {self.channels_toml} not available after 5 retries. Exiting.")
         # channels successfully found
         self.channels = channels
 
