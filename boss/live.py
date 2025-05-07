@@ -11,6 +11,8 @@ import rtoml
 from minknow_api.manager import Manager, FlowCellPosition
 from minknow_api import __version__ as minknow_api_version
 
+from .utils import search_running_process
+
 
 
 
@@ -226,6 +228,8 @@ class LiveRun:
             return ''
         if not Path(toml).exists():
             raise FileNotFoundError("Specified readfish toml does not exist.")
+        if search_running_process('readfish'):
+            raise RuntimeError("readfish is already running. Please kill the process before starting a new one.")
         # find the script to launch readfish
         module_path = inspect.getfile(LiveRun)
         logging.info(module_path)
