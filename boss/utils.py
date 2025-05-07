@@ -4,6 +4,7 @@ from importlib.metadata import version
 
 import numpy as np
 from numpy.typing import NDArray
+import psutil
 
 
 def empty_file(path: str) -> None:
@@ -225,6 +226,24 @@ def adjust_length(original_size: int, expanded: NDArray) -> NDArray:
     assert repl.shape[0] == original_size
     return repl
 
+
+
+
+def search_running_process(processName: str) -> bool:
+    '''
+    Check if there is any running process that contains the given name processName.
+    adapted from https://gist.github.com/Sanix-Darker/8cbed2ff6f8eb108ce2c8c51acd2aa5a
+
+    :param processName: The name of the process to check.
+    '''
+    # Iterate over the all running processes
+    for proc in psutil.process_iter():
+        try:
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
 
 
 
