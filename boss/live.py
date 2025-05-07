@@ -53,6 +53,20 @@ class Sequencer:
         self.out_path = str(current_run.output_path)
         logging.info(f"grabbing Minknow's output path: \n{self.out_path}\n")
 
+        # avoid error of directory not existing yet
+        if not Path(self.out_path).exists():
+            dir_exists = False
+            retry_counter = 0
+            while not dir_exists:
+                if not Path(self.out_path).exists():
+                    logging.info("output path does not exist (yet), waiting for 10s")
+                    time.sleep(10)
+                    retry_counter += 1
+                else:
+                    dir_exists = True
+                if retry_counter > 10:
+                    raise RuntimeError(f"Output path {self.out_path} not available after 10 retries. Exiting.")
+
 
 
     def _grab_device_type(self) -> None:
