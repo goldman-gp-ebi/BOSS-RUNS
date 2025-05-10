@@ -59,7 +59,7 @@ def main(arg_list: list = None):
             func = exp.process_batch_aeons_sim
         # launch main loop
         exp.init_sim()
-        while exp.batch <= args.maxb:
+        while exp.batch < args.maxb:
             exp.process_batch_sim(func)
         exp.cleanup()
 

@@ -143,11 +143,15 @@ class BossRuns(Boss):
 
     def cleanup(self) -> None:
         """
-        To be implemented
+        Dump remaining batches to file before simulation ends
 
         :return:
         """
-        pass
+        for cond in ('control', 'boss'):
+            curr_time = getattr(self.read_cache, f'time_{cond}')
+            dump_number = getattr(self.read_cache, f'dump_n_{cond}')
+            cache = getattr(self.read_cache, f'cache_{cond}')
+            self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
 
 
     def update_wrapper(self) -> None:
