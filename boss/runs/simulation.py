@@ -154,7 +154,16 @@ class BossRunsSim(BossRuns):
 
 
 
+    def cleanup(self) -> None:
+        """
+        Dump remaining batches to file before simulation ends
 
+        :return:
+        """
+        for cond in ('control', 'boss'):
+            dump_number = getattr(self.read_cache, f'dump_n_{cond}')
+            cache = getattr(self.read_cache, f'cache_{cond}')
+            self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
 
 
 

@@ -146,8 +146,6 @@ class BossAeonsSim(BossAeons):
 
 
 
-
-
     def process_batch_aeons_sim(self) -> None:
         """
         Process new batch of simulated data. Get new reads, make decisions,
@@ -173,5 +171,11 @@ class BossAeonsSim(BossAeons):
 
 
 
+    def cleanup(self) -> None:
+        """
+        to be implemented
 
+        :return:
+        """
+        pass
 
