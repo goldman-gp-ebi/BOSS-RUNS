@@ -33,6 +33,7 @@ class Priors:
         self.len_b, self.len_g, self.phi = self._generate_phi(diploid=self.diploid)
         self._init_phi_stored()
         self._init_prior()
+        # NOTE: I believe the priors will be the same for each barcode, so no change needed
 
 
 
@@ -386,13 +387,13 @@ class Scoring:
         # calculate posterior and scores for coverage patterns
         entropies, scores = self.calc_posterior_and_scores(cov_patterns=cov_patterns)
         # construct lookup table with multidimensional array
-        self.score_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref))
-        self.entropy_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref))
+        self.score_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref)) # TODO: Find out if this needs another dimension for barcodes
+        self.entropy_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref)) # TODO: Find out if this needs another dimension for barcodes
         ind = np.swapaxes(cov_patterns, 0, 1)
         # assign scores and entropies to their locations
         for i in range(n):
-            self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = scores[:, i]
-            self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = entropies[:, i]
+            self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = scores[:, i] # TODO: Find out if this needs another dimension for barcodes
+            self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = entropies[:, i] # TODO: Find out if this needs another dimension for barcodes
 
 
 
@@ -405,7 +406,8 @@ class Scoring:
         :param contig: Contig object for which to update scores
         :return: Arrays of scores and entropy to reassign
         """
-        # grab the correct arrays
+        # TODO: Delve into this function, understand it better and then get relationship to barcodes
+        # grab the correct arrays # NOTE: After the preceding changes, these three arrays will have an extra dimension for the barcodes
         scores = contig.scores
         entropy = contig.entropy
         coverage = contig.coverage
@@ -429,7 +431,7 @@ class Scoring:
         scores[maxed_indices] = np.finfo(float).tiny
         # check positions where scores were not found in the scoreArray
         # i.e. if they remain 0.0
-        missing = np.argwhere(scores == 0.0).flatten()
+        missing = np.argwhere(scores == 0.0).flatten() # TODO: Check that the flatten step does not lose barcode dimension
         nmiss = missing.shape[0]
         # if any positions without scores, calc and add to array
         if nmiss != 0:
@@ -446,7 +448,7 @@ class Scoring:
                 self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
                 self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
         # grab the entropy values of the changed sites
-        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases] # TODO: Check that this conforms with the new dimension for barcodes
         return scores, entropy
 
 
@@ -549,6 +551,7 @@ class Scoring:
         """
         :return: Concatenated array of read starting sites across all contigs
         """
+        # NOTE: This function is probably fine if I made no mistakes elsewhere, but double-check
         c_benefits = [c.additional_benefit for c in contigs.values()]
         c_smu = [c.smu for c in contigs.values()]
         return np.concatenate(c_benefits), np.concatenate(c_smu)
@@ -575,13 +578,13 @@ class Scoring:
         tc = time_cost // window
         # group benefit into bins of similar values
         # using binary exponent
-        benefit_flat = benefit.flatten('F')
+        benefit_flat = benefit.flatten('F') # TODO: Check whether I lose a necessary dimension here
         benefit_nz_ind = np.nonzero(benefit_flat)
         benefit_flat_nz = benefit_flat[benefit_nz_ind]
         # to make binary exponents work, normalise benefit values
         normaliser = np.max(benefit_flat_nz)
         benefit_flat_norm = benefit_flat_nz / normaliser
-        mantissa, benefit_exponents = np.frexp(benefit_flat_norm)
+        mantissa, benefit_exponents = np.frexp(benefit_flat_norm) # TODO: Find out how this function works and what it does and how the extra dimension causes an issue
         # count how often each exponent is present
         # absolute value because counting positive integers is quicker
         benefit_exponents_pos = np.abs(benefit_exponents)
@@ -592,13 +595,13 @@ class Scoring:
         exponent_counts = list(exponent_counts)
         # aggregate results from threads
         # target array needs to have the largest shape of the thread results
-        max_exp = np.max([e.shape[0] for e in exponent_counts])
+        max_exp = np.max([e.shape[0] for e in exponent_counts]) # TODO: Check what the shape of e here is and how that has changed with barcodes
         bincounts = np.zeros(shape=max_exp, dtype='int')
         # sum up results from individual threads
         for exp in exponent_counts:
             bincounts[0:exp.shape[0]] += exp
 
-        exponents_unique = np.nonzero(bincounts)[0]  # filter empty bins
+        exponents_unique = np.nonzero(bincounts)[0]  # filter empty bins # TODO: Check whether 0 is still the correct axis here
         counts = bincounts[exponents_unique]  # counts of the existing benefit exponents
         # perform weighted bincount in multiple threads
         exponent_arrays = np.array_split(benefit_exponents_pos, 12)
@@ -609,12 +612,13 @@ class Scoring:
             fgs = executor.map(binc, arguments)
         fgs = list(fgs)
         # aggregates results of threads
-        max_fg = np.max([f.shape[0] for f in fgs])
+        max_fg = np.max([f.shape[0] for f in fgs]) # TODO: Check what the shape of f here is and how that has changed with barcodes
         f_grid = np.zeros(shape=max_fg, dtype='float')
         # aggregate results
         for fg in fgs:
             f_grid[0: fg.shape[0]] += fg
-
+        
+        # TODO: Check this whole section, understand what it does and how and how barcodes change it. Need to ensure that strat at the end has the right dimensions
         f_grid = f_grid[exponents_unique]  # filter empty bins
         f_grid_mean = f_grid / counts  # mean fhat for exponent bin
         # use exponents to rebuild benefit values
@@ -682,6 +686,7 @@ class CoverageConverter:
         :param quals: Dict of read qualities
         :return: Defaultdict of lists of coverage counts per target seq
         """
+        # TODO: Change this function to consider barcodes and return something of the correct dimensions
         # container to collect increments per contig
         increments = defaultdict(list)
         # loop through all reads

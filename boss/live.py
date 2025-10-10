@@ -135,7 +135,7 @@ class Sequencer:
             logging.info('Only one condition. Using all channels!')
             return set()
 
-        # otherwise find the corresponding condition
+        # otherwise find the corresponding condition # TODO: Find out how the conditions here interact with barcodes and if we obtain the correct channels
         correct_key = ''
         for key in toml_dict["conditions"].keys():
             name = toml_dict["conditions"][key]["name"]
@@ -220,6 +220,7 @@ class LiveRun:
         :param processed_files: Set of already processed files
         :return: List of new, previously unprocessed files
         """
+        # TODO: Research minknow barcode behaviour, is it always different subdirectories for different barcodes? And then change this here accordingly
         patterns = ["*.fq.gz", "*.fastq.gz", "*.fastq.gzip", "*.fq.gzip", "*.fastq", "*.fq"]
         all_fq = set()
         for p in patterns:

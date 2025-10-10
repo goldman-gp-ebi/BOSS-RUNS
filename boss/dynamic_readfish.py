@@ -60,6 +60,7 @@ class BossBits:
     def _reload_npz(mask_files):
         mask_container = np.load(mask_files[0])
         return {name: mask_container[name] for name in mask_container}
+        # TODO: This function might need to change (or at least the functions that interpret what it returns when the masks gain an extra dimension)
 
 
     @staticmethod
@@ -80,13 +81,13 @@ class BossBits:
             raise FileNotFoundError("No mask files present")
 
         # Do we actually update this time?
-        if not new_masks[0].stat().st_mtime > self.last_mask_mtime:
+        if not new_masks[0].stat().st_mtime > self.last_mask_mtime: # TODO: Verify what stat does and whether 0 is still the correct index, it should be though
             return 0
 
         try:
             mask_dict = reload_func(mask_files=new_masks)
             self.masks = mask_dict
-            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences")
+            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences") # NOTE: Increase this per barcode?
         except Exception as e:
             self.logger.error(f"Error reading strategy array ->>> {repr(e)}")
             self.masks = {"exception": True}
@@ -179,7 +180,7 @@ class BossBits:
             return 0
         # otherwise query the strategy array
         try:
-            d = arr[:, int(reverse)][start_pos // self.scale_factor]
+            d = arr[:, int(reverse)][start_pos // self.scale_factor] # TODO: Change this based on barcode, there will be an extra dimension
             return d
         except Exception as e:  # noqa
             return 1

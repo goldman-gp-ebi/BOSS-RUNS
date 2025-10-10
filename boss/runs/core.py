@@ -29,9 +29,10 @@ class BossRuns(Boss):
         :return:
         """
         # initialise reference
+        # TODO: Include barcodes as input to Reference class
         self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs)
         self.contigs = self.ref.contigs
-        self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}
+        self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
         # initialise a mapper using the reference
         self.mapper = Mapper(ref=self.ref.mmi)
         # initialise a translator for coverage conversions
@@ -41,7 +42,7 @@ class BossRuns(Boss):
         # initialise the tracker for read start position distribution
         self.read_starts = ReadStartDist(contigs=self.contigs_filt)
         # initialise scoring array
-        self.scoring = Scoring(ploidy=self.args.ploidy)
+        self.scoring = Scoring(ploidy=self.args.ploidy) # NOTE: Why are we initialising Scoring again, when each contig object already has a scoring object?
         self.scoring.init_score_array()
         # write initial strategies to file
         strat_dict = self.ref.get_strategy_dict()
@@ -60,6 +61,7 @@ class BossRuns(Boss):
         # after writing to tmpfile, rename to replace the current strat
         cpath = f'{self.out_dir}/masks/boss.npz'
         Path(cpath_tmp).rename(cpath)
+        # NOTE: Come back here and think about how the dimension change impacts loading the strat etc. This might also impact readfish
         # Example how to load these:
         # container = np.load(f'{cpath}.npz')
         # data = {key: container[key] for key in container}
@@ -99,7 +101,7 @@ class BossRuns(Boss):
         for cname, cont in self.contigs_filt.items():
             cont.check_buckets(threshold=self.args.bucket_threshold)
         # check if any switches are on
-        switched_on = [c.switched_on for c in self.contigs.values()]
+        switched_on = [c.switched_on for c in self.contigs.values()] # TODO: Change this to account for switched_on being barcode specific
         return any(switched_on)
 
 
@@ -126,18 +128,18 @@ class BossRuns(Boss):
         for cname, cont in self.contigs_filt.items():
             # get the buckets of this contig and expand
             expand_fac = cont.bucket_size // window
-            buckets_exp = np.repeat(cont.bucket_switches, expand_fac, axis=0)
+            buckets_exp = np.repeat(cont.bucket_switches, expand_fac, axis=0) # TODO: I think this should be fine but double check
             buckets = adjust_length(original_size=cont.strat.shape[0], expanded=buckets_exp)
             assert buckets.shape[0] == cont.strat.shape[0]
             # grab the new strategy
-            cstrat = strat[i: i + cont.length // window, :]
+            cstrat = strat[i: i + cont.length // window, :] # TODO: I think this should be fine but double check
             assert cstrat.shape == cont.strat.shape
             # assign new strat
             cont.strat[buckets, :] = cstrat[buckets, :]
             # log number of accepted sites
             f_perc = np.count_nonzero(cont.strat[:, 0]) / cont.strat.shape[0]
             r_perc = np.count_nonzero(cont.strat[:, 1]) / cont.strat.shape[0]
-            logging.info(f'{cname}: {f_perc}, {r_perc}')
+            logging.info(f'{cname}: {f_perc}, {r_perc}') # NOTE: Maybe thing on whether this log is confusing because it can report more sites than exist with barcodes
             i += cont.length // window
 
 
@@ -194,6 +196,7 @@ class BossRuns(Boss):
         :return:
         """
         # map the new reads to the reference
+        # TODO: Read about paf_dict and see if I can add barcode information there or how else I should carry it through
         paf_dict = self.mapper.map_sequences(sequences=new_reads)
         # convert coverage counts to increment arrays
         increments = self.cc.convert_records(paf_dict=paf_dict, seqs=new_reads, quals=new_quals)

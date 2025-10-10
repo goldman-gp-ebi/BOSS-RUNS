@@ -29,7 +29,7 @@ class Contig:
         self.name = name.strip().split(" ")[0]
         self.seq = seq.upper()
         self.length = len(self.seq)
-        self.rej = rej   # flag whether to reject all reads from this contig
+        self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes
         self.seq_int = self._seq2int()
         self._init_coverage()
         self._init_buckets()
@@ -38,6 +38,7 @@ class Contig:
         self.score0, self.ent0 = self.scoring.score0, self.scoring.ent0
         self._init_scores()
         self._init_strat()
+        # NOTE: Could add barcodes as top-level attribute
 
 
     def _seq2int(self) -> NDArray:
@@ -71,9 +72,9 @@ class Contig:
 
         :return:
         """
-        self.coverage = np.zeros(shape=(self.length, 5), dtype="uint16")
+        self.coverage = np.zeros(shape=(self.length, 5), dtype="uint16")  # TODO: Add another dimension whose length corresponds to the number of barcodes
         # to indicate where changes happened for score calculations
-        self.change_mask = np.zeros(shape=self.length, dtype="bool")
+        self.change_mask = np.zeros(shape=self.length, dtype="bool")  # TODO: Add another dimension whose length corresponds to the number of barcodes
 
 
 
@@ -85,8 +86,8 @@ class Contig:
         :return:
         """
         self.bucket_size = bucket_size
-        self.bucket_switches = np.zeros(shape=int(self.length // bucket_size) + 1, dtype="bool")
-        self.switched_on = False
+        self.bucket_switches = np.zeros(shape=int(self.length // bucket_size) + 1, dtype="bool") # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.switched_on = False # TODO: Change this so we can turn it on/off for different barcodes at different times?
 
 
 
@@ -97,9 +98,9 @@ class Contig:
         :return:
         """
         # initialise entropy and scores
-        self.initial_scores = np.full(fill_value=self.score0[0], shape=self.length)
-        self.scores = np.full(fill_value=self.score0[0], shape=self.length)
-        self.entropy = np.full(fill_value=self.ent0[0], shape=self.length)
+        self.initial_scores = np.full(fill_value=self.score0[0], shape=self.length)  # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.scores = np.full(fill_value=self.score0[0], shape=self.length) # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.entropy = np.full(fill_value=self.ent0[0], shape=self.length)  # TODO: Add another dimension whose length corresponds to the number of barcodes
 
 
 
@@ -110,9 +111,9 @@ class Contig:
         :return:
         """
         if self.rej:
-            self.strat = np.zeros(dtype="bool", shape=1)
+            self.strat = np.zeros(dtype="bool", shape=1)  # NOTE: If reject by default can be barcode specific, add another dimension here
         else:
-            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2))
+            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2)) # TODO: Add another dimension whose length corresponds to the number of barcodes
 
 
 
@@ -123,6 +124,7 @@ class Contig:
         :param increment_list: List of increment instructions for this contig
         :return:
         """
+        # TODO: Check how/if this function needs to change
         # reset the change mask
         self.change_mask.fill(0)
         # temporary container for coverage
@@ -148,10 +150,10 @@ class Contig:
         :return:
         """
         # coverage depth
-        covsum = np.sum(self.coverage, axis=1)
+        covsum = np.sum(self.coverage, axis=1) # TODO: Does this need to change because of barcode dimension? Huh it might be fine actually, because the _find_dropouts function can handle another dimension
         if np.mean(covsum) > 5:
             dropout_idx = self._find_dropout(covsum)
-            logging.info(f'detected {dropout_idx.shape[0]} dropouts')
+            logging.info(f'detected {dropout_idx.shape[0]} dropouts') # NOTE: Should we make this more explicit to distinguish dropouts on the same species but different barcodes?
             self.scores[dropout_idx] = 0
 
 
@@ -182,6 +184,7 @@ class Contig:
         :param threshold: when to switch on the strategy buckets
         :return:
         """
+        # TODO: This function should be barcode specific, i.e. turn on the strategy for one barcode when it has enough coverage
         # coverage depth
         csum = np.sum(self.coverage, axis=1)
         # coverage in buckets
@@ -192,10 +195,10 @@ class Contig:
         self.bucket_switches[np.where(cmean_buckets >= threshold)] = 1
         switch_count = np.bincount(self.bucket_switches)
         states = len(switch_count)
-        # log the first time a contig's strategy is switched on
+        # log the first time a contig's strategy is switched on # TODO: Make self.switched on barcode specific and then change the logic here
         if states == 2 and not self.switched_on:
             self.switched_on = True
-            logging.info(f"Activated strategy for: {self.name}")
+            logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
 
 
 
@@ -208,11 +211,11 @@ class Contig:
         :return:
         """
         # downsample the scores
-        self.scores_ds = np.zeros(shape=int(self.length // window) + 1)
-        site_indices = np.arange(0, self.length) // window
+        self.scores_ds = np.zeros(shape=int(self.length // window) + 1) # TODO: Account for additional dimension for barcodes
+        site_indices = np.arange(0, self.length) // window # TODO: site_indices might need an additional dimension for barcodes
         # avoid buffering
         np.add.at(self.scores_ds, site_indices, self.scores)
-        # calculate smu - fwd needs double reversal due to how bn.move_sum() operates
+        # calculate smu - fwd needs double reversal due to how bn.move_sum() operates # TODO: Find out what is happening here and adjust for barcodes
         smu_fwd = bn.move_sum(self.scores_ds[::-1], window=mu // window, min_count=1)[::-1]
         smu_rev = bn.move_sum(self.scores_ds, window=mu // window, min_count=1)
         # assign smu as attribute
@@ -231,18 +234,19 @@ class Contig:
         :param window: Downsampling window size
         :return:
         """
+        # TODO: Find out how this function works and the how it needs to change
         # downsample read length dist
         approx_ccl_ds = approx_ccl // window
         mult = np.arange(0.05, 1, 0.1)[::-1]
         # temporary container
-        tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2))
+        tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2)) # TODO: Add another dimension for barcodes
         for i in range(10):
             b_part_fwd = bn.move_sum(self.scores_ds[::-1], window=int(approx_ccl_ds[i]), min_count=1)[::-1]
             b_part_rev = bn.move_sum(self.scores_ds, window=int(approx_ccl_ds[i]), min_count=1)
             # apply weighting by length
             wgt = mult[i]
-            tmp_benefit[:, 0] += (b_part_fwd * wgt)
-            tmp_benefit[:, 1] += (b_part_rev * wgt)
+            tmp_benefit[:, 0] += (b_part_fwd * wgt) # TODO: Add another dimension for barcodes
+            tmp_benefit[:, 1] += (b_part_rev * wgt) # TODO: Add another dimension for barcodes
         # assign as attribute
         self.expected_benefit = tmp_benefit
         self.additional_benefit = self.expected_benefit - self.smu
@@ -254,7 +258,7 @@ class Contig:
 
 class Reference:
 
-    def __init__(self, ref: str, mmi: str = None, reject_refs: str = None):
+    def __init__(self, ref: str, mmi: str = None, reject_refs: str = None): # TODO: Add barcodes as parameter
         """
         Initialise a reference object. Loads contigs, load or create index
         and set contigs from which to always reject
@@ -262,6 +266,7 @@ class Reference:
         :param ref: Path to the reference fasta file
         :param mmi: Optional path to minimap index file
         :param reject_refs: Optional comma-sep list of headers in fasta
+        # TODO: Add barcodes as parameter
         """
         self.ref = ref
         self.mmi = mmi
@@ -282,6 +287,7 @@ class Reference:
 
 
         # headers of reference sequences from which to always reject
+        # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
         if reject_refs:
             self.reject_refs = set(reject_refs.split(','))
         else:
@@ -308,11 +314,11 @@ class Reference:
             if len(cseq) < min_len:
                 continue
             # load reference sequences
-            if cname not in self.reject_refs:
-                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy)
+            if cname not in self.reject_refs: # TODO: Add barcodes as parameter, if barcodes can have different always reject refs
+                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy) # TODO: Add barcodes as parameter
             # for ref seqs that we always reject, set sequence empty
             else:
-                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True)
+                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True) # TODO: Add barcodes as parameter, if barcodes can have different always reject refs
         return contigs
 
 

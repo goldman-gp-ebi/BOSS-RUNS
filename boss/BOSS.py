@@ -17,6 +17,7 @@ def main(arg_list: list = None):
     # '--toml', "./config/BOSS_AEONS_SIM.toml"
     # ]
     arg_list = None if not arg_list else arg_list
+    # TODO: Add barcodes to BOSS toml and configuration file
     conf = boss.config.Config(parse=True, arg_list=arg_list)
     args = conf.args
 
@@ -26,6 +27,7 @@ def main(arg_list: list = None):
         # initialise mode
         if args.ref:
             # runs initialises then launches readfish
+            # TODO: Initialisation of BOSS needs to account for barcodes
             exp = br_core.BossRuns(args=args)
             exp.init()
             exp.launch_live_components()

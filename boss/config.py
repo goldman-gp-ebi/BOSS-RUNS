@@ -55,6 +55,7 @@ class Config:
         tetra = true                    # perform tetranucleotide frequency tests
         filter_repeats = false          # perform repeat filtering
         bucket_threshold = 5            # at which coverage to switch on the strategy in a bucket (debug)
+        # TODO: Add barcodes as optional field and decide on format -- comma separated list?
 
         ########################################################################################
 
@@ -79,6 +80,7 @@ class Config:
                 self.arg_list = sys.argv[1:]
 
             toml_paths = self._parse_toml_args()
+            # NOTE: If barcodes are just a comma separated string, will need to add some processing here
             args_file, args_readfish = self._load_tomls(toml_paths)
             self._overwrite_defaults(args_file)
             # check if we are simulating or running real experiment

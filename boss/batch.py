@@ -67,6 +67,7 @@ class FastqBatch:
         # to make sure it's a string
         if not isinstance(fastq_file, str):
             raise TypeError('Fastq file must be a string')
+        # TODO: Recover the barcode information here somewhere and bake it into the read object somehow
         # loop over all reads in the fastq file
         # if we consider all channels
         if not self.channels:
