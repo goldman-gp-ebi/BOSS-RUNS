@@ -164,7 +164,7 @@ class BossRunsSim(BossRuns):
         # update pseudotimes and check if it's time to write cache to file
         self.read_cache.update_times_runs(
             total_bases=self.sampler.fq_stream.total_bases,
-            reads_decision=self.reads_decision,
+            reads_decision=reads_decision,
             n_unmapped=n_unmapped,
             n_reject=n_rejected
         )
