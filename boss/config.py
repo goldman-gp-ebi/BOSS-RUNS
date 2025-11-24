@@ -66,6 +66,7 @@ class Config:
         dumptime = 200000000
         paf_full = ""                   # giving pafs triggers BOSS-RUNS
         paf_trunc = ""
+        accept_unmapped = false         # Whether reads that don't map should be accepted by default (default in BOSS-RUNS is to reject them)
         """
         # load the default from above
         self.args = rtoml.loads(self.template_toml)
