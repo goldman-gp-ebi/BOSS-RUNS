@@ -130,7 +130,7 @@ class ReadCache:
 
 
 
-    def update_times_runs(self, total_bases: int, reads_decision: dict[str, str], n_unmapped: int, n_reject: int, accept_unmapped: bool) -> None:
+    def update_times_runs(self, total_bases: int, reads_decision: dict[str, str], n_unmapped: int, n_reject: int) -> None:
         """
         Increment the pseudotime for control and boss regions on flowcell
         depending on the observed data and decisions made on them
@@ -147,10 +147,6 @@ class ReadCache:
         # BR: all accepted bases and ((mu + rho) * number of unmapped/rejected reads) + (alpha * batch_size)
         bases_br = np.sum([len(seq) for seq in reads_decision.values()])
         self.time_boss += bases_br
-        if accept_unmapped:
-            self.time_boss += (n_unmapped * self.mu)
-        else:
-            self.time_boss += (n_unmapped * (self.mu + self.rho))
         self.time_boss += (n_reject * (self.mu + self.rho))
         self.time_boss += (self.batchsize * self.alpha)
         logging.info(f"time control: {self.time_control}")

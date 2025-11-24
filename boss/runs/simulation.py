@@ -100,8 +100,14 @@ class BossRunsSim(BossRuns):
                 continue
             elif self.accept_unmapped:
                 reads_decision[read_id] = seq
+                if read_id in paf_dict_full:
+                    rec_full_list = paf_dict_full[read_id]
+                    rec_full = Paf.choose_best_mapper(rec_full_list)[0]
+                    paf_dict[read_id].append(rec_full)
+                n_accepted += 1
             else:
                 reads_decision[read_id] = seq[:self.mu]
+                n_rejected += 1
 
 
         n_mapped = len(mapped_reads)
@@ -160,8 +166,7 @@ class BossRunsSim(BossRuns):
             total_bases=self.sampler.fq_stream.total_bases,
             reads_decision=self.reads_decision,
             n_unmapped=n_unmapped,
-            n_reject=n_rejected,
-            accept_unmapped=self.accept_unmapped
+            n_reject=n_rejected
         )
         self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
         # update wrapper of superclass
