@@ -19,7 +19,7 @@ def repeat():
 
 
 def test_init(repeat_filter):
-    assert Path(f'{repeat_filter.name}.seqs.fa').is_file()
+    assert Path(f'tmp/{repeat_filter.name}.seqs.fa').is_file()
     assert len(repeat_filter.covs) == 726
     assert repeat_filter.lim == 6.0
     assert len(repeat_filter.repeats) > 20
