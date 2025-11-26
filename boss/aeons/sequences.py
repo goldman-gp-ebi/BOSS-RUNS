@@ -444,10 +444,11 @@ class SequencePool:
 
         self.polished = {}
         # filenames
-        self.fa = f'{name}.fa'  # fasta of whole pool
-        self.contig_fa = f'{name}.contig.fa'  # fasta of long sequences to map against
-        self.ava = f'{name}.ava'  # ava in paf
-        self.gfa = f'{name}.gfa'
+        Path("./tmp").mkdir(exist_ok=True)
+        self.fa = f'tmp/{name}.fa'  # fasta of whole pool
+        self.contig_fa = f'tmp/{name}.contig.fa'  # fasta of long sequences to map against
+        self.ava = f'tmp/{name}.ava'  # ava in paf
+        self.gfa = f'tmp/{name}.gfa'
         self.dep = Dependencies()
 
 
@@ -569,7 +570,8 @@ class SequencePool:
         :param trds: Number of threads. Default is 8.
         :return: SequencePool object containing assembled unitigs.
         """
-        sfile = f'{self.name}.init_reads.fa'
+        sfile = f'tmp/{self.name}.init_reads.fa'
+        gfile = f'tmp/{self.name}.init.gfa'
         self.write_seq_dict(self.seqdict(), file=sfile)
         mm2 = getattr(self.dep, "minimap2")
         miniasm = getattr(self.dep, "miniasm")
@@ -577,11 +579,11 @@ class SequencePool:
         comm0 = f'{mm2} -x ava-ont -t{trds} {sfile} {sfile} >{sfile}.ava'
         stdout, stderr = execute(comm0)
         write_logs(stdout, stderr, f'{self.out_dir}/contigs/init/init_ava')
-        comm1 = f"{miniasm} -f {sfile} {sfile}.ava -c{c} >{self.name}.init.gfa"
+        comm1 = f"{miniasm} -f {sfile} {sfile}.ava -c{c} >{gfile}"
         stdout, stderr = execute(comm1)
         write_logs(stdout, stderr, f'{self.out_dir}/contigs/init/init_asm')
 
-        contigs = load_gfa(f'{self.name}.init.gfa')
+        contigs = load_gfa(gfile)
         contig_pool = SequencePool(contigs)
         # disallow extension of circular contigs
         for header, seqo in contig_pool.sequences.items():
