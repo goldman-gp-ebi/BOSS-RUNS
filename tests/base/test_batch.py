@@ -83,7 +83,6 @@ def test_update_times_runs(read_cache, sampler):
     read_cache.update_times_runs(
         total_bases=total_bases,
         reads_decision=reads_decision,
-        n_unmapped=n_unmapped,
         n_reject=n_rejected)
 
     assert read_cache.time_control == 249464

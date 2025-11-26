@@ -163,7 +163,6 @@ class BossRunsSim(BossRuns):
         self.read_cache.update_times_runs(
             total_bases=self.sampler.fq_stream.total_bases,
             reads_decision=reads_decision,
-            n_unmapped=n_unmapped,
             n_reject=n_rejected
         )
         self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
