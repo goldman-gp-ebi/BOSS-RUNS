@@ -10,7 +10,7 @@ from boss.aeons import simulation as ba_sim
 
 
 
-def main(arg_list: list = None):
+def main(arg_list: list | None = None):
     # load arguments
     # DEBUG
     # arg_list = [
