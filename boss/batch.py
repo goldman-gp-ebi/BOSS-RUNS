@@ -130,14 +130,13 @@ class ReadCache:
 
 
 
-    def update_times_runs(self, total_bases: int, reads_decision: dict[str, str], n_unmapped: int, n_reject: int) -> None:
+    def update_times_runs(self, total_bases: int, reads_decision: dict[str, str], n_reject: int) -> None:
         """
         Increment the pseudotime for control and boss regions on flowcell
         depending on the observed data and decisions made on them
 
         :param total_bases: Total observed bases in batch
-        :param paf_dict: Dict of mappings
-        :param n_unmapped: Number of unmapped reads
+        :param reads_decision: Dict of reads after decisions
         :param n_reject: Number of rejected reads
         :return:
         """
