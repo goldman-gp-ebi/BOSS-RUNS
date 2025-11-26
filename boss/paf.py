@@ -2,6 +2,7 @@ from io import StringIO
 from collections import defaultdict
 from types import SimpleNamespace
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 
@@ -23,6 +24,22 @@ class PafLine:
         :param tags: boolean indicator whether to parse tags
         """
         self.line = line
+        # inits for type checking 
+        # fields are overloaded below with setattr
+        self.qname = ''
+        self.tname = ''
+        self.qlen = 0
+        self.tlen = 0
+        self.qstart = 0
+        self.qend = 0
+        self.tstart = 0
+        self.tend = 0
+        self.strand = ''
+        self.num_matches = 0
+        self.alignment_block_length = 0
+        self.mapq = 0
+        self.c = -1  # classification
+
         fields = ['qname', 'qlen', 'qstart', 'qend',
                   'strand', 'tname', 'tlen', 'tstart', 'tend',
                   'num_matches', 'alignment_block_length',
@@ -84,7 +101,7 @@ class PafLine:
 
 
     @staticmethod
-    def conv_type(s: str, func: callable):
+    def conv_type(s: str, func: Callable):
         """
         Generic converter, to change strings to other types
 
@@ -449,7 +466,7 @@ class PafLine:
 
 
     @staticmethod
-    def _find_coords(start: int, end: int, length: int) -> tuple[int, int]:
+    def _find_coords(start: int, end: int, length: int) -> tuple[int, int | None]:
         """
         find coordinates to trim off of reads
 
@@ -470,7 +487,7 @@ class PafLine:
 
 
 
-    def find_trim_coords(self) -> tuple[str, int, int, str]:
+    def find_trim_coords(self) -> tuple:
         """
         if this alignment has been identified to be useful when trimmed,
         find which of the sequences we want to trim and which coordinates
@@ -507,7 +524,7 @@ class PafLine:
 
 
 
-    def grab_increment_coords(self) -> tuple[int, int, int, int, int, int]:
+    def grab_increment_coords(self) -> tuple:
         """
         get the coordinates of a containment to increment the coverage counts
 
