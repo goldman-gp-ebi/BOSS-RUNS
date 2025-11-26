@@ -1,7 +1,6 @@
 import logging
 import re
 import os
-from pathlib import Path
 
 import mappy
 import numpy as np
@@ -124,8 +123,8 @@ class ReadCache:
         # for storing the batches of reads for snakemake analysis
         if not os.path.exists('./00_reads'):
             os.mkdir('./00_reads')
-        empty_file(f'00_reads/control_0.fa')
-        empty_file(f'00_reads/boss_0.fa')
+        empty_file('00_reads/control_0.fa')
+        empty_file('00_reads/boss_0.fa')
 
 
 

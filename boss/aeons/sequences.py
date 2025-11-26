@@ -435,10 +435,10 @@ class SequencePool:
         if sequences:
             input_type = type(list(sequences.values())[0])
             # raw sequences
-            if input_type == str:
+            if input_type is str:
                 self._ingest_dict(seqs=sequences)
             # Sequence objects
-            elif input_type == Sequence:
+            elif input_type is Sequence:
                 self.sequences = sequences
             else:
                 print("SequencePool input type not supported")

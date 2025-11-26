@@ -126,7 +126,7 @@ class Config:
         """
         args = SimpleNamespace()
         for category, subdict in toml_args.items():
-            if not type(subdict) is dict:
+            if type(subdict) is not dict:
                 setattr(args, category, subdict)
             else:
                 for k, v in subdict.items():
@@ -220,7 +220,7 @@ class Config:
         channels = 512
         try:
             _ = Conf.from_dict(args_rf, channels)
-        except:
+        except:  # noqa: E722
             raise ValueError("Could not load TOML config for readfish")
         return 0
 

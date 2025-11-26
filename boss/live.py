@@ -174,7 +174,7 @@ class LiveRun:
         try:
             flowcellposition = LiveRun._grab_target_device(device=device, host=host, port=port)
             sequencer = Sequencer(position=flowcellposition)
-        except:
+        except:  # noqa: E722
             raise ValueError(f"Error: issue connecting to target device {device}, at host {host} and port {port}. \n"
                              f"Please make sure to supply correct name of sequencing position in MinKNOW")
         return sequencer

@@ -66,7 +66,7 @@ class Mapper:
 
 
 
-    def _mappy_batch(self, sequences: dict[str, str], out: str = None, log: bool = True) -> str:
+    def _mappy_batch(self, sequences: dict[str, str], out: str | None = None, log: bool = True) -> str:
         """
         Map a full batch of reads and return the PAF formatted mapping hits.
 

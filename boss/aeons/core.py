@@ -63,7 +63,7 @@ class BossAeons(Boss):
                 has_contig = init_pool.has_min_one_contig(min_contig_len=self.args.min_contig_len)
 
                 if not ncontigs or not has_contig:
-                    logging.info(f"Initial assembly yielded no contigs, waiting for more data ... ")
+                    logging.info("Initial assembly yielded no contigs, waiting for more data ... ")
                     time.sleep(30)
                     continue
                 else:

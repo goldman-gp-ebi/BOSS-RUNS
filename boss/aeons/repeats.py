@@ -86,7 +86,7 @@ class RepeatFilter:
         for line in mappings.split('\n'):
             rec = line.split('\t')
             # check if target array exists
-            if not rec[5] in covs.keys():
+            if rec[5] not in covs.keys():
                 covs[rec[5]] = np.zeros(shape=int(rec[6]))
             # grab the cov
             c = covs[rec[5]]
