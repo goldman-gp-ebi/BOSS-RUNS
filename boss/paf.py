@@ -70,7 +70,7 @@ class PafLine:
         self.qprox = False
         self.tprox = False
         # dummy inits
-        self.maplen = None
+        self.maplen = 0
         self.min_length_pair = None
 
 

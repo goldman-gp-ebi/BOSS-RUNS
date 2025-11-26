@@ -18,7 +18,7 @@ from .utils import search_running_process
 
 class Sequencer:
 
-    def __init__(self, position: FlowCellPosition):
+    def __init__(self, position: FlowCellPosition | None = None):
         """
         class that represents a connected sequencing device
 
@@ -31,7 +31,7 @@ class Sequencer:
             self._grab_device_type()
         else:   # testing pass-through
             self.channels = set()
-            self.out_path = '../data'
+            self.out_path = 'data/BOSS_test_data'
             self.device_type = 'min'
             if not os.path.exists(f'{self.out_path}/fastq_pass'):
                 os.mkdir(f'{self.out_path}/fastq_pass')
@@ -46,6 +46,7 @@ class Sequencer:
         :return:
         """
         # connect to the device and navigate api to get output path
+        assert self.position is not None
         device_connection = self.position.connect()
         current_run = device_connection.protocol.get_current_protocol_run()   # type: ignore
         run_id = current_run.run_id
@@ -79,7 +80,9 @@ class Sequencer:
         """
         pro_device_types = {'P2_SOLO', 'PROMETHION'}
         min_device_types = {'MINION'}
-        dt = self.position.device_type
+        dt = ''
+        if self.position is not None:
+            dt = self.position.device_type
         if dt in pro_device_types:
             self.device_type = 'pro'
         elif dt in min_device_types:
