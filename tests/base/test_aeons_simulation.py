@@ -1,18 +1,21 @@
 import pytest
 import time
 from pathlib import Path
+import subprocess
 
 import boss.config
 import boss.aeons.simulation
 
+from ..constants import PATHS
+
 
 @pytest.fixture
-def args(fastq_file):
+def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
     args.live_run = False
-    args.fq = fastq_file
+    args.fq = PATHS.fastq
     args.maxb = 8
     args.batchsize = 100
     args.dumptime = 10000
@@ -36,6 +39,7 @@ def test_init(args):
     assert Path("00_reads/boss_0.fa").is_file()
     assert len(b.strat) == 0
     assert Path(b.pool.contig_fa).is_file()
+    subprocess.run("rm -r 00_reads/", shell=True)
 
 
 
@@ -64,6 +68,7 @@ def test_process_batch(args):
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
     assert Path("out_boss/contigs/aeons.fa").read_text().startswith(">utg0")
     assert b.read_cache.time_boss < b.read_cache.time_control
+    subprocess.run("rm -r out_boss/", shell=True)
 
 
 

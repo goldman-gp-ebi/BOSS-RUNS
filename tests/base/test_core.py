@@ -3,7 +3,6 @@ import time
 import logging
 
 import boss.core
-import boss.config
 
 
 

@@ -2,7 +2,6 @@ from pathlib import Path
 import pytest
 
 import boss.aeons.repeats
-import boss.batch
 from boss.aeons.sequences import SequencePool
 
 

@@ -4,10 +4,12 @@ from pathlib import Path
 import boss.mapper
 from boss.paf import PafLine
 
+from ..constants import PATHS
+
 
 @pytest.fixture
 def dummy_fasta():
-    fa = '../data/test.fasta'
+    fa = 'data/test.fasta'
     with open(fa, 'w') as f:
         f.write('>chr1\nAAAAAAAAGCTGACTATCGATCGTAGCTAGCTGACTGATCGTG\n'
                 '>chr2\nGTGATCGTGATCGATCGTAGTCGTGTGCTAGTGTGTGTGTGATCGT\n')
@@ -15,10 +17,10 @@ def dummy_fasta():
 
 
 @pytest.fixture
-def mapper(fasta_file):
-    mapper = boss.mapper.Mapper(ref=fasta_file)
+def mapper():
+    mapper = boss.mapper.Mapper(ref=PATHS.fasta)
     # test init of non-default parameters
-    _ = boss.mapper.Mapper(ref=fasta_file, default=False)
+    _ = boss.mapper.Mapper(ref=PATHS.fasta, default=False)
     return mapper
 
 
@@ -32,9 +34,9 @@ def test_indexer(dummy_fasta):
     assert Path(f'{dummy_fasta}.mmi').is_file()
 
 
-def test_indexer_zymo(fasta_file):
-    _ = boss.mapper.Indexer(fasta=fasta_file, mmi=f'{fasta_file}.mmi')
-    assert Path(f'{fasta_file}.mmi').is_file()
+def test_indexer_zymo():
+    _ = boss.mapper.Indexer(fasta=PATHS.fasta, mmi=f'{PATHS.fasta}.mmi')
+    assert Path(f'{PATHS.fasta}.mmi').is_file()
 
 
 def test_map_sequences(mapper, zymo_read_batch):

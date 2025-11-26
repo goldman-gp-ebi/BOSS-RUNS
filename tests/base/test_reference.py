@@ -3,6 +3,8 @@ import pytest
 
 import boss.runs.reference as refc
 
+from ..constants import PATHS
+
 
 @pytest.mark.parametrize("name, seq, ploidy", [
     ("ch1", "ACGTACGT", 1),
@@ -41,15 +43,14 @@ def test_contig_seq():
 
 
 @pytest.mark.parametrize("ref, mmi, reject_refs, nsites", [
-    ("fasta_file", None, "", 31012581),
-    ("fasta_file", "mmi_file", "", 31012581),
-    ("fasta_file", "mmi_file", "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526),
+    (PATHS.fasta, None, "", 31012581),
+    (PATHS.fasta, PATHS.mmi, "", 31012581),
+    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526),
 ])
 def test_reference(ref, mmi, reject_refs, nsites, request):
     # only grab fixture if mmi is actually passed as param
-    mmi = request.getfixturevalue(mmi) if mmi else None
     r = refc.Reference(
-        ref=request.getfixturevalue(ref),
+        ref=ref,
         mmi=mmi,
         reject_refs=reject_refs
     )
@@ -63,18 +64,18 @@ def test_reference_notafile():
 
 
 @pytest.mark.xfail(raises=ValueError)
-def test_reference_notfasta(fastq_file):
-    _ = refc.Reference(ref=fastq_file)
+def test_reference_notfasta():
+    _ = refc.Reference(ref=PATHS.fastq)
 
 
 
 @pytest.mark.xfail(raises=FileNotFoundError)
-def test_reference_unrealmmi(fasta_file):
-    _ = refc.Reference(ref=fasta_file, mmi="not_a_real_file")
+def test_reference_unrealmmi():
+    _ = refc.Reference(ref=PATHS.fasta, mmi="not_a_real_file")
 
 
-def test_contig_dicts(fasta_file, mmi_file):
-    r = refc.Reference(ref=fasta_file, mmi=mmi_file)
+def test_contig_dicts():
+    r = refc.Reference(ref=PATHS.fasta, mmi=PATHS.mmi)
     cs = r.contig_sequences()
     cl = r.contig_lengths()
     assert isinstance(cs, dict)
