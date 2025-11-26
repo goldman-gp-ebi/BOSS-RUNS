@@ -85,7 +85,8 @@ class Config:
             self._check_run_type()
             # initialise a log file in the output folder
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.logfile = f'{stamp}_boss.log'
+            Path("./logs").mkdir(parents=True, exist_ok=True)
+            self.logfile = f'./logs/{stamp}_boss.log'
             init_logger(logfile=self.logfile, args=self.args)
             # config settings for readfish
             if self.args.live_run:
