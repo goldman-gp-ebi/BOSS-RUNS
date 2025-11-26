@@ -23,7 +23,8 @@ sim.done
 dump/
 exp/
 .hatch/
-
+logs/
+tmp/
 
 
 # AUTO-GENERATED BELOW
