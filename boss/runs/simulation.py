@@ -93,10 +93,8 @@ class BossRunsSim(BossRuns):
                 reads_decision[rid] = reads_decision[rid][:self.mu]
         
         # all unmapped reads also need to be accepted or rejected, i.e. added back into the dict
-        mapped_ids = set(reads_decision.keys())
-
         for read_id, seq in seqs.items():
-            if read_id in mapped_ids:
+            if read_id in mapped_reads:
                 continue
             elif self.accept_unmapped:
                 reads_decision[read_id] = seq
