@@ -25,6 +25,10 @@ exp/
 .hatch/
 logs/
 tmp/
+.ruff_cache/
+.vscode/
+
+
 
 
 # AUTO-GENERATED BELOW
