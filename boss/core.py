@@ -51,6 +51,7 @@ class Boss:
         (out_path / "contigs" / "prev").mkdir(parents=True, exist_ok=True)
         (out_path / "contigs" / "init").mkdir(parents=True, exist_ok=True)
         (out_path / "metrics").mkdir(parents=True, exist_ok=True)
+        (out_path / "tmp").mkdir(parents=True, exist_ok=True)
 
 
     def _init_live(self) -> None:
