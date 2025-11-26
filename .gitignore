@@ -22,7 +22,7 @@ sim.done
 *.mmi
 dump/
 exp/
-
+.hatch/
 
 
 
