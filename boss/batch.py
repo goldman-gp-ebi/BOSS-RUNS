@@ -13,7 +13,7 @@ from boss.paf import paf_dict_type
 
 class FastqBatch:
 
-    def __init__(self, fq_files: list[str | Path], channels: set = None):
+    def __init__(self, fq_files: list[str], channels: set | None = None):
         """
         Initialise a new batch of sequencing reads using their filepaths
 
@@ -79,7 +79,7 @@ class FastqBatch:
                 try:
                     # regex to get the channel number from the header
                     # \s=whitespace followed by 'ch=' and then any amount of numeric characters
-                    curr_channel = re.search("\sch=[0-9]*", desc).group()
+                    curr_channel = re.search("\sch=[0-9]*", desc).group()  # type: ignore
                     ch_num = int(curr_channel.split('=')[1])
                 except AttributeError:
                     # if the pattern is not in the header, skip the read
