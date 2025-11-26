@@ -1,5 +1,4 @@
 import glob
-from types import SimpleNamespace
 import pytest
 from pathlib import Path
 
@@ -12,103 +11,36 @@ from boss.config import Config
 from boss.mapper import Indexer
 
 
-
-paths = SimpleNamespace(
-    data='../data',
-    fastq="../data/ERR3152366_10k.fq",
-    fastq_gz="../data/ERR3152366_10k.fq.gz",
-    paf="../data/ERR3152366_10k.paf",
-    paf_trunc="../data/ERR3152366_10k_trunc.paf",
-    fasta="../data/zymo.fa",
-    mmi='../data/zymo.fa.mmi',
-    fastq_dir="../data/fastq_pass",
-    fastq_dir_noch="../data/fastq_pass_no_ch/",
-    readfish_toml='./config/BOSS_RUNS_RF.toml',
-    readfish_toml_singleregion='./config/BOSS_RUNS_RF_singleregion.toml',
-    readfish_toml_aeons='./config/BOSS_AEONS_RF.toml',
-)
-
-arg_dicts = {
-    "boss-runs": ['--toml', "./config/BOSS_RUNS.toml", '--toml_readfish', "./config/BOSS_RUNS_RF.toml"],
-    "boss-runs-sim": ['--toml', "./config/BOSS_RUNS_SIM.toml"],
-    "boss-aeons": ['--toml', "./config/BOSS_AEONS.toml", '--toml_readfish', "./config/BOSS_AEONS_RF.toml"],
-    "boss-aeons-sim": ['--toml', "./config/BOSS_AEONS_SIM.toml"],
-    "boss-aeons-broken": ['--toml', "./config/BOSS_AEONS.toml", '--toml_readfish', "./config/BOSS_AEONS_RF_broken.toml"],
-}
+from .constants import PATHS
 
 
-
-
-
-@pytest.fixture(autouse=True)
-def check_for_new_files(request):
-    '''
-    this fixture runs with all tests. It checks which files
-    and directories are created by the tests, via comparing
-    the code before and after the yield.
-    :param request:
-    :return:
-    '''
-    p = Path('.')
-    before_files = set([x for x in p.glob('**/*') if x.is_file()])
-    before_dirs = set([x for x in p.glob('**/*') if x.is_dir()])
-    yield
-    after_files = set([x for x in p.glob('**/*') if x.is_file()])
-    after_dirs = set([x for x in p.glob('**/*') if x.is_dir()])
-    new_files = [f for f in after_files if f not in before_files]
-    new_dirs = [f for f in after_dirs if f not in before_dirs]
-    if 'keepfiles' in request.keywords:  # this allows tests to be marked with @pytest.mark.keepfiles
-        new_files = ''
-        new_dirs = ''
-    if new_files:
-        print("\n{} created by {}".format(new_files, request.node))
-        for f in new_files:
-            if f.name.endswith('.log'):  # don't delete logs
-                continue
-            f.unlink()
-    if new_dirs:
-        print("\n{} created by {}".format(new_dirs, request.node))
-        for d in new_dirs:
-            # for root, dirs, _ in d.walk(top_down=False):   # walk requires pathlib 3.12
-            #     for name in dirs:
-            #         (root / name).rmdir()
-            try:
-                d.rmdir()
-            except OSError:
-                pass
 
 @pytest.fixture
-def zymo_index(fasta_file):
-    mmip = f'{fasta_file}.mmi'
-    _ = Indexer(fasta=fasta_file, mmi=mmip)
+def zymo_index():
+    mmip = f'{PATHS.fasta}.mmi'
+    _ = Indexer(fasta=PATHS.fasta, mmi=mmip)
     assert Path(mmip).is_file()
     return mmip
 
 
 @pytest.fixture
 def zymo_ref(zymo_index):
-    r = Reference(ref=paths.fasta, mmi=zymo_index)
+    r = Reference(ref=PATHS.fasta, mmi=zymo_index)
     return r
 
-@pytest.fixture
-def paf_file():
-    return paths.paf
-
-@pytest.fixture
-def paf_file_trunc():
-    return paths.paf_trunc
 
 @pytest.fixture
 def paf_dict():
-    return Paf.parse_PAF(paths.paf, min_len=1)
+    return Paf.parse_PAF(PATHS.paf, min_len=1)
+
 
 @pytest.fixture
 def sampler():
     # initialise the wrapper class for the fastq and paf streaming
     s = Sampler(
-            source=paths.fastq,
-            paf_full=paths.paf,
-            paf_trunc=paths.paf_trunc,
+            source=PATHS.fastq,
+            paf_full=PATHS.paf,
+            paf_trunc=PATHS.paf_trunc,
             maxbatch=10,
             batchsize=50,
     )
@@ -119,7 +51,7 @@ def sampler():
 def sampler_nopaf():
     # initialise the wrapper class for the fastq and paf streaming
     s = Sampler(
-            source=paths.fastq,
+            source=PATHS.fastq,
             maxbatch=10,
             batchsize=50,
     )
@@ -132,51 +64,22 @@ def read_cache():
 
 
 @pytest.fixture
-def fastq_file():
-    return paths.fastq
-
-
-@pytest.fixture
-def fastq_file_gz():
-    return paths.fastq_gz
-
-@pytest.fixture
-def fasta_file():
-    return paths.fasta
-
-@pytest.fixture
-def mmi_file():
-    return paths.mmi
-
-@pytest.fixture
-def fastq_pass_dir():
-    return paths.fastq_dir
-
-
-@pytest.fixture
 def fq_file_mix():
-    f = glob.glob(f'{paths.fastq_dir}/F*')
+    f = glob.glob(f'{PATHS.fastq_dir}/F*')
     f.sort()
     # add file without ch=
-    f.append(glob.glob(f'{paths.fastq_dir_noch}/*_0.fq')[0])
+    f.append(glob.glob(f'{PATHS.fastq_dir_noch}/*_0.fq')[0])
     return f
-
 
 
 @pytest.fixture
 def zymo_read_batch():
-    return FastqBatch(fq_files=[paths.fastq])
+    return FastqBatch(fq_files=[PATHS.fastq])
 
 
 @pytest.fixture
 def zymo_read_batch_big():
-    return FastqBatch(fq_files=[f for f in glob.glob(f'{paths.fastq_dir}/F*')])
-
-
-@pytest.fixture
-def arg_dict():
-    return arg_dicts
-
+    return FastqBatch(fq_files=[f for f in glob.glob(f'{PATHS.fastq_dir}/F*')])
 
 
 @pytest.fixture
@@ -188,20 +91,5 @@ def args_fake_real():
     # to wait less long
     conf.args.data_wait = 4
     return conf.args
-
-
-@pytest.fixture
-def readfish_toml_loc():
-    return paths.readfish_toml
-
-
-@pytest.fixture
-def readfish_toml_loc_singleregion():
-    return paths.readfish_toml_singleregion
-
-
-@pytest.fixture
-def readfish_toml_aeons_loc():
-    return paths.readfish_toml_aeons
 
 
