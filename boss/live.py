@@ -258,7 +258,8 @@ class LiveRun:
         if not script_path.is_file():
             raise FileNotFoundError("readfish_boss.py not found. Something went wrong..")
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        readfish_log = f'{stamp}_readfish.log'
+        Path("./logs").mkdir(exist_ok=True)
+        readfish_log = f'logs/{stamp}_readfish.log'
         readfish_comm = f'python {script_path} {toml} {device} {name} >{readfish_log} 2>&1'
         logging.info(readfish_comm)
         # launch readfish into the background
