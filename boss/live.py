@@ -18,7 +18,7 @@ from .utils import search_running_process
 
 class Sequencer:
 
-    def __init__(self, position: FlowCellPosition = None):
+    def __init__(self, position: FlowCellPosition):
         """
         class that represents a connected sequencing device
 
@@ -47,7 +47,7 @@ class Sequencer:
         """
         # connect to the device and navigate api to get output path
         device_connection = self.position.connect()
-        current_run = device_connection.protocol.get_current_protocol_run()
+        current_run = device_connection.protocol.get_current_protocol_run()   # type: ignore
         run_id = current_run.run_id
         logging.info(f"connected to run_id: {run_id}")
         self.out_path = str(current_run.output_path)
@@ -102,7 +102,7 @@ class Sequencer:
         self.channels_toml = f'{self.out_path}/channels.toml'
         logging.info(f'looking for channels specification at : {self.channels_toml}')
         channels_found = False
-        channels = []
+        channels = set()
         retry_counter = 0
         while not channels_found:
             if not os.path.isfile(self.channels_toml):
