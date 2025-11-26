@@ -39,7 +39,7 @@ class SequenceAVA:
         self.tetra = tetra
         # container to keep overlaps
         # save paf lines as qname-tname with alphanum sort
-        self.links = defaultdict(lambda: defaultdict(PafLine))
+        self.links: defaultdict[str, defaultdict[PafLine]] = defaultdict(lambda: defaultdict(PafLine))  # type: ignore
         self.paf_links = f"{paf}.links.paf"
         self.dep = Dependencies()
 
@@ -136,7 +136,7 @@ class SequenceAVA:
             self.links.pop(sid, None)
             # remove overlaps from targets
             for t in targets:
-                self.links[t].pop(sid, None)
+                self.links[t].pop(sid, None)   # type: ignore
 
 
     def to_be_trimmed(self) -> dict[str, tuple[int, int, Any]]:
@@ -263,9 +263,9 @@ class Sequence:
         self,
         header: str,
         seq: str,
-        cov: Optional[NDArray] = None,
-        merged_components: Optional[set[str]] = None,
-        merged_atoms: Optional[set[str]] = None,
+        cov: NDArray | None = None,
+        merged_components: set[str] | None = None,
+        merged_atoms: set[str] | None = None,
         cap_l: bool = False,
         cap_r: bool = False,
     ):
@@ -296,7 +296,7 @@ class Sequence:
         else:
             # if merged info are provided
             self.components = set(merged_components)
-            self.atoms = set(merged_atoms)
+            self.atoms = set(merged_atoms)    # type: ignore
         # inits
         self.tetramer_zscores = 0
         # self.kmers = 0
@@ -410,7 +410,7 @@ class Sequence:
 class SequencePool:
     def __init__(
         self,
-        sequences: Optional[dict[str, str | Sequence]] = None,
+        sequences: dict | None = None,
         name: str = "dummy",
         min_len: int = 3000,
         out_dir: str = "dummy",
@@ -684,7 +684,7 @@ class SequencePool:
 
 
     @staticmethod
-    def get_next_increment_edges(edges: set[Edge], previous_edges: set[Edge] = None) -> tuple[set[Edge], set[Edge]]:
+    def get_next_increment_edges(edges: set[Edge], previous_edges: set[Edge] | None = None) -> tuple[set[Edge], set[Edge]]:
         """
         Get the next increment edges based on the given edges and previous edges.
         if no previous edges are given, get the edges with in-degree of 0: This is the start of the algorithm
@@ -747,7 +747,7 @@ class SequencePool:
             self.sequences[target].atoms.add(source)
 
 
-    def effect_increments(self, next_edges: set[Edge], containment: dict[Edge, PafLine], edge_multiplicity: dict[str, float] = None) -> None:
+    def effect_increments(self, next_edges: set[Edge], containment: dict[Edge, PafLine], edge_multiplicity: dict[str, float] | None = None) -> None:
         """
         Effect the increments based on the next set of edges.
 
@@ -767,14 +767,14 @@ class SequencePool:
 
 
     @staticmethod
-    def find_edge_multiplicity(edges: set[Edge]):
+    def find_edge_multiplicity(edges: set[Edge]) -> dict:
         """
         Find the edge multiplicity for the given edges.
 
         :param edges: Set of edges.
         """
         sources, targets = zip(*edges)
-        source_counts = Counter(sources)
+        source_counts = dict(Counter(sources))
         return source_counts
 
 
@@ -1166,7 +1166,7 @@ class Unitig:
         self.name = random_id()
         self._format_sa(sa_line_list)
         self._format_x(x_line)
-        self.cov = None
+
 
 
     def _format_x(self, x_line: str) -> None:
@@ -1262,11 +1262,12 @@ class Unitig:
         :return: A sequence object representing the unitig.
         """
         # check that coverage merging has been done
-        assert self.cov is not None
+        cov = getattr(self, 'cov', None)
+        assert cov is not None
         # grab atoms of atoms
         merged_atoms = seqpool.get_atoms(headers=self.atom_headers)
         merged_components = seqpool.get_components(headers=self.atom_headers)
-        seqo = Sequence(header=self.name, seq=self.seq, cov=self.cov,
+        seqo = Sequence(header=self.name, seq=self.seq, cov=cov,
                         merged_components=merged_components, merged_atoms=merged_atoms,
                         cap_l=self.cap_l, cap_r=self.cap_r)
         return seqo
@@ -1293,7 +1294,8 @@ class UnitigPool:
         for u in self.unitigs:
             cm = CoverageMerger(u, seqpool.sequences)
             cov_arr = cm.cov_arr
-            u.cov = cov_arr
+            setattr(u, 'cov', cov_arr)
+
 
 
     def unitigs2seqpool(self, seqpool: SequencePool, min_seq_len: int) -> tuple[SequencePool, set[str]]:
