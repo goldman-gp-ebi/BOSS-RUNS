@@ -147,7 +147,7 @@ class ReadCache:
         # BR: all accepted bases and ((mu + rho) * number of unmapped/rejected reads) + (alpha * batch_size)
         bases_br = np.sum([len(seq) for seq in reads_decision.values()])
         self.time_boss += bases_br
-        self.time_boss += (n_reject * (self.mu + self.rho))
+        self.time_boss += (n_reject * self.rho)
         self.time_boss += (self.batchsize * self.alpha)
         logging.info(f"time control: {self.time_control}")
         logging.info(f"time boss-runs: {self.time_boss}")
