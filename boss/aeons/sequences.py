@@ -40,7 +40,8 @@ class SequenceAVA:
         # container to keep overlaps
         # save paf lines as qname-tname with alphanum sort
         self.links: defaultdict[str, defaultdict[PafLine]] = defaultdict(lambda: defaultdict(PafLine))  # type: ignore
-        self.paf_links = f"{paf}.links.paf"
+        Path("./tmp").mkdir(exist_ok=True)
+        self.paf_links = f"tmp/{paf}.links.paf"
         self.dep = Dependencies()
 
 
