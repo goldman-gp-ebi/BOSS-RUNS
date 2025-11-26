@@ -21,7 +21,7 @@ Configuration:
 
 
 class Config:
-    def __init__(self, parse: bool = False, arg_list: list = None):
+    def __init__(self, parse: bool = False, arg_list: list | None = None):
         """
         Initialise configuration by loading defaults
         When debugging, paths to the TOMLs can be given as a list or arguments to parse
@@ -68,9 +68,9 @@ class Config:
         paf_trunc = ""
         """
         # load the default from above
-        self.args = rtoml.loads(self.template_toml)
+        toml_args = rtoml.loads(self.template_toml)
         # convert toml dict to SimpleNamespace
-        self.args = self._convert_to_namespace()
+        self.args: SimpleNamespace = self._convert_to_namespace(toml_args=toml_args)
         # do we parse toml paths to overwrite defaults?
         if parse:
             self.arg_list = arg_list
@@ -116,7 +116,7 @@ class Config:
 
 
 
-    def _convert_to_namespace(self) -> SimpleNamespace:
+    def _convert_to_namespace(self, toml_args: dict) -> SimpleNamespace:
         """
         Convert arguments from a parsed Dict to a Namespace object
         For method-style access to attributes
@@ -124,7 +124,7 @@ class Config:
         :return: Arguments as SimpleNamespace object
         """
         args = SimpleNamespace()
-        for category, subdict in self.args.items():
+        for category, subdict in toml_args.items():
             if not type(subdict) is dict:
                 setattr(args, category, subdict)
             else:
