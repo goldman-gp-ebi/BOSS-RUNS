@@ -28,7 +28,7 @@ class Boss:
         # initialise output directory structure
         self._init_file_struct()
         # object to record read lengths
-        self.rl_dist = ReadlengthDist()  # NOTE: I believe this readlength distribution should not be affected by barcodes
+        self.rl_dist = ReadlengthDist()  # NOTE: readlength distribution will not differ by barcodes for now
         # NOTE: Could add barcodes as top-level attribute
 
 
@@ -75,7 +75,9 @@ class Boss:
             sequencer.grab_channels(run_name=self.args.name)
 
         # get the relevant infos from the Sequencer
-        self.args.fq = f'{sequencer.out_path}/fastq_pass' # TODO: Find out if Minknow always places barcoded samples in subfolders or whether there are config options
+        self.args.fq = f'{sequencer.out_path}/fastq_pass' 
+        # TODO: Find out if Minknow always places barcoded samples in subfolders 
+        # or whether there are config options. Lukas believes we should be able to handle default settings
         assert Path(self.args.fq).is_dir()
         # readfish needs to have placed the channels.toml at this point
         # channels can be an empty set if there is only one condition

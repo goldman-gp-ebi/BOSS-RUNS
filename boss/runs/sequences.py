@@ -33,7 +33,6 @@ class Priors:
         self.len_b, self.len_g, self.phi = self._generate_phi(diploid=self.diploid)
         self._init_phi_stored()
         self._init_prior()
-        # NOTE: I believe the priors will be the same for each barcode, so no change needed
 
 
 
@@ -387,13 +386,13 @@ class Scoring:
         # calculate posterior and scores for coverage patterns
         entropies, scores = self.calc_posterior_and_scores(cov_patterns=cov_patterns)
         # construct lookup table with multidimensional array
-        self.score_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref)) # TODO: Find out if this needs another dimension for barcodes
-        self.entropy_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref)) # TODO: Find out if this needs another dimension for barcodes
+        self.score_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref))
+        self.entropy_arr = np.zeros(shape=(max_cov, max_cov, max_cov, max_cov, max_cov, self.n_ref))
         ind = np.swapaxes(cov_patterns, 0, 1)
         # assign scores and entropies to their locations
         for i in range(n):
-            self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = scores[:, i] # TODO: Find out if this needs another dimension for barcodes
-            self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = entropies[:, i] # TODO: Find out if this needs another dimension for barcodes
+            self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = scores[:, i]
+            self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = entropies[:, i]
 
 
 
@@ -407,6 +406,7 @@ class Scoring:
         :return: Arrays of scores and entropy to reassign
         """
         # TODO: Delve into this function, understand it better and then get relationship to barcodes
+        # Lukas suggests just to add a loop that cycles through the barcodes so that the indexing won't have to change too much
         # grab the correct arrays # NOTE: After the preceding changes, these three arrays will have an extra dimension for the barcodes
         scores = contig.scores
         entropy = contig.entropy
@@ -448,7 +448,7 @@ class Scoring:
                 self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
                 self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
         # grab the entropy values of the changed sites
-        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases] # TODO: Check that this conforms with the new dimension for barcodes
+        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
         return scores, entropy
 
 
@@ -578,13 +578,13 @@ class Scoring:
         tc = time_cost // window
         # group benefit into bins of similar values
         # using binary exponent
-        benefit_flat = benefit.flatten('F') # TODO: Check whether I lose a necessary dimension here
+        benefit_flat = benefit.flatten('F') # TODO: Check whether I lose a necessary dimension here -- Lukas believes this need not change
         benefit_nz_ind = np.nonzero(benefit_flat)
         benefit_flat_nz = benefit_flat[benefit_nz_ind]
         # to make binary exponents work, normalise benefit values
         normaliser = np.max(benefit_flat_nz)
         benefit_flat_norm = benefit_flat_nz / normaliser
-        mantissa, benefit_exponents = np.frexp(benefit_flat_norm) # TODO: Find out how this function works and what it does and how the extra dimension causes an issue
+        mantissa, benefit_exponents = np.frexp(benefit_flat_norm) # TODO: Find out how this function works and what it does and how the extra dimension causes an issue -- grid approximation described in the algorithm of the paper's supplement page 18
         # count how often each exponent is present
         # absolute value because counting positive integers is quicker
         benefit_exponents_pos = np.abs(benefit_exponents)
@@ -595,7 +595,7 @@ class Scoring:
         exponent_counts = list(exponent_counts)
         # aggregate results from threads
         # target array needs to have the largest shape of the thread results
-        max_exp = np.max([e.shape[0] for e in exponent_counts]) # TODO: Check what the shape of e here is and how that has changed with barcodes
+        max_exp = np.max([e.shape[0] for e in exponent_counts])
         bincounts = np.zeros(shape=max_exp, dtype='int')
         # sum up results from individual threads
         for exp in exponent_counts:
@@ -612,7 +612,7 @@ class Scoring:
             fgs = executor.map(binc, arguments)
         fgs = list(fgs)
         # aggregates results of threads
-        max_fg = np.max([f.shape[0] for f in fgs]) # TODO: Check what the shape of f here is and how that has changed with barcodes
+        max_fg = np.max([f.shape[0] for f in fgs])
         f_grid = np.zeros(shape=max_fg, dtype='float')
         # aggregate results
         for fg in fgs:

@@ -30,7 +30,7 @@ class BossRuns(Boss):
         """
         # initialise reference
         # TODO: Include barcodes as input to Reference class
-        self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs)
+        self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs, barcodes=self.args.barcodes)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
         # initialise a mapper using the reference
@@ -197,6 +197,7 @@ class BossRuns(Boss):
         """
         # map the new reads to the reference
         # TODO: Read about paf_dict and see if I can add barcode information there or how else I should carry it through
+        # Lukas: Barcode info should be in header of fastq file just like channel info, so could grab it in a similar way in _read_single_batch()
         paf_dict = self.mapper.map_sequences(sequences=new_reads)
         # convert coverage counts to increment arrays
         increments = self.cc.convert_records(paf_dict=paf_dict, seqs=new_reads, quals=new_quals)

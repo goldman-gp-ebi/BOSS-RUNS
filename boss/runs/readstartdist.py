@@ -23,7 +23,7 @@ class ReadStartDist:
         self.p0 = p0
         self.window_size = window_size
         # track read start positions (forward and rev) in windows
-        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}  # TODO: Add dimension for barcodes
+        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}  # TODO: Add dimension for barcodes, Lukas believes this is not needed for an initial implementation
         # fhat exists only in its merged form, i.e. for use in updating on a merged array
         self.total_len = np.sum([a.shape[0] for a in self.read_starts.values()])
         self.target_size = int(np.sum([c.length for c in contigs.values()]) // 100)

@@ -221,6 +221,7 @@ class LiveRun:
         :return: List of new, previously unprocessed files
         """
         # TODO: Research minknow barcode behaviour, is it always different subdirectories for different barcodes? And then change this here accordingly
+        # Lukas: glob.glob() search recursively to deal with subfolders
         patterns = ["*.fq.gz", "*.fastq.gz", "*.fastq.gzip", "*.fq.gzip", "*.fastq", "*.fq"]
         all_fq = set()
         for p in patterns:

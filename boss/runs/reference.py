@@ -17,7 +17,7 @@ from boss.runs.sequences import Scoring
 
 class Contig:
 
-    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False):
+    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list = []):
         """
         Initialise a contig object
 
@@ -29,7 +29,8 @@ class Contig:
         self.name = name.strip().split(" ")[0]
         self.seq = seq.upper()
         self.length = len(self.seq)
-        self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes
+        self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes, Lukas believes this is not needed for initial implementation
+        self.barcodes = barcodes
         self.seq_int = self._seq2int()
         self._init_coverage()
         self._init_buckets()
@@ -38,7 +39,6 @@ class Contig:
         self.score0, self.ent0 = self.scoring.score0, self.scoring.ent0
         self._init_scores()
         self._init_strat()
-        # NOTE: Could add barcodes as top-level attribute
 
 
     def _seq2int(self) -> NDArray:
@@ -72,9 +72,9 @@ class Contig:
 
         :return:
         """
-        self.coverage = np.zeros(shape=(self.length, 5), dtype="uint16")  # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.coverage = np.zeros(shape=(self.length, 5, len(self.barcodes)), dtype="uint16")
         # to indicate where changes happened for score calculations
-        self.change_mask = np.zeros(shape=self.length, dtype="bool")  # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.change_mask = np.zeros(shape=(self.length, len(self.barcodes)), dtype="bool")
 
 
 
@@ -86,7 +86,7 @@ class Contig:
         :return:
         """
         self.bucket_size = bucket_size
-        self.bucket_switches = np.zeros(shape=int(self.length // bucket_size) + 1, dtype="bool") # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.bucket_switches = np.zeros(shape=(int(self.length // bucket_size) + 1, len(self.barcodes)), dtype="bool")
         self.switched_on = False # TODO: Change this so we can turn it on/off for different barcodes at different times?
 
 
@@ -98,9 +98,9 @@ class Contig:
         :return:
         """
         # initialise entropy and scores
-        self.initial_scores = np.full(fill_value=self.score0[0], shape=self.length)  # TODO: Add another dimension whose length corresponds to the number of barcodes
-        self.scores = np.full(fill_value=self.score0[0], shape=self.length) # TODO: Add another dimension whose length corresponds to the number of barcodes
-        self.entropy = np.full(fill_value=self.ent0[0], shape=self.length)  # TODO: Add another dimension whose length corresponds to the number of barcodes
+        self.initial_scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
+        self.scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
+        self.entropy = np.full(fill_value=self.ent0[0], shape=(self.length, len(self.barcodes)))
 
 
 
@@ -111,9 +111,9 @@ class Contig:
         :return:
         """
         if self.rej:
-            self.strat = np.zeros(dtype="bool", shape=1)  # NOTE: If reject by default can be barcode specific, add another dimension here
+            self.strat = np.zeros(dtype="bool", shape=1)  # NOTE: If 'reject by default' can be barcode specific, add another dimension here
         else:
-            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2)) # TODO: Add another dimension whose length corresponds to the number of barcodes
+            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2, len(self.barcodes)))
 
 
 
@@ -124,7 +124,7 @@ class Contig:
         :param increment_list: List of increment instructions for this contig
         :return:
         """
-        # TODO: Check how/if this function needs to change
+        # TODO: Check how/if this function needs to change -- UPDATE: I think this can stay the same
         # reset the change mask
         self.change_mask.fill(0)
         # temporary container for coverage
@@ -258,7 +258,7 @@ class Contig:
 
 class Reference:
 
-    def __init__(self, ref: str, mmi: str = None, reject_refs: str = None): # TODO: Add barcodes as parameter
+    def __init__(self, ref: str, mmi: str = None, reject_refs: str = None, barcodes: list = []):
         """
         Initialise a reference object. Loads contigs, load or create index
         and set contigs from which to always reject
@@ -266,10 +266,11 @@ class Reference:
         :param ref: Path to the reference fasta file
         :param mmi: Optional path to minimap index file
         :param reject_refs: Optional comma-sep list of headers in fasta
-        # TODO: Add barcodes as parameter
+        :param barcodes: Optional list of barcode names used in the experiment
         """
         self.ref = ref
         self.mmi = mmi
+        self.barcodes = barcodes
         if not Path(ref).is_file():
             raise FileNotFoundError("Reference file not found")
         ref_suff = Path(ref).suffixes
@@ -287,7 +288,7 @@ class Reference:
 
 
         # headers of reference sequences from which to always reject
-        # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
+        # NOTE: This could potentially be different for different barcodes, consider and implement if applicable, Lukas believes this is not needed for first implementation
         if reject_refs:
             self.reject_refs = set(reject_refs.split(','))
         else:
@@ -315,7 +316,7 @@ class Reference:
                 continue
             # load reference sequences
             if cname not in self.reject_refs: # TODO: Add barcodes as parameter, if barcodes can have different always reject refs
-                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy) # TODO: Add barcodes as parameter
+                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy, barcodes=self.barcodes) # TODO: Add barcodes as parameter
             # for ref seqs that we always reject, set sequence empty
             else:
                 contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True) # TODO: Add barcodes as parameter, if barcodes can have different always reject refs

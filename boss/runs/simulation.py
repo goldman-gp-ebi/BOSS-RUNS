@@ -43,7 +43,7 @@ class BossRunsSim(BossRuns):
         :param paf_full: Raw output of mapping full-length reads
         :param paf_trunc: Raw output of mapping truncated reads
         :param window: downsampling size
-        :return: pad_dict, and numbers of unmapped and rejected reads
+        :return: paf_dict, and numbers of unmapped and rejected reads
         """
         # build a paf dict and either accept or reject reads
         paf_dict = defaultdict(list)
@@ -118,7 +118,7 @@ class BossRunsSim(BossRuns):
         :return:
         """
         # trigger the sampling of reads and their mappings
-        read_seqs, read_quals, paf_f, paf_t = self.sampler.sample()
+        read_seqs, read_quals, read_barcodes, paf_f, paf_t = self.sampler.sample()
         # make decisions and generate the paf_dict
         paf_dict, reads_decision, n_mapped, n_unmapped, n_accepted, n_rejected = (
             self.make_decisions(seqs=read_seqs,

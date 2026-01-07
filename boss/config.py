@@ -55,7 +55,7 @@ class Config:
         tetra = true                    # perform tetranucleotide frequency tests
         filter_repeats = false          # perform repeat filtering
         bucket_threshold = 5            # at which coverage to switch on the strategy in a bucket (debug)
-        # TODO: Add barcodes as optional field and decide on format -- comma separated list?
+        barcodes = []                   # array of barcode names used in the experiment
 
         ########################################################################################
 
@@ -80,7 +80,7 @@ class Config:
                 self.arg_list = sys.argv[1:]
 
             toml_paths = self._parse_toml_args()
-            # NOTE: If barcodes are just a comma separated string, will need to add some processing here
+            # NOTE: If barcodes are just a comma separated string, will need to add some processing here -- UPDATE: for now array
             args_file, args_readfish = self._load_tomls(toml_paths)
             self._overwrite_defaults(args_file)
             # check if we are simulating or running real experiment
@@ -205,6 +205,8 @@ class Config:
         region_names = {r['name'] for r in args_readfish['regions']}
         if args.name not in region_names:
             raise ValueError("One of the regions in readfish needs the same name as the experiment in BOSS")
+
+        # TODO: Add check that all boss-runs barcodes are also in readfish
 
 
 

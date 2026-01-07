@@ -49,7 +49,7 @@ class Sampler:
         else:
             paf_f = defaultdict(list)
             paf_t = defaultdict(list)
-        return self.fq_stream.read_sequences, self.fq_stream.read_qualities, paf_f, paf_t
+        return self.fq_stream.read_sequences, self.fq_stream.read_qualities, self.fq_stream.read_barcodes, paf_f, paf_t
 
 
 
