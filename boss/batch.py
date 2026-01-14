@@ -1,7 +1,6 @@
 import logging
 import re
 import os
-from pathlib import Path
 
 import mappy
 import numpy as np
@@ -13,7 +12,7 @@ from boss.paf import paf_dict_type
 
 class FastqBatch:
 
-    def __init__(self, fq_files: list[str | Path], channels: set = None):
+    def __init__(self, fq_files: list[str], channels: set | None = None):
         """
         Initialise a new batch of sequencing reads using their filepaths
 
@@ -79,7 +78,7 @@ class FastqBatch:
                 try:
                     # regex to get the channel number from the header
                     # \s=whitespace followed by 'ch=' and then any amount of numeric characters
-                    curr_channel = re.search("\sch=[0-9]*", desc).group()
+                    curr_channel = re.search("\sch=[0-9]*", desc).group()  # type: ignore
                     ch_num = int(curr_channel.split('=')[1])
                 except AttributeError:
                     # if the pattern is not in the header, skip the read
@@ -124,8 +123,8 @@ class ReadCache:
         # for storing the batches of reads for snakemake analysis
         if not os.path.exists('./00_reads'):
             os.mkdir('./00_reads')
-        empty_file(f'00_reads/control_0.fa')
-        empty_file(f'00_reads/boss_0.fa')
+        empty_file('00_reads/control_0.fa')
+        empty_file('00_reads/boss_0.fa')
 
 
 

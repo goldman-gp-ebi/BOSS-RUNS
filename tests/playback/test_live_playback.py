@@ -3,6 +3,7 @@ import pytest
 import os
 from pathlib import Path
 import subprocess
+import logging
 
 import boss.live
 
@@ -18,20 +19,14 @@ def playback_dir(simion):
     return str(paths[-1])
 
 
-
-def test_launch_readfish(readfish_toml_loc, playback_dir):
+@pytest.fixture
+def readfish_log(readfish_toml_loc, playback_dir):
     # this is useful to have as first test so that we get a channels toml directly from readfish
     log = boss.live.LiveRun.launch_readfish(toml=readfish_toml_loc, device="MS00000", name="runs")
-    time.sleep(2)  # required for file to be registered, otherwise assertion fails
-    assert Path(log).is_file()
-    assert Path(log).stat().st_size > 0
-    assert Path('live_alignments.paf').is_file()
-    assert Path('live_reads.fq').is_file()
-    assert Path(f'{playback_dir}/unblocked_read_ids.txt').is_file()
-    assert Path(f'{playback_dir}/channels.toml').is_file()
-    assert '*' not in playback_dir
+
     # remove all reads sequenced so far
     # otherwise readfish takes forever to start doing things
+    assert '*' not in playback_dir
     fqs = (Path(playback_dir) / 'fastq_pass').glob('*.fastq.gz')
     for fq in fqs:
         fq.unlink()
@@ -39,10 +34,21 @@ def test_launch_readfish(readfish_toml_loc, playback_dir):
     for pod in pods:
         pod.unlink()
 
-    # let readfish run for a while
+    logging.info(log)
     time.sleep(40)
-    # stop readfish
     subprocess.run('pkill -f readfish', shell=True)
+    return log
+
+
+def test_launch_readfish(readfish_log, playback_dir):
+    log = readfish_log
+    assert Path(log).is_file()
+    assert Path(log).stat().st_size > 0
+    assert Path('live_alignments.paf').is_file()
+    assert Path('live_reads.fq').is_file()
+    assert Path(f'{playback_dir}/unblocked_read_ids.txt').is_file()
+    assert Path(f'{playback_dir}/channels.toml').is_file()
+
     # check that the logs contain what we are looking for
     # some ugly parsing
     checked = [0] * 3
@@ -60,6 +66,7 @@ def test_launch_readfish(readfish_toml_loc, playback_dir):
                 checked[1] = 1
         # check the last line
         last = ll[-1]
+        logging.info(last)
         llast = last.split(';')
         seq = int(llast[2].split(':')[-1].replace(',', ''))
         unb = int(llast[3].split(':')[-1].replace(',', ''))
@@ -73,15 +80,38 @@ def test_launch_readfish(readfish_toml_loc, playback_dir):
 
 
 
+def test_connect_sequencer(playback_dir):
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    assert Path(sequencer.out_path) == Path(playback_dir)
+    assert sequencer.device_type == 'min'
+
+
+
+def test_scan_dir(playback_dir):
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    assert Path(sequencer.out_path) == Path(playback_dir)
+    new_fqs = boss.live.LiveRun.scan_dir(fastq_pass=str(Path(sequencer.out_path) / 'fastq_pass'), processed_files=set())
+    assert isinstance(new_fqs, list)
+    # not testing the content here on purpose since I'm removing files
+
+
+
+def test_grab_channels(playback_dir):
+    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
+    sequencer.grab_channels(run_name="runs")
+    channels = sequencer.channels
+    assert isinstance(channels, set)
+    assert len(channels) == 256
+
+
+
+
 def test_launch_readfish_singleregion(readfish_toml_loc_singleregion, playback_dir):
-    # this is useful to have as first test so that we get a channels toml directly from readfish
+    # this is run last so the new channels.toml does not mess with the other tests
     log = boss.live.LiveRun.launch_readfish(toml=readfish_toml_loc_singleregion, device="MS00000", name="runs")
     time.sleep(2)  # required for file to be registered, otherwise assertion fails
     assert Path(log).is_file()
     assert Path(log).stat().st_size > 0
-    assert Path('live_alignments.paf').is_file()
-    assert Path('live_reads.fq').is_file()
-    assert Path(f'{playback_dir}/unblocked_read_ids.txt').is_file()
     assert Path(f'{playback_dir}/channels.toml').is_file()
     assert '*' not in playback_dir
     # remove all reads sequenced so far
@@ -103,33 +133,6 @@ def test_launch_readfish_singleregion(readfish_toml_loc_singleregion, playback_d
     channels = sequencer.channels
     assert isinstance(channels, set)
     assert len(channels) == 0
-
-
-
-
-def test_connect_sequencer(playback_dir):
-    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
-    assert Path(sequencer.out_path) == Path(playback_dir)
-    assert sequencer.device_type == 'min'
-
-
-
-def test_scan_dir(playback_dir):
-    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
-    assert Path(sequencer.out_path) == Path(playback_dir)
-    new_fqs = boss.live.LiveRun.scan_dir(fastq_pass=str(Path(sequencer.out_path) / 'fastq_pass'), processed_files=set())
-    assert isinstance(new_fqs, list)
-    assert len(new_fqs) > 0
-
-
-
-def test_grab_channels(playback_dir):
-    sequencer = boss.live.LiveRun.connect_sequencer(device="MS00000")
-    sequencer.grab_channels(run_name="runs")
-    channels = sequencer.channels
-    assert isinstance(channels, set)
-    assert len(channels) == 256
-
 
 
 

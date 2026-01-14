@@ -2,6 +2,7 @@ import time
 import logging
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Callable
 
 from boss.live import LiveRun, Sequencer
 from boss.readlengthdist import ReadlengthDist
@@ -51,6 +52,7 @@ class Boss:
         (out_path / "contigs" / "prev").mkdir(parents=True, exist_ok=True)
         (out_path / "contigs" / "init").mkdir(parents=True, exist_ok=True)
         (out_path / "metrics").mkdir(parents=True, exist_ok=True)
+        (out_path / "tmp").mkdir(parents=True, exist_ok=True)
 
 
     def _init_live(self) -> None:
@@ -129,7 +131,7 @@ class Boss:
             self._init_live()
 
 
-    def process_batch(self, main_processing_func: callable) -> int:
+    def process_batch(self, main_processing_func: Callable) -> int:
         """
         Main processing function for all live BOSS experiments.
         Variants can pass processing functions in
@@ -152,7 +154,7 @@ class Boss:
         return next_update
 
 
-    def process_batch_sim(self, main_processing_func: callable) -> int:
+    def process_batch_sim(self, main_processing_func: Callable) -> int:
         """
         Main entry point for simulated experiments. Variants can
         pass processing functions in. A sampler is also required.

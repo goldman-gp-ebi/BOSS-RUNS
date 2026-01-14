@@ -21,7 +21,7 @@ Configuration:
 
 
 class Config:
-    def __init__(self, parse: bool = False, arg_list: list = None):
+    def __init__(self, parse: bool = False, arg_list: list | None = None):
         """
         Initialise configuration by loading defaults
         When debugging, paths to the TOMLs can be given as a list or arguments to parse
@@ -69,9 +69,9 @@ class Config:
         accept_unmapped = false         # Whether reads that don't map should be accepted by default (default in BOSS-RUNS is to reject them)
         """
         # load the default from above
-        self.args = rtoml.loads(self.template_toml)
+        toml_args = rtoml.loads(self.template_toml)
         # convert toml dict to SimpleNamespace
-        self.args = self._convert_to_namespace()
+        self.args: SimpleNamespace = self._convert_to_namespace(toml_args=toml_args)
         # do we parse toml paths to overwrite defaults?
         if parse:
             self.arg_list = arg_list
@@ -86,7 +86,8 @@ class Config:
             self._check_run_type()
             # initialise a log file in the output folder
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.logfile = f'{stamp}_boss.log'
+            Path("./logs").mkdir(parents=True, exist_ok=True)
+            self.logfile = f'./logs/{stamp}_boss.log'
             init_logger(logfile=self.logfile, args=self.args)
             # config settings for readfish
             if self.args.live_run:
@@ -117,7 +118,7 @@ class Config:
 
 
 
-    def _convert_to_namespace(self) -> SimpleNamespace:
+    def _convert_to_namespace(self, toml_args: dict) -> SimpleNamespace:
         """
         Convert arguments from a parsed Dict to a Namespace object
         For method-style access to attributes
@@ -125,8 +126,8 @@ class Config:
         :return: Arguments as SimpleNamespace object
         """
         args = SimpleNamespace()
-        for category, subdict in self.args.items():
-            if not type(subdict) is dict:
+        for category, subdict in toml_args.items():
+            if type(subdict) is not dict:
                 setattr(args, category, subdict)
             else:
                 for k, v in subdict.items():
@@ -220,7 +221,7 @@ class Config:
         channels = 512
         try:
             _ = Conf.from_dict(args_rf, channels)
-        except:
+        except:  # noqa: E722
             raise ValueError("Could not load TOML config for readfish")
         return 0
 

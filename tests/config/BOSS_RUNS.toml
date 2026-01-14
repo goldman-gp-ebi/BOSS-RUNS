@@ -1,7 +1,7 @@
 [general]
 name = "runs"                   # experiment name
 wait = 60                       # waiting time between updates in live version
-ref = "../data/zymo.fa"           # reference file
+ref = "data/BOSS_test_data/zymo.fa"           # reference file
 
 [live]
 device = "MS00000"                     # position on sequencer

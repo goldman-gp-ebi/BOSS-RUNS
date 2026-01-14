@@ -18,7 +18,7 @@ from .utils import search_running_process
 
 class Sequencer:
 
-    def __init__(self, position: FlowCellPosition = None):
+    def __init__(self, position: FlowCellPosition | None = None):
         """
         class that represents a connected sequencing device
 
@@ -31,7 +31,7 @@ class Sequencer:
             self._grab_device_type()
         else:   # testing pass-through
             self.channels = set()
-            self.out_path = '../data'
+            self.out_path = 'data/BOSS_test_data'
             self.device_type = 'min'
             if not os.path.exists(f'{self.out_path}/fastq_pass'):
                 os.mkdir(f'{self.out_path}/fastq_pass')
@@ -46,8 +46,9 @@ class Sequencer:
         :return:
         """
         # connect to the device and navigate api to get output path
+        assert self.position is not None
         device_connection = self.position.connect()
-        current_run = device_connection.protocol.get_current_protocol_run()
+        current_run = device_connection.protocol.get_current_protocol_run()   # type: ignore
         run_id = current_run.run_id
         logging.info(f"connected to run_id: {run_id}")
         self.out_path = str(current_run.output_path)
@@ -79,7 +80,9 @@ class Sequencer:
         """
         pro_device_types = {'P2_SOLO', 'PROMETHION'}
         min_device_types = {'MINION'}
-        dt = self.position.device_type
+        dt = ''
+        if self.position is not None:
+            dt = self.position.device_type
         if dt in pro_device_types:
             self.device_type = 'pro'
         elif dt in min_device_types:
@@ -102,7 +105,7 @@ class Sequencer:
         self.channels_toml = f'{self.out_path}/channels.toml'
         logging.info(f'looking for channels specification at : {self.channels_toml}')
         channels_found = False
-        channels = []
+        channels = set()
         retry_counter = 0
         while not channels_found:
             if not os.path.isfile(self.channels_toml):
@@ -171,7 +174,7 @@ class LiveRun:
         try:
             flowcellposition = LiveRun._grab_target_device(device=device, host=host, port=port)
             sequencer = Sequencer(position=flowcellposition)
-        except:
+        except:  # noqa: E722
             raise ValueError(f"Error: issue connecting to target device {device}, at host {host} and port {port}. \n"
                              f"Please make sure to supply correct name of sequencing position in MinKNOW")
         return sequencer
@@ -255,7 +258,8 @@ class LiveRun:
         if not script_path.is_file():
             raise FileNotFoundError("readfish_boss.py not found. Something went wrong..")
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        readfish_log = f'{stamp}_readfish.log'
+        Path("./logs").mkdir(exist_ok=True)
+        readfish_log = f'logs/{stamp}_readfish.log'
         readfish_comm = f'python {script_path} {toml} {device} {name} >{readfish_log} 2>&1'
         logging.info(readfish_comm)
         # launch readfish into the background

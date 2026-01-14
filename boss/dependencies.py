@@ -12,6 +12,9 @@ class Dependencies:
         :raises SystemExit: If any of the dependencies are not found in the system path.
         """
         self.dependencies = ["minimap2", "paf2gfa", "miniasm"]
+        self.minimap2 = None
+        self.paf2gfa = None
+        self.miniasm = None
         self.check_dependencies()
 
 

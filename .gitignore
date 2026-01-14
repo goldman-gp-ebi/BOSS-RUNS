@@ -17,6 +17,18 @@ tests/boss.*
 tests/init_*
 little_seqs.fa
 sim.done
+.directory
+.coveragerc
+*.mmi
+dump/
+exp/
+.hatch/
+logs/
+tmp/
+.ruff_cache/
+.vscode/
+
+
 
 
 # AUTO-GENERATED BELOW

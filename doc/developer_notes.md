@@ -45,25 +45,23 @@ The `process_batch()` functions take a method of one of the subclasses and execu
 
 The code is covered by pytests. Test data is available in a submodule in `data/`. 
 To get the test data: `git clone --recurse-submodules ...` 
-Then copy the test data `cp data/BOSS_test_data/* data/`
 
 
 ```shell
-pip install pytest pytest-cov pytest-timeout
+pip install pytest pytest-cov pytest-timeout 
+pip install -e .
 ```
 
 Most tests can be run stand-alone with
 
 ```shell
-cd tests
-pytest base/ --cov --cov-report html 
+pytest tests/base/ --cov --cov-report html 
 ```
 
 Some tests need to have playback sequencing running in the background.
 
 ```shell
-cd tests
-pytest playback 
+pytest tests/playback 
 ```
 
 Upper case TOML config files in `tests/config` are for the test suite. 
@@ -77,9 +75,7 @@ mamba create -n btest python=3.10 pip bioconda::gfatools bioconda::minimap2 bioc
 pip install boss_runs
 pip install pytest pytest-cov pytest-timeout
 git clone --recurse-submodules https://github.com/goldman-gp-ebi/BOSS-RUNS.git
-cp -r BOSS-RUNS/data/BOSS_test_data/* BOSS-RUNS/data/
-cd BOSS-RUNS/tests
-pytest base/ --cov --cov-report html
+pytest tests/base/ --cov --cov-report html
 ```
 
 ## Endpoints
@@ -115,4 +111,20 @@ _config.py.make_decision()
 ## Example simulation and analysis
 
 https://github.com/W-L/boss_simulation_example
+
+
+## System-level libs
+
+mappy requires python3-dev
+`sudo apt-get install python3-dev`
+
+
+Only relevant if running on a machine without MinKNOW installed:
+
+To use the python library `minknow_api` certain certificates from ONT need to be present on the System.
+These certificates get placed by installing `sudo apt install minknow-core-standalone`, which requires adding the ONT software repos.
+(https://nanoporetech.com/document/experiment-companion-minknow#installing-minknow-on-linu)
+The certificates are then located at `/var/lib/minknow/data/rpc-certs/minknow/ca.crt`
+
+
 

@@ -107,9 +107,9 @@ class BossBits:
             return
 
         try:
-            self.logger.info(f"Regenerating mapping index")
+            self.logger.info("Regenerating mapping index")
             idx_name = self._idx(fa=cs)
-            self.logger.info(f"Reloading mapping index")
+            self.logger.info("Reloading mapping index")
             conf.mapper_settings.parameters['fn_idx_in'] = idx_name
             mapper: AlignerABC = conf.mapper_settings.load_object("Aligner")
             self.mapper = mapper
@@ -131,7 +131,7 @@ class BossBits:
             return
 
         mask_names = sorted(list(self.masks.keys()))
-        contig_names = sorted(list(self.mapper.aligner.seq_names))
+        contig_names = sorted(list(self.mapper.aligner.seq_names)) # type: ignore
         same_names = mask_names == contig_names
         if not same_names:
             self.logger.error(f"Error loading masks and contigs: discrepancy in names {len(mask_names)} {len(contig_names)} \n\n\n\n\n")
@@ -174,6 +174,7 @@ class BossBits:
             self.logger.warning(f"{contig} is not in mask dict")
             return 1
         arr = self.masks.get(contig)
+        assert type(arr) is np.ndarray
         # reject refs have array size 1
         if arr.shape[0] == 1:
             return 0
@@ -209,7 +210,7 @@ class BossBits:
             strand = al.strand  # noqa
             coord = al.r_st if al.strand == 1 else al.r_en
             # matches.append(targets.check_coord(contig, strand, coord))
-            strand_conv = self.strand_converter[al.strand]
+            strand_conv = self.strand_converter[al.strand]  # type: ignore
             matches.append(self._check_coord(contig=contig, start_pos=coord, reverse=strand_conv))
         coord_match = any(matches)
 
@@ -219,7 +220,7 @@ class BossBits:
             else:
                 return Decision.no_seq
         elif len(results) == 1:
-            return Decision.single_on if coord_match else Decision.single_off
+            return Decision.single_on if coord_match else Decision.single_off  # type: ignore
         elif len(results) > 1:
             return Decision.multi_on if coord_match else Decision.multi_off
         raise ValueError()
@@ -241,7 +242,7 @@ class BossBits:
 
 
 
-def get_args(arg_list: list = None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
+def get_args(arg_list: list | None = None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     """
     Get the default arguments and extend with toml file using _cli_base.main()
     :param arg_list: List to pass in arguments for debugging
@@ -271,7 +272,7 @@ def get_args(arg_list: list = None) -> tuple[argparse.ArgumentParser, argparse.N
     if arg_list:
         argv.append("--debug-log")
         argv.append("readfish_chunks.tsv")
-    parser, args = main_args(argv=argv)
+    parser, args = main_args(argv=argv)  # type: ignore
     return parser, args
 
 

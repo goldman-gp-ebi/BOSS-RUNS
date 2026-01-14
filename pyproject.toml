@@ -28,11 +28,12 @@ dependencies = [
 homepage = "https://github.com/goldman-gp-ebi/BOSS-RUNS/"
 
 
-[project.optional-dependencies]
-dev = [
-    "pytest~=8.0.0",
-    "pytest-cov~=4.1.0",
-    "pytest-timeout~=2.2.0",
+[tool.hatch.envs.dev]
+dev-mode = true
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "pytest-timeout",
 ]
 
 
@@ -41,11 +42,10 @@ boss = "boss.BOSS:main"
 
 
 [tool.hatch.build.targets.sdist]
-exclude = [
-  "/data",
-  "/doc",
-  "/tests",
-  "/.git",
+only_include = [
+  "boss/**",
+  "README.md",
+  "LICENSE",
 ]
 
 

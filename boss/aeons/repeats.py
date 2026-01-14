@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import numpy as np
 
@@ -27,10 +28,11 @@ class RepeatFilter:
         """
         self.seqpool = seqpool
         self.name = name
-        self.library = f'{name}.repeat_lib.fa'
+        Path('./tmp').mkdir(exist_ok=True)
+        self.library = f'tmp/{name}.repeat_lib.fa'
         # initialise a mapper against the long reads
-        SequencePool.write_seq_dict(seqpool.seqdict(), f'{name}.seqs.fa')
-        lr_mapper = Mapper(ref=f'{name}.seqs.fa')
+        SequencePool.write_seq_dict(seqpool.seqdict(), f'tmp/{name}.seqs.fa')
+        lr_mapper = Mapper(ref=f'tmp/{name}.seqs.fa')
         # chop and map all sequences
         little_seqs = self._chop_seqs()
         mappings = lr_mapper._mappy_batch(sequences=little_seqs)
@@ -65,7 +67,7 @@ class RepeatFilter:
             while i < len(seq):
                 little_seqs[f'{header}-{i:010}'] = seq[i: i + window]
                 i += step
-        with open('little_seqs.fa', 'w') as fh:
+        with open('tmp/little_seqs.fa', 'w') as fh:
             for header, seq in little_seqs.items():
                 fh.write(f'>{header}\n')
                 fh.write(f'{seq}\n')
@@ -84,7 +86,7 @@ class RepeatFilter:
         for line in mappings.split('\n'):
             rec = line.split('\t')
             # check if target array exists
-            if not rec[5] in covs.keys():
+            if rec[5] not in covs.keys():
                 covs[rec[5]] = np.zeros(shape=int(rec[6]))
             # grab the cov
             c = covs[rec[5]]
@@ -117,7 +119,7 @@ class RepeatFilter:
         lim = np.quantile(np.repeat(np.arange(len(bcounts)), repeats=bcounts), 0.999)
         if lim < 3:
             lim = 3.0
-        self.lim = lim
+        self.lim = float(lim)
 
 
     def _identify_repeat_sites(self) -> dict:
@@ -185,7 +187,7 @@ class RepeatFilter:
         """
         logging.info("repeat filtering batch of reads")
         # write batch to file
-        bfile = f'{self.name}.batch.fa'
+        bfile = f'tmp/{self.name}.batch.fa'
         with open(bfile, 'w') as fh:
             for header, seq in seq_dict.items():
                 fa = f'>{header}\n{seq}\n'
@@ -204,7 +206,7 @@ class RepeatFilter:
 
 class Repeat:
 
-    def __init__(self, rid: str = None, start: int = 0, end: int = -1):
+    def __init__(self, rid: str | None = None, start: int = 0, end: int = -1):
         """
         Initialise a repeat object
 

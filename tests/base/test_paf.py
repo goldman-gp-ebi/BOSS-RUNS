@@ -7,19 +7,20 @@ from boss.utils import execute
 from boss.dependencies import Dependencies
 from boss.config import Config
 
+from ..constants import PATHS
 
 
 @pytest.fixture
-def paf_io(paf_file):
-    with open(paf_file, 'r') as f:
+def paf_io():
+    with open(PATHS.paf, 'r') as f:
         paf_str = f.read()
     return StringIO(paf_str)
 
 
-def test_parse_PAF(paf_file):
+def test_parse_PAF():
     # init does not do anything for Paf
     _ = boss.paf.Paf()
-    paf_dict = boss.paf.Paf.parse_PAF(paf_file, min_len=1)
+    paf_dict = boss.paf.Paf.parse_PAF(PATHS.paf, min_len=1)
     assert len(paf_dict) == 9120
 
 
@@ -35,15 +36,15 @@ def test_parse_PAF_dummy():
 
 
 @pytest.fixture
-def all_vs_all(fastq_file):
+def all_vs_all():
     # grab the minimap2 executable
     mm2 = Dependencies().minimap2
     # mm2 command for all-vs-all mapping
-    comm = f'{mm2} -x ava-ont {fastq_file} {fastq_file} >{fastq_file}.ava.paf'
+    comm = f'{mm2} -x ava-ont {PATHS.fastq} {PATHS.fastq} >{PATHS.fastq}.ava.paf'
     stdout, stderr = execute(comm)
     logging.info(stdout)
     logging.info(stderr)
-    return f'{fastq_file}.ava.paf'
+    return f'{PATHS.fastq}.ava.paf'
 
 
 def test_choose_best_mapper(paf_dict):
@@ -52,6 +53,7 @@ def test_choose_best_mapper(paf_dict):
         if len(recs) > 1:
             recs = boss.paf.Paf.choose_best_mapper(recs)
             break
+    assert recs is not None
     logging.info(recs[0].__dict__)
     r = recs[0]
     assert r.qname == "ERR3152366.12"
