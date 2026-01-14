@@ -27,6 +27,9 @@ class BossRunsSim(BossRuns):
         self.read_cache = ReadCache(batchsize=self.args.batchsize, dumptime=self.args.dumptime)
         self.mu = 400
 
+        # initialise accept_unmapped
+        self.accept_unmapped = self.args.accept_unmapped
+
 
 
     def make_decisions(
@@ -88,6 +91,21 @@ class BossRunsSim(BossRuns):
                 paf_dict[str(rec.qname)].append(rec)
                 n_rejected += 1
                 reads_decision[rid] = reads_decision[rid][:self.mu]
+        
+        # all unmapped reads also need to be accepted or rejected, i.e. added back into the dict
+        for read_id, seq in seqs.items():
+            if read_id in mapped_reads:
+                continue
+            elif self.accept_unmapped:
+                reads_decision[read_id] = seq
+                if read_id in paf_dict_full:
+                    rec_full_list = paf_dict_full[read_id]
+                    rec_full = Paf.choose_best_mapper(rec_full_list)[0]
+                    paf_dict[read_id].append(rec_full)
+                n_accepted += 1
+            else:
+                reads_decision[read_id] = seq[:self.mu]
+                n_rejected += 1
 
 
         n_mapped = len(mapped_reads)
@@ -144,8 +162,7 @@ class BossRunsSim(BossRuns):
         # update pseudotimes and check if it's time to write cache to file
         self.read_cache.update_times_runs(
             total_bases=self.sampler.fq_stream.total_bases,
-            paf_dict=paf_dict,
-            n_unmapped=n_unmapped,
+            reads_decision=reads_decision,
             n_reject=n_rejected
         )
         self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)

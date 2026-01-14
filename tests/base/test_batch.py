@@ -69,18 +69,19 @@ def test_update_times_runs(read_cache, sampler):
     n_unmapped = len(unmapped)
     n_rejected = len(rejected)
     logging.info(f"unmapped {n_unmapped}, reject {n_rejected}")
-    paf_dict = {}
+    reads_decision = {}
     for rid in r_seqs.keys():
         if rid in pafd_t.keys() and rid in pafd_f.keys():
             if rid in rejected:
-                paf_dict[rid] = pafd_t[rid]
+                reads_decision[rid] = r_seqs[rid][: 400]
+            elif rid in unmapped:
+                reads_decision[rid] = r_seqs[rid][: 400]
             else:
-                paf_dict[rid] = pafd_f[rid]
+                reads_decision[rid] = r_seqs[rid]
 
     read_cache.update_times_runs(
         total_bases=total_bases,
-        paf_dict=paf_dict,
-        n_unmapped=n_unmapped,
+        reads_decision=reads_decision,
         n_reject=n_rejected)
 
     assert read_cache.time_control == 249464
