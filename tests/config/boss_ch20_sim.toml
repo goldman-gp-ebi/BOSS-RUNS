@@ -1,0 +1,23 @@
+[general]
+name = "ch20sim"                   # experiment name
+ref = "../../data/Homo_sapiens.GRCh38.dna.primary_assembly.mod20.fa"
+mmi = "../../data/Homo_sapiens.GRCh38.dna.primary_assembly.mod20.fa.mmi"
+
+
+[optional]
+reject_refs = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,X,Y,MT"
+bucket_threshold = 0
+
+
+########################################################################################
+
+[simulation]                    # simulation arguments
+fq = "../../data/hs_reads/_pass_645d4a7a_11506df7_16.fq"
+batchsize = 10
+maxb = 5
+binit = 3
+dumptime = 5000
+paf_full = "../../data/hs_reads/_pass_645d4a7a_11506df7_16.paf"
+paf_trunc = "../../data/hs_reads/_pass_645d4a7a_11506df7_16_trunc.paf"
+
+

@@ -1,4 +1,3 @@
-import logging
 import re
 from collections import defaultdict
 from itertools import permutations, product
@@ -7,9 +6,8 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from numba import njit
 
-from boss.utils import reverse_complement, binc, adjust_length
+from boss.utils import reverse_complement, binc
 from boss.paf import Paf, paf_dict_type
 
 
@@ -717,6 +715,7 @@ class CoverageConverter:
                 end = rec.qend
 
             # get array of counts for each base and indels
+            assert rec.cigar is not None
             query_arr, qual_arr = self._parse_cigar(
                 cigar_string=rec.cigar,
                 read_string=seq,

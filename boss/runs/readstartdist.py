@@ -174,7 +174,7 @@ class ReadStartDist:
         # if Vhat is very small, alpha becomes very large
         lhs = (2 * n_windows - 1) / (Vhat * 8 * (n_windows ** 3))
         rhs = 1 / (2 * n_windows)
-        alpha = lhs - rhs
+        alpha = float(lhs - rhs)
         return alpha, p0
 
 

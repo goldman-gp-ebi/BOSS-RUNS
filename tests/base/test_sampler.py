@@ -5,22 +5,23 @@ import numpy
 
 import boss.sampler
 
+from ..constants import PATHS
 
 
 
 @pytest.fixture
-def fq_mmap(fastq_file):
+def fq_mmap():
     # Initialise a FastqStream but remove offset files first to make sure they are recreated
-    Path(f'{fastq_file}.offsets.npy').unlink(missing_ok=True)
-    fq_mmap = boss.sampler.FastqStream_mmap(source=fastq_file, batchsize=5, maxbatch=10)
+    Path(f'{PATHS.fastq}.offsets.npy').unlink(missing_ok=True)
+    fq_mmap = boss.sampler.FastqStream_mmap(source=PATHS.fastq, batchsize=5, maxbatch=10)
     return fq_mmap
 
 
 @pytest.fixture
-def fq_mmap_gz(fastq_file_gz):
+def fq_mmap_gz():
     # Initialise a FastqStream but remove offset files first to make sure they are recreated
-    Path(f'{fastq_file_gz}.offsets.npy').unlink(missing_ok=True)
-    fq_mmap_gz = boss.sampler.FastqStream_mmap(source=fastq_file_gz, batchsize=5, maxbatch=10)
+    Path(f'{PATHS.fastq_gz}.offsets.npy').unlink(missing_ok=True)
+    fq_mmap_gz = boss.sampler.FastqStream_mmap(source=PATHS.fastq_gz, batchsize=5, maxbatch=10)
     return fq_mmap_gz
 
 
@@ -50,20 +51,20 @@ def test_read_batch(fq, request):
     assert fq.total_bases == 23070
 
 
-def test_paf_init(paf_file, paf_file_trunc):
+def test_paf_init():
     # initialise a pafstream and remove offsets first, as above
-    Path(f'{paf_file}.offsets').unlink(missing_ok=True)
-    Path(f'{paf_file}.offsets').unlink(missing_ok=True)
-    p = boss.sampler.PafStream(paf_full=paf_file, paf_trunc=paf_file_trunc)
+    Path(f'{PATHS.paf}.offsets').unlink(missing_ok=True)
+    Path(f'{PATHS.paf_trunc}.offsets').unlink(missing_ok=True)
+    p = boss.sampler.PafStream(paf_full=PATHS.paf, paf_trunc=PATHS.paf_trunc)
     assert len(p.offsets_full) == 9120
-    assert p.offsets_full['ERR3152366.998'][0] == 1213253
+    assert p.offsets_full['ERR3152366.998'][0] == 1213253  # type: ignore
 
 
 
 @pytest.mark.xfail(raises=ValueError)
-def test_request_too_much(fastq_file):
+def test_request_too_much():
     _ = boss.sampler.Sampler(
-        source=fastq_file,
+        source=PATHS.fastq,
         maxbatch=300,
         batchsize=50,
     )

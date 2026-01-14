@@ -3,7 +3,6 @@ import time
 import logging
 
 import boss.core
-import boss.config
 
 
 
@@ -41,7 +40,7 @@ def test_process_batch(Boss):
 def test_process_batch_sim(Boss):
     # dummy function to pass into process_batch
     def dummy():
-        logging.info(f'simulation function goes here')
+        logging.info('simulation function goes here')
 
     next_update = Boss.process_batch_sim(main_processing_func=dummy)
     assert next_update > 10

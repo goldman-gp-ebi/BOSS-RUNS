@@ -6,18 +6,19 @@ import time
 import boss.runs.core
 import boss.config
 
+from ..constants import PATHS
 
 
 @pytest.fixture
-def args(fasta_file, mmi_file):
+def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
     args.toml_readfish = "TEST"
     args.split_flowcell = False
     args.live_run = True
-    args.ref = fasta_file
-    args.mmi = mmi_file
+    args.ref = PATHS.fasta
+    args.mmi = PATHS.mmi
     return args
 
 
@@ -30,7 +31,7 @@ def BossRuns(args):
 
 def test_init(BossRuns):
     BossRuns.init()
-    assert type(BossRuns.ref) is boss.runs.reference.Reference
+    assert type(BossRuns.ref) is boss.runs.reference.Reference  # type: ignore
     assert Path(f"{BossRuns.ref.ref}.mmi").is_file()
     assert len(BossRuns.contigs) == 9
     logging.info(BossRuns.contigs.keys())

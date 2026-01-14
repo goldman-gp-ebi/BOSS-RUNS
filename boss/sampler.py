@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 
 class Sampler:
 
-    def __init__(self, source: str, paf_full: str = None, paf_trunc: str = None, workers: int = 4, **kwargs) -> None:
+    def __init__(self, source: str, paf_full: str | None = None, paf_trunc: str | None = None, workers: int = 4, **kwargs) -> None:
         """
         Wrapper to sample sequencing data (and their mappings) given source files.
         Paf files and offsets can be generated with a script in ../scripts
@@ -34,11 +34,13 @@ class Sampler:
         # stream for mapping data is only initialised for BOSS-RUNS, not AEONS
         self.pafs = True if paf_full and paf_trunc else False
         if self.pafs:
+            assert paf_full is not None
+            assert paf_trunc is not None
             self.paf_stream = PafStream(paf_full=paf_full, paf_trunc=paf_trunc, workers=workers)
 
 
 
-    def sample(self) -> tuple[dict[str, str], dict[str, str], str, str]:
+    def sample(self) -> tuple:
         """
         Generate a new batch of data
 
@@ -279,8 +281,8 @@ class FastqStream_mmap:
                 for new_offset in new_offsets:
                     # we preload 20 pages of data following each read start
                     # 20 pages = 80 kbytes (read of up to ~40 kbases, I think)
-                    mm.madvise(mmap.MADV_RANDOM)
-                    mm.madvise(mmap.MADV_WILLNEED, int(new_offset), 20)
+                    mm.madvise(mmap.MADV_RANDOM)                                # type: ignore
+                    mm.madvise(mmap.MADV_WILLNEED, int(new_offset), 20)         # type: ignore
 
             batch_offsets = np.sort(batch_offsets)
             for i in range(len(batch_offsets)):
@@ -288,7 +290,7 @@ class FastqStream_mmap:
                     # jump to position in file and return the next 4 lines
                     chunk = self._get_single_read(mm=mm, offset=int(batch_offsets[i]))
                     batch[i] = chunk
-                except:
+                except:   # noqa: E722
                     logging.info(f"Error at location: {batch_offsets[i]}")
                     continue
                 if len(chunk) == 0:
@@ -346,7 +348,7 @@ class PafStream:
 
 
     @staticmethod
-    def _load_offsets_paf(path: str) -> defaultdict[list]:
+    def _load_offsets_paf(path: str) -> defaultdict:
         """
         Load offsets from file
 
@@ -366,7 +368,7 @@ class PafStream:
 
 
     @staticmethod
-    def _scan_offsets_paf(path: str, limit: int = 1e9) -> None:
+    def _scan_offsets_paf(path: str, limit: int = int(1e9)) -> None:
         """
         Scan file to find byte offsets of mappings
 
@@ -418,7 +420,7 @@ class PafStream:
 
 
     @staticmethod
-    def _get_offset_array(offsets: defaultdict[list], read_ids: set) -> NDArray:
+    def _get_offset_array(offsets: defaultdict, read_ids: set) -> NDArray:
         """
         Given a set of read IDs, get the array of offsets of the mappings of those reads
 

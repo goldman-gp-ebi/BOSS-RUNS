@@ -111,7 +111,7 @@ class BossAeonsSim(BossAeons):
             # index into strategy to find the decision
             try:
                 decision = self.strat[str(rec.tname)][start_pos // window, rec.rev]
-            except:
+            except:  # noqa: E722
                 # if we don't have a strategy yet accept all
                 decision = 1
 

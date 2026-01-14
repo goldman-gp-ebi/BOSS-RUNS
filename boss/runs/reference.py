@@ -118,7 +118,7 @@ class Contig:
 
 
 
-    def increment_coverage(self, increment_list: list[int, int, NDArray, NDArray]) -> None:
+    def increment_coverage(self, increment_list: list) -> None:
         """
         Increment the coverage counts after parsing mappings
 
@@ -259,7 +259,7 @@ class Contig:
 
 class Reference:
 
-    def __init__(self, ref: str, mmi: str = None, reject_refs: str = None, barcodes: list = []):
+    def __init__(self, ref: str, mmi: str | None = None, reject_refs: str | None = None, barcodes: list = []):
         """
         Initialise a reference object. Loads contigs, load or create index
         and set contigs from which to always reject
@@ -302,7 +302,7 @@ class Reference:
 
 
 
-    def _load_contigs(self, min_len: int = 1e5, ploidy: int = 1) -> dict[str, Contig]:
+    def _load_contigs(self, min_len: int = int(1e5), ploidy: int = 1) -> dict[str, Contig]:
         """
         Load contigs from fasta file
 

@@ -1,4 +1,5 @@
 import logging
+import subprocess
 import pytest
 from pathlib import Path
 from io import StringIO
@@ -29,21 +30,18 @@ def test_batch(fq_file_mix, channels, rlen, total):
 
 
 
-# let fail intentionally
-@pytest.mark.xfail(raises=TypeError)
-def test_batch_type():
-    batch = boss.batch.FastqBatch(fq_files=[1])
-    assert batch
+
 
 
 def test_init(read_cache):
     assert read_cache
     assert Path("00_reads/control_0.fa").is_file()
+    subprocess.run("rm -r 00_reads/", shell=True)
 
 
 def test_update_times_aeons(read_cache, fq_file_mix):
     np.random.seed(1)
-    batch = boss.batch.FastqBatch(fq_file_mix)
+    batch = boss.batch.FastqBatch(fq_files=fq_file_mix)
     # create some arbitrary decisions
     reads_decision = {}
     for rid, seq in batch.read_sequences.items():
@@ -54,6 +52,7 @@ def test_update_times_aeons(read_cache, fq_file_mix):
     read_cache.update_times_aeons(read_sequences=batch.read_sequences, reads_decision=reads_decision)
     assert read_cache.time_control == 8_264_497
     assert read_cache.time_boss == 5_819_980
+    subprocess.run("rm -r 00_reads/", shell=True)
 
 
 def test_update_times_runs(read_cache, sampler):
@@ -70,22 +69,24 @@ def test_update_times_runs(read_cache, sampler):
     n_unmapped = len(unmapped)
     n_rejected = len(rejected)
     logging.info(f"unmapped {n_unmapped}, reject {n_rejected}")
-    paf_dict = {}
+    reads_decision = {}
     for rid in r_seqs.keys():
         if rid in pafd_t.keys() and rid in pafd_f.keys():
             if rid in rejected:
-                paf_dict[rid] = pafd_t[rid]
+                reads_decision[rid] = r_seqs[rid][: 400]
+            elif rid in unmapped:
+                reads_decision[rid] = r_seqs[rid][: 400]
             else:
-                paf_dict[rid] = pafd_f[rid]
+                reads_decision[rid] = r_seqs[rid]
 
     read_cache.update_times_runs(
         total_bases=total_bases,
-        paf_dict=paf_dict,
-        n_unmapped=n_unmapped,
+        reads_decision=reads_decision,
         n_reject=n_rejected)
 
     assert read_cache.time_control == 249464
     assert read_cache.time_boss == 190181
+    subprocess.run("rm -r 00_reads/", shell=True)
 
 
 
@@ -119,5 +120,6 @@ def test_fill_cache(read_cache, sampler_nopaf):
 
     assert len(read_cache.cache_boss) == 0
     assert len(read_cache.cache_control) == 0
+    subprocess.run("rm -r 00_reads/", shell=True)
 
 
