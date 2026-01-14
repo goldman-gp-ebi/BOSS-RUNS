@@ -42,7 +42,7 @@ class BossRuns(Boss):
         # initialise the tracker for read start position distribution
         self.read_starts = ReadStartDist(contigs=self.contigs_filt)
         # initialise scoring array
-        self.scoring = Scoring(ploidy=self.args.ploidy) # NOTE: Why are we initialising Scoring again, when each contig object already has a scoring object?
+        self.scoring = Scoring(ploidy=self.args.ploidy)
         self.scoring.init_score_array()
         # write initial strategies to file
         strat_dict = self.ref.get_strategy_dict()
@@ -139,7 +139,7 @@ class BossRuns(Boss):
             # log number of accepted sites
             f_perc = np.count_nonzero(cont.strat[:, 0]) / cont.strat.shape[0]
             r_perc = np.count_nonzero(cont.strat[:, 1]) / cont.strat.shape[0]
-            logging.info(f'{cname}: {f_perc}, {r_perc}') # NOTE: Maybe thing on whether this log is confusing because it can report more sites than exist with barcodes
+            logging.info(f'{cname}: {f_perc}, {r_perc}') # NOTE: Maybe think about whether this log is confusing because it can report more sites than exist with barcodes
             i += cont.length // window
 
 

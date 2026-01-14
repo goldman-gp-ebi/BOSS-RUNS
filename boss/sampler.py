@@ -1,6 +1,7 @@
 import logging
 import time
 import mmap
+import re
 import gzip
 import pickle
 from pathlib import Path
@@ -180,7 +181,7 @@ class FastqStream_mmap:
         read_sequences = {}
         read_qualities = {}
         read_sources = {}
-
+        read_barcodes = {}
         batch_lines = batch_string.split('\n')
         n_lines = len(batch_lines)
 
@@ -199,6 +200,19 @@ class FastqStream_mmap:
             read_sequences[name] = seq
             read_sources[name] = source
             read_qualities[name] = qual
+            try:
+                # regex to get the channel number from the header
+                # \s=whitespace followed by 'barcode=' and then either unclassified or barcode followed by any amount of numeric characters
+                barcode_desc = re.search("barcode=(unclassified|barcode([0-9]+))", batch_lines[i]).group(1)
+                if barcode_desc == 'unclassified':
+                    read_barcodes[name] = 0
+                else:
+                    read_barcodes[name] = int(barcode_desc.split('barcode')[1])
+
+            except AttributeError:
+                # if the pattern is not in the header, skip the read
+                logging.info("no barcode information found in header")
+                read_barcodes[name] = 0
             i += 4
         # get the total length of reads in this batch
         total_bases = int(np.sum(np.array(list(read_lengths.values()))))
@@ -208,6 +222,7 @@ class FastqStream_mmap:
         self.read_sequences = read_sequences
         self.read_qualities = read_qualities
         self.read_sources = read_sources
+        self.read_barcodes = read_barcodes
         self.total_bases = total_bases
 
 

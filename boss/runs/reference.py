@@ -17,7 +17,7 @@ from boss.runs.sequences import Scoring
 
 class Contig:
 
-    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list = []):
+    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list = ['']):
         """
         Initialise a contig object
 
@@ -25,6 +25,7 @@ class Contig:
         :param seq: DNA string of the contig.
         :param ploidy: Contig from haploid or diploid organism
         :param rej: Always reject from this contig?
+        :param barcodes: List of strings of barcode names
         """
         self.name = name.strip().split(" ")[0]
         self.seq = seq.upper()
@@ -87,7 +88,7 @@ class Contig:
         """
         self.bucket_size = bucket_size
         self.bucket_switches = np.zeros(shape=(int(self.length // bucket_size) + 1, len(self.barcodes)), dtype="bool")
-        self.switched_on = False # TODO: Change this so we can turn it on/off for different barcodes at different times?
+        self.switched_on = np.zeros(shape=(len(self.barcodes)), dtype="bool")
 
 
 
@@ -150,7 +151,7 @@ class Contig:
         :return:
         """
         # coverage depth
-        covsum = np.sum(self.coverage, axis=1) # TODO: Does this need to change because of barcode dimension? Huh it might be fine actually, because the _find_dropouts function can handle another dimension
+        covsum = np.sum(self.coverage, axis=1) # NOTE: No change for barcodes needed, because the _find_dropouts function can handle another dimension
         if np.mean(covsum) > 5:
             dropout_idx = self._find_dropout(covsum)
             logging.info(f'detected {dropout_idx.shape[0]} dropouts') # NOTE: Should we make this more explicit to distinguish dropouts on the same species but different barcodes?
@@ -195,7 +196,7 @@ class Contig:
         self.bucket_switches[np.where(cmean_buckets >= threshold)] = 1
         switch_count = np.bincount(self.bucket_switches)
         states = len(switch_count)
-        # log the first time a contig's strategy is switched on # TODO: Make self.switched on barcode specific and then change the logic here
+        # log the first time a contig's strategy is switched on # TODO: Make self.switched_on barcode specific and then change the logic here
         if states == 2 and not self.switched_on:
             self.switched_on = True
             logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
@@ -315,11 +316,11 @@ class Reference:
             if len(cseq) < min_len:
                 continue
             # load reference sequences
-            if cname not in self.reject_refs: # TODO: Add barcodes as parameter, if barcodes can have different always reject refs
-                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy, barcodes=self.barcodes) # TODO: Add barcodes as parameter
+            if cname not in self.reject_refs: # NOTE: If barcodes can have different always reject refs, self.reject_refs should be indexable by barcode
+                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy, barcodes=self.barcodes)
             # for ref seqs that we always reject, set sequence empty
             else:
-                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True) # TODO: Add barcodes as parameter, if barcodes can have different always reject refs
+                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True) # NOTE: Add barcodes as parameter, if barcodes can have different always reject refs
         return contigs
 
 

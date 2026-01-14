@@ -405,50 +405,55 @@ class Scoring:
         :param contig: Contig object for which to update scores
         :return: Arrays of scores and entropy to reassign
         """
-        # TODO: Delve into this function, understand it better and then get relationship to barcodes
-        # Lukas suggests just to add a loop that cycles through the barcodes so that the indexing won't have to change too much
-        # grab the correct arrays # NOTE: After the preceding changes, these three arrays will have an extra dimension for the barcodes
-        scores = contig.scores
-        entropy = contig.entropy
-        coverage = contig.coverage
+        # NOTE: Could be improved by adjusting dimensions to account for barcodes instead of iterating through them
+
         # this is run after coverage has been updated
-        cm = contig.change_mask
-        # set deletions to 0 if not counting them
-        if contig.len_b == 4:
-            coverage[:, 4] = 0
-        # indices where array_limit is reached
-        maxed_indices = np.where(coverage.sum(axis=1) >= 30)[0]
-        cm[maxed_indices] = False
-        # indices of change
-        cc_pos = np.nonzero(cm)[0]
-        # target coverage patterns
-        cc = coverage[cc_pos]
-        # grab base of changed positions
-        ref_bases = contig.seq_int[cc_pos]
-        # main operation: indexing in pre-computed values using coverage patterns
-        scores[cc_pos] = self.score_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
-        # prevent maxed sites from being recalculated
-        scores[maxed_indices] = np.finfo(float).tiny
-        # check positions where scores were not found in the scoreArray
-        # i.e. if they remain 0.0
-        missing = np.argwhere(scores == 0.0).flatten() # TODO: Check that the flatten step does not lose barcode dimension
-        nmiss = missing.shape[0]
-        # if any positions without scores, calc and add to array
-        if nmiss != 0:
-            missing_patterns = coverage[missing]
-            # calculate new scores and entropies
-            miss_entropies, miss_scores = self.calc_posterior_and_scores(cov_patterns=missing_patterns)
-            # place into pre-computed array
-            bases = contig.seq_int[missing]
-            scores[missing] = miss_scores[bases, np.arange(nmiss)]
-            entropy[missing] = miss_entropies[bases, np.arange(nmiss)]
-            ind = np.swapaxes(missing_patterns, 0, 1)
-            # assign the calculated scores and entropies to the large array
-            for i in range(ind.shape[1]):
-                self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
-                self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
-        # grab the entropy values of the changed sites
-        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+        for b in contig.scores.shape[2]:
+            scores = contig.scores[:,:, b]
+            entropy = contig.entropy[:,:, b]
+            coverage = contig.coverage[:,:, b]
+
+            cm = contig.change_mask
+            # set deletions to 0 if not counting them
+            if contig.len_b == 4:
+                coverage[:, 4] = 0
+            # indices where array_limit is reached
+            maxed_indices = np.where(coverage.sum(axis=1) >= 30)[0]
+            cm[maxed_indices] = False
+            # indices of change
+            cc_pos = np.nonzero(cm)[0]
+            # target coverage patterns
+            cc = coverage[cc_pos]
+            # grab base of changed positions
+            ref_bases = contig.seq_int[cc_pos]
+            # main operation: indexing in pre-computed values using coverage patterns
+            scores[cc_pos] = self.score_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+            # prevent maxed sites from being recalculated
+            scores[maxed_indices] = np.finfo(float).tiny
+            # check positions where scores were not found in the scoreArray
+            # i.e. if they remain 0.0
+            missing = np.argwhere(scores == 0.0).flatten()
+            nmiss = missing.shape[0]
+            # if any positions without scores, calc and add to array
+            if nmiss != 0:
+                missing_patterns = coverage[missing]
+                # calculate new scores and entropies
+                miss_entropies, miss_scores = self.calc_posterior_and_scores(cov_patterns=missing_patterns)
+                # place into pre-computed array
+                bases = contig.seq_int[missing]
+                scores[missing] = miss_scores[bases, np.arange(nmiss)]
+                entropy[missing] = miss_entropies[bases, np.arange(nmiss)]
+                ind = np.swapaxes(missing_patterns, 0, 1)
+                # assign the calculated scores and entropies to the large array
+                for i in range(ind.shape[1]):
+                    self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
+                    self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
+            # grab the entropy values of the changed sites
+            entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+            
+            contig.scores[:,:, b] = scores
+            contig.entropy[:,:, b] = entropy
+            contig.coverage[:,:, b] = coverage
         return scores, entropy
 
 

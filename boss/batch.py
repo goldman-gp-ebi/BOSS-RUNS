@@ -58,7 +58,7 @@ class FastqBatch:
 
 
 
-    def _read_single_batch(self, fastq_file: str) -> tuple[dict[str, str], dict[str, str], dict[str, int]]:
+    def _read_single_batch(self, fastq_file: str) -> tuple[dict[str, str], dict[str, str]]: #, dict[str, int]]:
         """
         Get the reads from a single fq file and put into dictionary
 
@@ -68,7 +68,7 @@ class FastqBatch:
         logging.info(f"Reading file: {fastq_file}")
         read_sequences = {}
         read_qualities = {}
-        read_barcodes = {}
+        # read_barcodes = {}
         # to make sure it's a string
         if not isinstance(fastq_file, str):
             raise TypeError('Fastq file must be a string')
@@ -96,24 +96,27 @@ class FastqBatch:
                 if ch_num in self.channels:
                     read_sequences[str(name)] = seq
                     read_qualities[str(name)] = qual
-        if not self.barcodes: # TODO: Check what self.barcodes is
-            for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
-                read_barcodes[str(name)] = ''
-        else:
-            # consider source barcode
-            for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
-                try:
-                    # regex to get the channel number from the header
-                    # \s=whitespace followed by 'ch=' and then any amount of numeric characters
-                    barcode = int(re.search("\sbarcode([0-9]*)", desc).group(1))
-                except AttributeError:
-                    # if the pattern is not in the header, skip the read
-                    logging.info("barcode not found in header of fastq read")
-                    continue
-                # check if read comes from a BOSS channel
-                if barcode in self.barcodes:
-                    read_barcodes[str(name)] = barcode
-        return read_sequences, read_qualities, read_barcodes
+        # if not self.barcodes: # TODO: Check what self.barcodes is -- could be a set just like channels
+            # NOTE: Lukas pointed out that this reading of reads is superfluous without barcodes and 
+            # that it would be preferential to simply use a defaultdict(int) instead. Transforming all barcodes to int would require us to encode unclassified barcodes somehow
+            # TODO: when implementing live mode, adjust this passage
+        #     for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
+        #         read_barcodes[str(name)] = ''
+        # else:
+        #     # consider source barcode
+        #     for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
+        #         try:
+        #             # regex to get the channel number from the header
+        #             # \s=whitespace followed by 'ch=' and then any amount of numeric characters
+        #             barcode = int(re.search("\sbarcode([0-9]*)", desc).group(1))
+        #         except AttributeError:
+        #             # if the pattern is not in the header, skip the read
+        #             logging.info("barcode not found in header of fastq read")
+        #             continue
+        #         # check if read comes from a BOSS channel
+        #         if barcode in self.barcodes:
+        #             read_barcodes[str(name)] = barcode
+        return read_sequences, read_qualities #, read_barcodes
 
 
 

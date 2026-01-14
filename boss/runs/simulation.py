@@ -34,6 +34,7 @@ class BossRunsSim(BossRuns):
         seqs: dict[str, str],
         paf_full: str,
         paf_trunc: str,
+        barcodes: dict[str, int],
         window: int = 100
     ) -> tuple[paf_dict_type, dict[str, str], int, int, int, int]:
         """
@@ -42,6 +43,7 @@ class BossRunsSim(BossRuns):
         :param seqs: Dict of raw sequences
         :param paf_full: Raw output of mapping full-length reads
         :param paf_trunc: Raw output of mapping truncated reads
+        :param barcodes: Dict of barcodes of raw sequences
         :param window: downsampling size
         :return: paf_dict, and numbers of unmapped and rejected reads
         """
@@ -69,7 +71,7 @@ class BossRunsSim(BossRuns):
             # actual decision look-up
             try:
                 strat = self.contigs_filt[str(rec.tname)].strat
-                decision = strat[start_pos // window, rec.rev]
+                decision = strat[start_pos // window, rec.rev, barcodes[rec.tname]]
 
             except (KeyError, IndexError):
                 # in case the read maps to a chromosome that we don't have a strategy for
@@ -123,7 +125,8 @@ class BossRunsSim(BossRuns):
         paf_dict, reads_decision, n_mapped, n_unmapped, n_accepted, n_rejected = (
             self.make_decisions(seqs=read_seqs,
                                 paf_full=paf_f,
-                                paf_trunc=paf_t
+                                paf_trunc=paf_t,
+                                barcodes = read_barcodes
                                 )
         )
         logging.info(f"mapped {n_mapped}, not mapped {n_unmapped}")
