@@ -65,6 +65,7 @@ class BossRunsSim(BossRuns):
         # loop over the mu-sized mappings to make decisions
         for rid, rlist in paf_dict_trunc.items():
             rec = Paf.choose_best_mapper(rlist)[0]
+            rec.barcode = barcodes[rec.qname]
             mapped_reads.add(rid)
             # deal with strandedness
             if rec.rev:
@@ -74,18 +75,20 @@ class BossRunsSim(BossRuns):
             # actual decision look-up
             try:
                 strat = self.contigs_filt[str(rec.tname)].strat
-                decision = strat[start_pos // window, rec.rev, barcodes[rec.tname]]
+                decision = strat[start_pos // window, rec.rev, barcodes[rec.qname]]
 
             except (KeyError, IndexError):
                 # in case the read maps to a chromosome that we don't have a strategy for
                 # reject by default (can happen in testing or for references with short scaffolds)
                 decision = 0
+                # NOTE: Could adjust this for unclassified barcodes based on config option
 
             if decision:
                 # ACCEPT READ
                 # grab the full-length version
                 rec_full_list = paf_dict_full[str(rec.qname)]
                 rec_full = Paf.choose_best_mapper(rec_full_list)[0]
+                rec_full.barcode = barcodes[rec_full.qname]
                 paf_dict[str(rec.qname)].append(rec_full)
                 n_accepted += 1
             else:
@@ -139,6 +142,8 @@ class BossRunsSim(BossRuns):
         """
         # trigger the sampling of reads and their mappings
         read_seqs, read_quals, read_barcodes, paf_f, paf_t = self.sampler.sample()
+        # Convert barcodes to index
+        read_barcodes = {rid: self.barcodes_index.get(bc, 0) for rid, bc in read_barcodes.items()}
         # make decisions and generate the paf_dict
         paf_dict, reads_decision, n_mapped, n_unmapped, n_accepted, n_rejected = (
             self.make_decisions(seqs=read_seqs,
@@ -155,7 +160,7 @@ class BossRunsSim(BossRuns):
         self.rl_dist.update(read_lengths={n: r[0].qlen for n, r in paf_dict_acc.items()})
         # NOTE from here similar but not identical to live version
         # convert coverage counts to increment arrays
-        increments = self.cc.convert_records(paf_dict=paf_dict, seqs=read_seqs, quals=read_quals)
+        increments = self.cc.convert_records(paf_dict=paf_dict, seqs=read_seqs, quals=read_quals, barcodes=read_barcodes)
         # effect the coverage increments for each contig
         self._effect_increments(increments=increments)
         # update the abundance tracker with new data
