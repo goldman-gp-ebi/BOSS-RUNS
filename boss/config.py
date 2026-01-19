@@ -55,7 +55,7 @@ class Config:
         tetra = true                    # perform tetranucleotide frequency tests
         filter_repeats = false          # perform repeat filtering
         bucket_threshold = 5            # at which coverage to switch on the strategy in a bucket (debug)
-        barcodes = []                   # array of barcode names used in the experiment
+        barcodes = [""]                 # array of barcode names used in the experiment
 
         ########################################################################################
 
