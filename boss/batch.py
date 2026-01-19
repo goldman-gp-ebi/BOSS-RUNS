@@ -40,16 +40,17 @@ class FastqBatch:
         """
         read_sequences = {}
         read_qualities = {}
-        read_barcodes = {}
+        # read_barcodes = {}
         for fq in self.fq_files:
-            rseq, rqual, rbarcodes = self._read_single_batch(fastq_file=fq)
+            rseq, rqual = self._read_single_batch(fastq_file=fq)
+            # rseq, rqual, rbarcodes = self._read_single_batch(fastq_file=fq)
             read_sequences.update(rseq)
             read_qualities.update(rqual)
-            read_barcodes.update(rbarcodes)
+            # read_barcodes.update(rbarcodes)
         # set attributes of the batch
         self.read_sequences = read_sequences
         self.read_qualities = read_qualities
-        self.read_barcodes = read_barcodes
+        # self.read_barcodes = read_barcodes
         self.read_ids = set(read_sequences.keys())
         self.read_lengths = {rid: len(seq) for rid, seq in read_sequences.items()}
         self.total_bases = np.sum(list(self.read_lengths.values()))
