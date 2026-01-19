@@ -23,6 +23,7 @@ def args():
     args.maxb = 8
     args.batchsize = 100
     args.dumptime = 10000
+    args.barcodes = ['']
     return args
 
 
