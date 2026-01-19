@@ -57,7 +57,7 @@ def test_update_times_aeons(read_cache, fq_file_mix):
 
 def test_update_times_runs(read_cache, sampler):
     s = sampler
-    r_seqs, r_quals, paf_f, paf_t = s.sample()
+    r_seqs, r_quals, r_barcodes, paf_f, paf_t = s.sample()
     total_bases = np.sum([len(s) for s in r_seqs.values()])
     total_n = len(r_seqs)
     # sample some unmapped and rejected reads
@@ -93,7 +93,7 @@ def test_update_times_runs(read_cache, sampler):
 def test_fill_cache(read_cache, sampler_nopaf):
     s = sampler_nopaf
 
-    r_seqs, r_quals, paf_f, paf_t = s.sample()
+    r_seqs, r_quals, r_barcodes, paf_f, paf_t = s.sample()
     # create some arbitrary decisions
     reads_decision = {}
     for rid, seq in r_seqs.items():

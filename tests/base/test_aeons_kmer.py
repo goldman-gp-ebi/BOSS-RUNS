@@ -16,7 +16,7 @@ def tetramer_dist():
 
 
 def test_tetra_zscores(sampler, kmer_counter):
-    r_seqs, _, _, _ = sampler.sample()
+    r_seqs, _, _, _, _ = sampler.sample()
     seq = list(r_seqs.values())[0]
     tm_zscores = kmer_counter.tetra_zscores(seq=seq)
     assert np.isclose(tm_zscores['ACGT'], 1.4174142762462025)
@@ -24,7 +24,7 @@ def test_tetra_zscores(sampler, kmer_counter):
 
 
 def test_euclidean_dist(tetramer_dist, sampler):
-    r_seqs, _, _, _ = sampler.sample()
+    r_seqs, _, _, _, _ = sampler.sample()
     seq1_rid, seq1_s = list(r_seqs.items())[0]
     seq2_rid, seq2_s = list(r_seqs.items())[1]
     seqo1 = Sequence(seq1_rid, seq1_s)
