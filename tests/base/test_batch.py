@@ -55,7 +55,7 @@ def test_update_times_aeons(read_cache, fq_file_mix):
     subprocess.run("rm -r 00_reads/", shell=True)
 
 
-def test_update_times_runs(read_cache, sampler):
+def test_update_times_runs(read_cache, sampler): # unexpected failure, I get 143047 and 190181 is expected. The expected value used to be 143047 before Lukas' last merge, so will investigate
     s = sampler
     r_seqs, r_quals, r_barcodes, paf_f, paf_t = s.sample()
     total_bases = np.sum([len(s) for s in r_seqs.values()])

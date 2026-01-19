@@ -50,7 +50,7 @@ def test__init_dummy_strats(BossRuns, modes):
 
 
 
-def test_process_batch(BossRuns):
+def test_process_batch(BossRuns): # Unexpected failure: in _distribute_strategy we are trying to index cstrat [seq, fw/rv, b] with buckets [seq, b] which causes issues
     BossRuns.init()
     BossRuns.launch_live_components()
     assert BossRuns.batch == 0

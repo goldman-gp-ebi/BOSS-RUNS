@@ -42,7 +42,7 @@ def test_init(args):
 
 
 
-def test_process_batch(args):
+def test_process_batch(args): # Unexpected failure: in _distribute_strategy we are trying to index cstrat [seq, fw/rv, b] with buckets [seq, b] which causes issues
     args.batchsize = 500
     args.maxb = 9
     b = boss.runs.simulation.BossRunsSim(args=args)
