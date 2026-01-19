@@ -406,12 +406,12 @@ class Scoring:
         # NOTE: Could be improved by adjusting dimensions to account for barcodes instead of iterating through them
 
         # this is run after coverage has been updated
-        for b in contig.scores.shape[2]:
-            scores = contig.scores[:,:, b]
-            entropy = contig.entropy[:,:, b]
+        for b in range(0, contig.scores.shape[1]): # ignore unclassified barcodes for scoring
+            scores = contig.scores[:, b]
+            entropy = contig.entropy[:, b]
             coverage = contig.coverage[:,:, b]
+            cm = contig.change_mask[:, b]
 
-            cm = contig.change_mask
             # set deletions to 0 if not counting them
             if contig.len_b == 4:
                 coverage[:, 4] = 0
@@ -449,10 +449,10 @@ class Scoring:
             # grab the entropy values of the changed sites
             entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
             
-            contig.scores[:,:, b] = scores
-            contig.entropy[:,:, b] = entropy
+            contig.scores[:, b] = scores
+            contig.entropy[:, b] = entropy
             contig.coverage[:,:, b] = coverage
-        return scores, entropy
+        return contig.scores, contig.entropy
 
 
 
@@ -581,13 +581,13 @@ class Scoring:
         tc = time_cost // window
         # group benefit into bins of similar values
         # using binary exponent
-        benefit_flat = benefit.flatten('F') # TODO: Check whether I lose a necessary dimension here -- Lukas believes this need not change
+        benefit_flat = benefit.flatten('F')
         benefit_nz_ind = np.nonzero(benefit_flat)
         benefit_flat_nz = benefit_flat[benefit_nz_ind]
         # to make binary exponents work, normalise benefit values
         normaliser = np.max(benefit_flat_nz)
         benefit_flat_norm = benefit_flat_nz / normaliser
-        mantissa, benefit_exponents = np.frexp(benefit_flat_norm) # TODO: Find out how this function works and what it does and how the extra dimension causes an issue -- grid approximation described in the algorithm of the paper's supplement page 18
+        mantissa, benefit_exponents = np.frexp(benefit_flat_norm)
         # count how often each exponent is present
         # absolute value because counting positive integers is quicker
         benefit_exponents_pos = np.abs(benefit_exponents)
@@ -604,7 +604,7 @@ class Scoring:
         for exp in exponent_counts:
             bincounts[0:exp.shape[0]] += exp
 
-        exponents_unique = np.nonzero(bincounts)[0]  # filter empty bins # TODO: Check whether 0 is still the correct axis here
+        exponents_unique = np.nonzero(bincounts)[0]  # filter empty bins
         counts = bincounts[exponents_unique]  # counts of the existing benefit exponents
         # perform weighted bincount in multiple threads
         exponent_arrays = np.array_split(benefit_exponents_pos, 12)
@@ -621,7 +621,6 @@ class Scoring:
         for fg in fgs:
             f_grid[0: fg.shape[0]] += fg
         
-        # TODO: Check this whole section, understand what it does and how and how barcodes change it. Need to ensure that strat at the end has the right dimensions
         f_grid = f_grid[exponents_unique]  # filter empty bins
         f_grid_mean = f_grid / counts  # mean fhat for exponent bin
         # use exponents to rebuild benefit values
@@ -680,13 +679,15 @@ class CoverageConverter:
             self,
             paf_dict: paf_dict_type,
             seqs: dict[str, str],
-            quals: dict[str, str]) -> defaultdict[Any, list]:
+            quals: dict[str, str],
+            barcodes: dict[str,int]={'':0}) -> defaultdict[Any, list]:
         """
         Convert mappings to coverage counts
 
         :param paf_dict: Dict of mappings
         :param seqs: Dict of read sequences
         :param quals: Dict of read qualities
+        :param barcodes: Dict of barcode names to index
         :return: Defaultdict of lists of coverage counts per target seq
         """
         # TODO: Change this function to consider barcodes and return something of the correct dimensions
@@ -734,7 +735,7 @@ class CoverageConverter:
             addition = np.ones(shape=query_arr.shape[0])
             addition[np.where(qual_arr < self.qt)] = 0
             # collect increments
-            increments[rec.tname].append((start, end, query_arr, addition))
+            increments[rec.tname].append((start, end, query_arr, addition, rec.barcode))
         return increments
 
 
