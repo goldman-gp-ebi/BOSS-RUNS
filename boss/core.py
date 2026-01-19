@@ -30,7 +30,6 @@ class Boss:
         self._init_file_struct()
         # object to record read lengths
         self.rl_dist = ReadlengthDist()  # NOTE: readlength distribution will not differ by barcodes for now
-        # NOTE: Could add barcodes as top-level attribute
 
 
 

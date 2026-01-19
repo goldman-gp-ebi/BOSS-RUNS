@@ -30,6 +30,10 @@ class BossRuns(Boss):
         """
         # initialise reference
         # TODO: Include barcodes as input to Reference class
+        if self.args.barcodes[0] == "":
+            self.barcodes_index = {"": 0}
+        else:
+            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
         self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs, barcodes=self.args.barcodes)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
