@@ -28,12 +28,11 @@ class BossRuns(Boss):
 
         :return:
         """
-        # initialise reference
-        # TODO: Include barcodes as input to Reference class
         if self.args.barcodes[0] == "":
             self.barcodes_index = {"": 0}
         else:
             self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
+        # initialise reference
         self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs, barcodes=self.args.barcodes)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
@@ -105,7 +104,7 @@ class BossRuns(Boss):
         for cname, cont in self.contigs_filt.items():
             cont.check_buckets(threshold=self.args.bucket_threshold)
         # check if any switches are on
-        switched_on = [c.switched_on for c in self.contigs.values()] # TODO: Change this to account for switched_on being barcode specific
+        switched_on = [any(c.switched_on) for c in self.contigs.values()]
         return any(switched_on)
 
 
@@ -132,11 +131,11 @@ class BossRuns(Boss):
         for cname, cont in self.contigs_filt.items():
             # get the buckets of this contig and expand
             expand_fac = cont.bucket_size // window
-            buckets_exp = np.repeat(cont.bucket_switches, expand_fac, axis=0) # TODO: I think this should be fine but double check
+            buckets_exp = np.repeat(cont.bucket_switches, expand_fac, axis=0)
             buckets = adjust_length(original_size=cont.strat.shape[0], expanded=buckets_exp)
             assert buckets.shape[0] == cont.strat.shape[0]
             # grab the new strategy
-            cstrat = strat[i: i + cont.length // window, :] # TODO: I think this should be fine but double check
+            cstrat = strat[i: i + cont.length // window, :]
             assert cstrat.shape == cont.strat.shape
             # assign new strat
             cont.strat[buckets, :] = cstrat[buckets, :]
@@ -164,6 +163,7 @@ class BossRuns(Boss):
         if switched_on:
             # update Fhat: unpack and normalise
             fhat_exp = self.read_starts.update_f_pointmass()
+            fhat_exp = np.repeat(fhat_exp[:, :, np.newaxis], len(self.args.barcodes), axis=2)
             self._update_benefits()
             # merge the benefits into one array for combined calculation
             benefit, smu = self.scoring.merge_benefit(self.contigs_filt)
