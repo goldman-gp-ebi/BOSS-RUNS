@@ -23,12 +23,12 @@ class ReadStartDist:
         self.p0 = p0
         self.window_size = window_size
         # track read start positions (forward and rev) in windows
-        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}  # TODO: Add dimension for barcodes, Lukas believes this is not needed for an initial implementation
+        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}  # NOTE: No additional dimension for barcodes in this initial implementation
         # fhat exists only in its merged form, i.e. for use in updating on a merged array
         self.total_len = np.sum([a.shape[0] for a in self.read_starts.values()])
         self.target_size = int(np.sum([c.length for c in contigs.values()]) // 100)
         self.on_target = 1   # TODO
-        self.fhat = self.update_f_pointmass()  # TODO: Figure out how this is affected by the additional dimension
+        self.fhat = self.update_f_pointmass()
 
 
 
@@ -36,7 +36,7 @@ class ReadStartDist:
         """
         :return: Concatenated array of read starting sites across all contigs
         """
-        return np.concatenate(list(self.read_starts.values())) # TODO: Figure out how this is affected by the additional dimension
+        return np.concatenate(list(self.read_starts.values()))
 
 
 
@@ -51,7 +51,7 @@ class ReadStartDist:
         # collect all starting positions
         starts_fwd = defaultdict(list)
         starts_rev = defaultdict(list)
-        # TODO: Add barcodes either to paf_dict or manually here so we can have different start distributions per barcode
+        
         for rid in paf_dict.keys():
             rec = paf_dict[rid]
             # choose the highest ranked mapping
@@ -65,7 +65,7 @@ class ReadStartDist:
             else:
                 starts_fwd[rec.tname].append(rec.tstart)
 
-        for cname, r_starts in self.read_starts.items(): # TODO: check that we initialised read_starts.items correctly so it has different entries for the barcodes
+        for cname, r_starts in self.read_starts.items():
             # count the number of read starts in windows
             n_windows = int(r_starts.shape[0])
             bins_fwd = np.histogram(
@@ -78,7 +78,7 @@ class ReadStartDist:
                 range=(0, self.window_size * n_windows))[0].astype(dtype='float')
 
             # add new counts to the array
-            self.read_starts[cname][:, 0] += bins_fwd # NOTE: I think these two should be unaffected by barcodes
+            self.read_starts[cname][:, 0] += bins_fwd
             self.read_starts[cname][:, 1] += bins_rev
 
 
@@ -94,21 +94,21 @@ class ReadStartDist:
         merged = self.merge()
         n_windows = merged.shape[0]
         fhat = np.zeros(shape=merged.shape)
-        # First, sites with C > 0 # TODO: Find out if logic here on what is divided by what changed at all with the extra dimension.
+        # First, sites with C > 0
         nonzero_indices = np.nonzero(merged)
         nonzero = merged[nonzero_indices]
         num = np.add(self.alpha, nonzero)
         Csum = np.sum(nonzero)
         denom = 2 * n_windows * self.alpha + Csum
         fhat[nonzero_indices] = np.divide(num, denom)
-        # then sites with C == 0  # TODO: Find out if logic here on what is divided by what changed at all with the extra dimension.
+        # then sites with C == 0
         rhs = (self.alpha / (2 * n_windows * self.alpha + Csum))
         beta_num = np.exp(betaln(self.alpha, ((2 * n_windows - 1) * self.alpha + Csum)))
         beta_denom = np.exp(betaln(self.alpha, ((2 * n_windows - 1) * self.alpha))) or 1e-20
         p0_bit = self.p0 / (self.p0 + (1 - self.p0))
         lhs = 1 - p0_bit * (beta_num / beta_denom)
         expectedPost = lhs * rhs
-        # mask for the zero count sites - derived from nonzero indices # TODO: Find out what this means
+        # mask for the zero count sites - derived from nonzero indices
         zero_indices = np.ones(shape=fhat.shape, dtype="bool")
         zero_indices[nonzero_indices] = 0
         fhat[zero_indices] = expectedPost
@@ -128,7 +128,7 @@ class ReadStartDist:
         """
         nrep = int(self.window_size // downsample_window)
         # expand to the downsampled size
-        fhat_exp = np.repeat(fhat, nrep, axis=0) # TODO: Double check that the logic here holds despite additional dimension (I think it's fine though)
+        fhat_exp = np.repeat(fhat, nrep, axis=0)
         # correct for small length difference
         lendiff = self.target_size - fhat_exp.shape[0]
         assert lendiff < self.window_size
