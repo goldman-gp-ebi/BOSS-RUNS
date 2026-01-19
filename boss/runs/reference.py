@@ -125,16 +125,18 @@ class Contig:
         :param increment_list: List of increment instructions for this contig
         :return:
         """
-        # TODO: Check how/if this function needs to change -- UPDATE: I think this can stay the same
         # reset the change mask
         self.change_mask.fill(0)
         # temporary container for coverage
         tmp_cov = np.zeros(shape=self.coverage.shape, dtype="uint16")
-        for (start, end, query_arr, addition) in increment_list:
+        for (start, end, query_arr, addition, barcode) in increment_list:
             # range to index into the bit we want to increment
             indices = np.arange(query_arr.shape[0])
             # add the "addition" to the corresponding bases
-            np.add.at(tmp_cov[start: end], (indices, query_arr), addition)
+            if barcode is None:
+                np.add.at(tmp_cov[start: end], (indices, query_arr, 0), addition)
+            else:
+                np.add.at(tmp_cov[start: end], (indices, query_arr, barcode), addition)
         # set the change mask
         self.change_mask[np.where(tmp_cov)[0]] = 1
         # add the coverage to the previous one
@@ -151,7 +153,7 @@ class Contig:
         :return:
         """
         # coverage depth
-        covsum = np.sum(self.coverage, axis=1) # NOTE: No change for barcodes needed, because the _find_dropouts function can handle another dimension
+        covsum = np.sum(self.coverage, axis=1)
         if np.mean(covsum) > 5:
             dropout_idx = self._find_dropout(covsum)
             logging.info(f'detected {dropout_idx.shape[0]} dropouts') # NOTE: Should we make this more explicit to distinguish dropouts on the same species but different barcodes?
@@ -185,21 +187,27 @@ class Contig:
         :param threshold: when to switch on the strategy buckets
         :return:
         """
-        # TODO: This function should be barcode specific, i.e. turn on the strategy for one barcode when it has enough coverage
         # coverage depth
-        csum = np.sum(self.coverage, axis=1)
-        # coverage in buckets
-        csum_buckets = window_sum(csum, self.bucket_size)
-        cmean_buckets = np.divide(csum_buckets, self.bucket_size)
-        cmean_buckets = adjust_length(original_size=self.bucket_switches.shape[0], expanded=cmean_buckets)
-        # flip strategy switches
-        self.bucket_switches[np.where(cmean_buckets >= threshold)] = 1
-        switch_count = np.bincount(self.bucket_switches)
-        states = len(switch_count)
-        # log the first time a contig's strategy is switched on # TODO: Make self.switched_on barcode specific and then change the logic here
-        if states == 2 and not self.switched_on:
-            self.switched_on = True
-            logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
+        for b in range(0, self.coverage.shape[2]):
+            coverage = self.coverage[:,:,b]
+            bucket_switches = self.bucket_switches[:,b]
+
+            csum = np.sum(coverage, axis=1)
+            # coverage in buckets
+            csum_buckets = window_sum(csum, self.bucket_size)
+            cmean_buckets = np.divide(csum_buckets, self.bucket_size)
+            cmean_buckets = adjust_length(original_size=bucket_switches.shape[0], expanded=cmean_buckets)
+            # flip strategy switches
+            bucket_switches[np.where(cmean_buckets >= threshold)] = 1
+            switch_count = np.bincount(bucket_switches)
+            states = len(switch_count)
+            # log the first time a contig's strategy is switched on # TODO: Make self.switched_on barcode specific and then change the logic here
+            if states == 2 and not self.switched_on:
+                self.switched_on = True
+                logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
+            
+            self.coverage[:,:,b] = coverage
+            self.bucket_switches[:,b] = bucket_switches
 
 
 
@@ -211,18 +219,21 @@ class Contig:
         :param mu: Length of mu in model
         :return:
         """
-        # downsample the scores
-        self.scores_ds = np.zeros(shape=int(self.length // window) + 1) # TODO: Account for additional dimension for barcodes
-        site_indices = np.arange(0, self.length) // window # TODO: site_indices might need an additional dimension for barcodes
-        # avoid buffering
-        np.add.at(self.scores_ds, site_indices, self.scores)
-        # calculate smu - fwd needs double reversal due to how bn.move_sum() operates # TODO: Find out what is happening here and adjust for barcodes
-        smu_fwd = bn.move_sum(self.scores_ds[::-1], window=mu // window, min_count=1)[::-1]
-        smu_rev = bn.move_sum(self.scores_ds, window=mu // window, min_count=1)
+        # NOTE: Can in the future vectorise this function fully
         # assign smu as attribute
-        self.smu = np.zeros(shape=(self.scores_ds.shape[0], 2))
-        self.smu[:, 0] = smu_fwd
-        self.smu[:, 1] = smu_rev
+        self.smu = np.zeros(shape=(int(self.length // window) + 1, 2, self.coverage.shape[2]))
+        # downsample the scores
+        self.scores_ds = np.zeros(shape=(int(self.length // window) + 1, self.coverage.shape[2]))
+        for b in range(0, self.coverage.shape[2]):
+            site_indices = np.arange(0, self.length) // window
+            # avoid buffering
+            np.add.at(self.scores_ds[:,b], site_indices, self.scores[:,b])
+            # calculate smu - fwd needs double reversal due to how bn.move_sum() operates
+            smu_fwd = bn.move_sum(self.scores_ds[::-1,b], window=mu // window, min_count=1)[::-1]
+            smu_rev = bn.move_sum(self.scores_ds[:,b], window=mu // window, min_count=1)
+
+            self.smu[:, 0, b] = smu_fwd
+            self.smu[:, 1, b] = smu_rev
 
 
 
@@ -239,17 +250,19 @@ class Contig:
         # downsample read length dist
         approx_ccl_ds = approx_ccl // window
         mult = np.arange(0.05, 1, 0.1)[::-1]
-        # temporary container
-        tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2)) # TODO: Add another dimension for barcodes
-        for i in range(10):
-            b_part_fwd = bn.move_sum(self.scores_ds[::-1], window=int(approx_ccl_ds[i]), min_count=1)[::-1]
-            b_part_rev = bn.move_sum(self.scores_ds, window=int(approx_ccl_ds[i]), min_count=1)
-            # apply weighting by length
-            wgt = mult[i]
-            tmp_benefit[:, 0] += (b_part_fwd * wgt) # TODO: Add another dimension for barcodes
-            tmp_benefit[:, 1] += (b_part_rev * wgt) # TODO: Add another dimension for barcodes
-        # assign as attribute
-        self.expected_benefit = tmp_benefit
+        self.expected_benefit = np.zeros((self.scores_ds.shape[0], 2, self.coverage.shape[2]))
+        for b in range(0, self.coverage.shape[2]):
+            # temporary container
+            tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2))
+            for i in range(10):
+                b_part_fwd = bn.move_sum(self.scores_ds[::-1, b], window=int(approx_ccl_ds[i]), min_count=1)[::-1]
+                b_part_rev = bn.move_sum(self.scores_ds[:, b], window=int(approx_ccl_ds[i]), min_count=1)
+                # apply weighting by length
+                wgt = mult[i]
+                tmp_benefit[:, 0] += (b_part_fwd * wgt)
+                tmp_benefit[:, 1] += (b_part_rev * wgt)
+            # assign as attribute
+            self.expected_benefit[:,:,b] = tmp_benefit
         self.additional_benefit = self.expected_benefit - self.smu
         # correct numerical issues
         self.additional_benefit[self.additional_benefit < 0] = 0
