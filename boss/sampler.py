@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 
 class Sampler:
 
-    def __init__(self, source: str, paf_full: str | None = None, paf_trunc: str | None = None, workers: int = 4, **kwargs) -> None:
+    def __init__(self, source: str, paf_full: str = None, paf_trunc: str = None, workers: int = 4, **kwargs) -> None:
         """
         Wrapper to sample sequencing data (and their mappings) given source files.
         Paf files and offsets can be generated with a script in ../scripts
@@ -34,13 +34,11 @@ class Sampler:
         # stream for mapping data is only initialised for BOSS-RUNS, not AEONS
         self.pafs = True if paf_full and paf_trunc else False
         if self.pafs:
-            assert paf_full is not None
-            assert paf_trunc is not None
             self.paf_stream = PafStream(paf_full=paf_full, paf_trunc=paf_trunc, workers=workers)
 
 
 
-    def sample(self) -> tuple:
+    def sample(self) -> tuple[dict[str, str], dict[str, str], str, str]:
         """
         Generate a new batch of data
 
@@ -207,7 +205,7 @@ class FastqStream_mmap:
                 # \s=whitespace followed by 'barcode=' and then either unclassified or barcode followed by any amount of numeric characters
                 barcode_desc = re.search("barcode=(unclassified|barcode([0-9]+))", batch_lines[i]).group(1)
                 if barcode_desc == 'unclassified':
-                    read_barcodes[name] = 0
+                    read_barcodes[name] = 99 # NOTE: needs to be higher than max number of nanopore barcodes
                 else:
                     read_barcodes[name] = int(barcode_desc.split('barcode')[1])
 
