@@ -201,9 +201,9 @@ class Contig:
             bucket_switches[np.where(cmean_buckets >= threshold)] = 1
             switch_count = np.bincount(bucket_switches)
             states = len(switch_count)
-            # log the first time a contig's strategy is switched on # TODO: Make self.switched_on barcode specific and then change the logic here
-            if states == 2 and not self.switched_on:
-                self.switched_on = True
+            # log the first time a contig's strategy is switched on
+            if states == 2 and not all(self.switched_on):
+                self.switched_on[self.switched_on] = True
                 logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
             
             self.coverage[:,:,b] = coverage
