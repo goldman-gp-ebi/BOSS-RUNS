@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import logging
 import time
+import numpy as np
 
 import boss.runs.core
 import boss.config
@@ -50,14 +51,14 @@ def test__init_dummy_strats(BossRuns, modes):
 
 
 
-def test_process_batch(BossRuns): # Unexpected failure: in _distribute_strategy we are trying to index cstrat [seq, fw/rv, b] with buckets [seq, b] which causes issues
+def test_process_batch(BossRuns):
     BossRuns.init()
     BossRuns.launch_live_components()
     assert BossRuns.batch == 0
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in BossRuns.contigs_filt.items():
-        cont.switched_on = True
+        cont.switched_on = np.ones(shape=(len(BossRuns.args.barcodes)), dtype="bool")
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
     assert next_update != BossRuns.args.wait

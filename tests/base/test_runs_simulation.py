@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 import logging
 import time
+import numpy as np
 
 import boss.runs.simulation
 import boss.config
@@ -51,7 +52,7 @@ def test_process_batch(args): # Unexpected failure: in _distribute_strategy we a
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in b.contigs_filt.items():
-        cont.switched_on = True
+        cont.switched_on = np.ones(shape=(len(b.args.barcodes)), dtype="bool") 
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 1
     assert next_update != b.args.wait
