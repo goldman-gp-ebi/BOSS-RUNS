@@ -41,7 +41,7 @@ class BossAeonsSim(BossAeons):
         # load some initial batches
         init_pool = SequencePool(name="init_pool", out_dir=self.out_dir)
         for i in range(self.args.binit):
-            read_sequences, _, _, _ = self.sampler.sample()
+            read_sequences, _, _, _, _ = self.sampler.sample()
             init_pool.ingest(seqs=read_sequences)
         logging.info(f"total bases in pool: {init_pool.total_bases()}")
         # increment time after preloading
@@ -154,7 +154,7 @@ class BossAeonsSim(BossAeons):
 
         :return:
         """
-        read_sequences, _, _, _ = self.sampler.sample()
+        read_sequences, _, _, _, _ = self.sampler.sample()
         # initialise a new mapper for the current contigs
         lm = Mapper(ref=self.pool.contig_fa, default=False)
         # map the truncated version of reads to the current contigs

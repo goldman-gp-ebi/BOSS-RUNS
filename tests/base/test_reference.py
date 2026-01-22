@@ -22,9 +22,9 @@ def test_contig(name, seq, ploidy):
     assert c.length == len(seq)
     assert c.length == len(c.seq_int)
     assert " " not in c.name
-    assert c.coverage.shape == (len(seq), 5)
+    assert c.coverage.shape == (len(seq), 5, 1)
     assert c.coverage.sum() == 0
-    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, )
+    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, 1)
     assert c.initial_scores[0] == c.score0
 
 

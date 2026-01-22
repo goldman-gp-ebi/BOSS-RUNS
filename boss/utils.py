@@ -200,6 +200,7 @@ def window_sum(arr: NDArray, w: int) -> NDArray:
     :return: Reduced array of window sums
     """
     sumw = np.sum(arr[: (len(arr) // w) * w].reshape(-1, w), axis=1)
+    # TODO: len will act differently if arr has one dimension (no barcodes) or two (with barcodes)
     return sumw
 
 
@@ -213,13 +214,13 @@ def adjust_length(original_size: int, expanded: NDArray) -> NDArray:
     :return: Adjusted input array
     """
     # after expanding arrays from binning
-    lendiff = original_size - expanded.shape[0]
+    lendiff = original_size - expanded.shape[0]  # TODO: Verify whether this one still works with barcodes
     if lendiff > 0:
         # original is longer than replacement
-        repl = np.append(expanded, expanded[-lendiff:], axis=0)
+        repl = np.append(expanded, expanded[-lendiff:], axis=0)  # TODO: These might need to change with additional dimension for barcode
     elif lendiff < 0:
         # original is shorter than replacement
-        repl = expanded[: -abs(lendiff)]
+        repl = expanded[: -abs(lendiff)]  # TODO: These might need to change with additional dimension for barcode, this one is likely not okay
     else:
         repl = expanded
 
