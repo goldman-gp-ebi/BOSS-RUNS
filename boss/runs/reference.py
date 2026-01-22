@@ -32,6 +32,7 @@ class Contig:
         self.length = len(self.seq)
         self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes, Lukas believes this is not needed for initial implementation
         self.barcodes = barcodes
+        self.nbarcodes = len(barcodes)
         self.seq_int = self._seq2int()
         self._init_coverage()
         self._init_buckets()
@@ -188,7 +189,7 @@ class Contig:
         :return:
         """
         # coverage depth
-        for b in range(0, self.coverage.shape[2]):
+        for b in range(0, self.nbarcodes):
             coverage = self.coverage[:,:,b]
             bucket_switches = self.bucket_switches[:,b]
 
@@ -221,10 +222,10 @@ class Contig:
         """
         # NOTE: Can in the future vectorise this function fully
         # assign smu as attribute
-        self.smu = np.zeros(shape=(int(self.length // window) + 1, 2, self.coverage.shape[2]))
+        self.smu = np.zeros(shape=(int(self.length // window) + 1, 2, self.nbarcodes))
         # downsample the scores
-        self.scores_ds = np.zeros(shape=(int(self.length // window) + 1, self.coverage.shape[2]))
-        for b in range(0, self.coverage.shape[2]):
+        self.scores_ds = np.zeros(shape=(int(self.length // window) + 1, self.nbarcodes))
+        for b in range(0, self.nbarcodes):
             site_indices = np.arange(0, self.length) // window
             # avoid buffering
             np.add.at(self.scores_ds[:,b], site_indices, self.scores[:,b])
@@ -250,8 +251,8 @@ class Contig:
         # downsample read length dist
         approx_ccl_ds = approx_ccl // window
         mult = np.arange(0.05, 1, 0.1)[::-1]
-        self.expected_benefit = np.zeros((self.scores_ds.shape[0], 2, self.coverage.shape[2]))
-        for b in range(0, self.coverage.shape[2]):
+        self.expected_benefit = np.zeros((self.scores_ds.shape[0], 2, self.nbarcodes))
+        for b in range(0, self.nbarcodes):
             # temporary container
             tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2))
             for i in range(10):
