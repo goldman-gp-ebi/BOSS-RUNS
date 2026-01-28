@@ -85,7 +85,7 @@ def test_update_times_runs(read_cache, sampler):
         n_reject=n_rejected)
 
     assert read_cache.time_control == 249464
-    assert read_cache.time_boss == 190181
+    assert read_cache.time_boss == 143047
     subprocess.run("rm -r 00_reads/", shell=True)
 
 

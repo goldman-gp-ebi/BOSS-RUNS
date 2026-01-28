@@ -27,7 +27,7 @@ logs/
 tmp/
 .ruff_cache/
 .vscode/
-
+test_data_barcodes/
 
 
 

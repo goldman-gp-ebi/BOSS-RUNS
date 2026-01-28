@@ -1,7 +1,7 @@
 [general]
 name = "aeons"                  # experiment name
 wait = 30                       # waiting time between updates in live version
-toml_readfish = "tests/config/BOSS_AEONS_RF.toml"
+toml_readfish = "tests/config/BOSS_AEONS_RF_broken.toml"
 
 [live]
 device = "MS00000"              # position on sequencer

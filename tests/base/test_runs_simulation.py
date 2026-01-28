@@ -15,14 +15,13 @@ def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.live_run = False
-    args.ref = PATHS.fasta
-    args.fq = PATHS.fastq
-    args.paf_full = PATHS.paf
-    args.paf_trunc = PATHS.paf_trunc
-    args.maxb = 8
-    args.batchsize = 100
-    args.dumptime = 10000
+    args.general.ref = PATHS.fasta
+    args.simulation.fq = PATHS.fastq
+    args.simulation.paf_full = PATHS.paf
+    args.simulation.paf_trunc = PATHS.paf_trunc
+    args.simulation.maxb = 8
+    args.simulation.batchsize = 100
+    args.simulation.dumptime = 10000
     return args
 
 
@@ -42,8 +41,8 @@ def test_init(args):
 
 
 def test_process_batch(args):
-    args.batchsize = 500
-    args.maxb = 9
+    args.simulation.batchsize = 500
+    args.simulation.maxb = 9
     b = boss.runs.simulation.BossRunsSim(args=args)
     b.init_sim()
     assert b.batch == 0
@@ -53,7 +52,7 @@ def test_process_batch(args):
         cont.switched_on = True
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 1
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
     assert Path("00_reads/control_1.fa").is_file()
@@ -62,7 +61,7 @@ def test_process_batch(args):
     tic = time.time()
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 2
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
     assert Path("00_reads/control_2.fa").is_file()
