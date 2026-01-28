@@ -14,11 +14,9 @@ def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.toml_readfish = "TEST"
-    args.split_flowcell = False
-    args.live_run = True
-    args.ref = PATHS.fasta
-    args.mmi = PATHS.mmi
+    args.general.toml_readfish = "TEST"
+    args.general.ref = PATHS.fasta
+    args.general.mmi = PATHS.mmi
     return args
 
 
@@ -60,7 +58,7 @@ def test_process_batch(BossRuns):
         cont.switched_on = True
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
-    assert next_update != BossRuns.args.wait
+    assert next_update != BossRuns.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
 

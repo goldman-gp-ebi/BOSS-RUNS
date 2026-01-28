@@ -86,10 +86,9 @@ def zymo_read_batch_big():
 def args_fake_real():
     conf = Config()
     # assign some args since we don't load the full config
-    conf.args.toml_readfish = "TEST"
-    conf.args.live_run = True
+    conf.args.general.toml_readfish = "TEST"
     # to wait less long
-    conf.args.data_wait = 4
+    conf.args.live.data_wait = 4
     return conf.args
 
 
