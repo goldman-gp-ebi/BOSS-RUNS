@@ -56,7 +56,7 @@ def test_process_batch(BossRuns):
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in BossRuns.contigs_filt.items():
-        cont.switched_on = np.ones(shape=(len(BossRuns.args.barcodes)), dtype="bool")
+        cont.switched_on = np.ones(shape=(BossRuns.nbarcodes), dtype="bool")
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
     assert next_update != BossRuns.args.general.wait

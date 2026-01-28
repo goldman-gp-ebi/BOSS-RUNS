@@ -23,7 +23,7 @@ def args():
     args.simulation.maxb = 8
     args.simulation.batchsize = 100
     args.simulation.dumptime = 10000
-    args.general.barcodes = [""]
+    args.general.barcodes = None
     return args
 
 
@@ -51,7 +51,7 @@ def test_process_batch(args):   # Unexpected failure: in _distribute_strategy we
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in b.contigs_filt.items():
-        cont.switched_on = np.ones(shape=(len(b.args.barcodes)), dtype="bool") 
+        cont.switched_on = np.ones(shape=(b.nbarcodes), dtype="bool") 
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 1
     assert next_update != b.args.general.wait
