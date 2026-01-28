@@ -57,7 +57,7 @@ class ReadlengthDist:
         if len(observed_read_lengths[0]) == 0:
             logging.info('Attempted update of read lengths before observing any reads')
             return
-        length_sum = np.sum(observed_read_lengths * self.read_lengths[observed_read_lengths])
+        length_sum = np.sum(observed_read_lengths * self.read_lengths[observed_read_lengths])  # type: ignore
         self.lam = length_sum / np.sum(self.read_lengths[observed_read_lengths])
         self.longest_read = np.max(np.where(self.read_lengths))
         self.L = np.copy(self.read_lengths[:self.longest_read + 1]).astype('float64')

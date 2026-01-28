@@ -28,15 +28,18 @@ class BossRuns(Boss):
 
         :return:
         """
-        if self.args.barcodes[0] == "":
+        if not self.args.general.barcodes:
             self.barcodes_index = {"": 0}
         else:
-            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
+            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.general.barcodes)}
+        self.nbarcodes = len(self.barcodes_index)
         # initialise reference
-        self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs, barcodes=self.args.barcodes)
+        assert self.args.general.ref is not None
+        self.ref = Reference(ref=self.args.general.ref, mmi=self.args.general.mmi, reject_refs=self.args.optional.reject_refs, barcodes=self.args.general.barcodes)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
         # initialise a mapper using the reference
+        assert self.ref.mmi is not None
         self.mapper = Mapper(ref=self.ref.mmi)
         # initialise a translator for coverage conversions
         self.cc = CoverageConverter()
@@ -45,7 +48,7 @@ class BossRuns(Boss):
         # initialise the tracker for read start position distribution
         self.read_starts = ReadStartDist(contigs=self.contigs_filt)
         # initialise scoring array
-        self.scoring = Scoring(ploidy=self.args.ploidy)
+        self.scoring = Scoring(ploidy=self.args.optional.ploidy)
         self.scoring.init_score_array()
         # write initial strategies to file
         strat_dict = self.ref.get_strategy_dict()
@@ -102,7 +105,7 @@ class BossRuns(Boss):
         :return: Boolean if any strategy has been switched on
         """
         for cname, cont in self.contigs_filt.items():
-            cont.check_buckets(threshold=self.args.bucket_threshold)
+            cont.check_buckets(threshold=self.args.optional.bucket_threshold)
         # check if any switches are on
         switched_on = [any(c.switched_on) for c in self.contigs.values()]
         return any(switched_on)
@@ -138,8 +141,8 @@ class BossRuns(Boss):
             cstrat = strat[i: i + cont.length // window, :]
             assert cstrat.shape == cont.strat.shape
             # assign new strat
-            for b in range(0, len(self.args.barcodes)):
-                cont.strat[buckets[:,b], :, b] = cstrat[buckets[:,b], :,b]
+            for b in range(0, self.nbarcodes):
+                cont.strat[buckets[:, b], :, b] = cstrat[buckets[:, b], :, b]
             # log number of accepted sites
             f_perc = np.count_nonzero(cont.strat[:, 0]) / cont.strat.shape[0]
             r_perc = np.count_nonzero(cont.strat[:, 1]) / cont.strat.shape[0]
@@ -164,7 +167,7 @@ class BossRuns(Boss):
         if switched_on:
             # update Fhat: unpack and normalise
             fhat_exp = self.read_starts.update_f_pointmass()
-            fhat_exp = np.repeat(fhat_exp[:, :, np.newaxis], len(self.args.barcodes), axis=2)
+            fhat_exp = np.repeat(fhat_exp[:, :, np.newaxis], self.nbarcodes, axis=2)
             self._update_benefits()
             # merge the benefits into one array for combined calculation
             benefit, smu = self.scoring.merge_benefit(self.contigs_filt)

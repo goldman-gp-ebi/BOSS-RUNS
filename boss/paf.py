@@ -1,12 +1,11 @@
 from io import StringIO
 from collections import defaultdict
-from types import SimpleNamespace
 from pathlib import Path
 from typing import Callable
 
 import numpy as np
 
-
+from boss.config import BossConfig
 
 
 
@@ -116,7 +115,7 @@ class PafLine:
             return s
 
 
-    def filter(self, filters: SimpleNamespace) -> bool:
+    def filter(self, filters: BossConfig) -> bool:
         """
         Check if an alignment needs to be filtered out
 
@@ -126,11 +125,11 @@ class PafLine:
         # like classify, pack all conditions in here
         if self._self_aligned():
             return True
-        if self.map_length() < filters.min_map_len:
+        if self.map_length() < filters.optional.min_map_len:
             return True
-        if self.s1 < filters.min_s1:
+        if self.s1 < filters.optional.min_s1:
             return True
-        if self.min_length_in_pair() < filters.min_seq_len:
+        if self.min_length_in_pair() < filters.optional.min_seq_len:
             return True
         # if none of the filters triggered
         return False
@@ -675,7 +674,7 @@ class Paf:
 
 
     @staticmethod
-    def parse_filter_classify_records(paf: str, filters: SimpleNamespace) -> tuple[list, list]:
+    def parse_filter_classify_records(paf: str, filters: BossConfig) -> tuple[list, list]:
         """
         Parse a paf file by converting each line to Paf object,
         while also filtering and classifying mappings

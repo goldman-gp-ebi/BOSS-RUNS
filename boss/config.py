@@ -1,10 +1,10 @@
 import argparse
-from types import SimpleNamespace
 from pathlib import Path
 from datetime import datetime
 import sys
+import tomllib
 
-import rtoml
+from pydantic import BaseModel, ValidationError, Field
 
 from boss.utils import init_logger
 
@@ -20,129 +20,132 @@ Configuration:
 
 
 
+
+class GeneralConfig(BaseModel):
+    name : str = Field(default='boss', description="Experiment name. Used as output prefix and to match readfish region name")
+    ref: str | None = Field(default=None, description="Reference file (fasta or None). Not specifying a file switches operation to AEONS")
+    mmi: str | None = Field(default=None, description="Index of reference (will be built if not provided)")
+    toml_readfish: str | None = Field(default=None, description="TOML config file for readfish. Not required for simulations.")
+    wait: int = Field(default=60, description="Waiting time between updates in live version")
+    barcodes: list[str] | None = Field(default=None, description="List of barcodes in the experiment")
+
+
+class LiveConfig(BaseModel):
+    device: str | None = Field(default=None, description="Position on sequencing device")
+    host: str = Field(default='localhost', description="Host of sequencing device")
+    port: int = Field(default=9502, description="Port of sequencing device")
+    data_wait: int = Field(default=100, description="Wait for X Mb of data before first strategy update")
+
+
+class OptionalConfig(BaseModel):
+    reject_refs: str | None = Field(default=None, description="Comma-separated list of headers in reference from which to always reject")
+    ploidy: int = Field(default=1, description="Ploidy level")
+    lowcov: int = Field(default=10, description="[debug] Minimum coverage")
+    temperature: int = Field(default=60, description="[debug] Temperature")
+    min_seq_len: int = Field(default=2500, description="[debug] Minimum sequence length")
+    min_contig_len: int = Field(default=10_000, description="[debug] Minimum contig length")
+    min_s1: int = Field(default=200, description="[debug] Minimum S1")
+    min_map_len: int = Field(default=2000, description="[debug] Minimum mapping length")
+    tetra: bool = Field(default=True, description="[debug] Switch tetranucleotide frequency tests")
+    filter_repeats: bool = Field(default=False, description="[debug] Switch repeat filtering")
+    bucket_threshold: int = Field(default=5, description="[debug] At which coverage to switch on the strategy in a bucket")
+
+
+class SimulationConfig(BaseModel):
+    fq: str | None = Field(default=None, description="Input fastq file")
+    batchsize: int = Field(default=4000, description="Number of reads per update")
+    maxb: int = Field(default=400, description="Maximum number of batches")
+    binit: int = Field(default=5, description="Initial batch size")
+    dumptime: int = Field(default=200000000, description="Time (in units of psudo-sequencing time) between writing output fastq files")
+    paf_full: str | None = Field(default=None, description="Mappings (PAF) of full-length reads for fast sampling")
+    paf_trunc: str | None = Field(default=None, description="Mappings (PAF) of truncated reads for fast sampling")
+    accept_unmapped: bool = Field(default=False, description="Accept unmapped reads")
+
+
+class BossConfig(BaseModel):
+    general : GeneralConfig = GeneralConfig()          
+    live : LiveConfig = LiveConfig()                   
+    optional : OptionalConfig = OptionalConfig()       
+    simulation : SimulationConfig = SimulationConfig() 
+
+
+
+
+
 class Config:
-    def __init__(self, parse: bool = False, arg_list: list | None = None):
+    def __init__(self, parse: bool = False):
         """
         Initialise configuration by loading defaults
         When debugging, paths to the TOMLs can be given as a list or arguments to parse
         For simulations, providing a readfish TOML is not necessary
 
-        :param parse: Parse from command line/toml_paths
-        :param arg_list: Pass-through list of paths to toml files
+        :param parse: Whether to parse command line arguments for TOML config
         """
-        self.template_toml = """
-        [general]
-        name = "boss"                   # experiment name
-        wait = 60                       # waiting time between updates in live version
-        ref = ""                        # reference file (fasta or None). Not specifying a file switches to AEONS
-        mmi = ""                        # index of reference (will be built if ref is given but not mmi)
-        
-        [live]
-        device = "TEST"                 # position on sequencer
-        host = "localhost"              # host of sequencing device
-        port = 9502                     # port of sequencing device
-        data_wait = 100                 # wait for X Mb of data before first update
+        # init defaults
+        self.args = BossConfig()
 
-        [optional]
-        reject_refs = ""                # comma-separated list of headers in reference from which to always reject
-        ploidy = 1                      # 1 or 2
-        lowcov = 10                     # target coverage for assemblies
-        temperature = 60                # max updates during which to consider fragments (higher number might decrease update speeds)
-        min_seq_len = 2500              # min sequence length used during contig reconstruction
-        min_contig_len = 10_000         # min length to consider contigs
-        min_s1 = 200                    # min alignment scores to consider overlaps
-        min_map_len = 2000              # min alignment length to consider overlaps
-        tetra = true                    # perform tetranucleotide frequency tests
-        filter_repeats = false          # perform repeat filtering
-        bucket_threshold = 5            # at which coverage to switch on the strategy in a bucket (debug)
-        barcodes = [""]                 # array of barcode names used in the experiment
-
-        ########################################################################################
-
-        [simulation]                    # simulation arguments
-        fq = ""
-        batchsize = 4000                    
-        maxb = 400
-        binit = 5
-        dumptime = 200000000
-        paf_full = ""                   # giving pafs triggers BOSS-RUNS
-        paf_trunc = ""
-        accept_unmapped = false         # Whether reads that don't map should be accepted by default (default in BOSS-RUNS is to reject them)
-        """
-        # load the default from above
-        toml_args = rtoml.loads(self.template_toml)
-        # convert toml dict to SimpleNamespace
-        self.args: SimpleNamespace = self._convert_to_namespace(toml_args=toml_args)
-        # do we parse toml paths to overwrite defaults?
         if parse:
-            self.arg_list = arg_list
-            # load TOMLs from command line if not given as list
-            if not self.arg_list:
-                self.arg_list = sys.argv[1:]
+            toml_path = self._parse_toml_arg()
 
-            toml_paths = self._parse_toml_args()
-            # NOTE: If barcodes are just a comma separated string, will need to add some processing here -- UPDATE: for now array
-            args_file, args_readfish = self._load_tomls(toml_paths)
-            self._overwrite_defaults(args_file)
-            # check if we are simulating or running real experiment
-            self._check_run_type()
-            # initialise a log file in the output folder
-            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            Path("./logs").mkdir(parents=True, exist_ok=True)
-            self.logfile = f'./logs/{stamp}_boss.log'
-            init_logger(logfile=self.logfile, args=self.args)
-            # config settings for readfish
-            if self.args.live_run:
-                # add path to readfish toml as arg
-                self.args.toml_readfish = toml_paths.toml_readfish
-                # check that experiment exists as readfish region
-                self._verify_region_names(self.args, args_readfish)
-                # validate readfish args
-                self._validate_readfish_conf(args_readfish)
+            # load and validate main config
+            try:
+                with Path(toml_path).open("rb") as f:
+                    conf = tomllib.load(f)
+                self.args = BossConfig.model_validate(conf)
+            except ValidationError as e:
+                print("Invalid configuration:")
+                print(e)
+                sys.exit(1)
 
-
-
-    def _check_run_type(self) -> None:
-        """
-        Check if we are running a simulation or a real experiment
-        If "fq" under the simulation header is given, we simulate
-
-        :return:
-        """
-        if self.args.fq:
-            self.args.sim_run = True
-            self.args.live_run = False
-        elif self.args.device:
-            self.args.live_run = True
-            self.args.sim_run = False
+        # load readfish config if given, just to validate it here
+        if self.args.general.toml_readfish:
+            args_readfish = tomllib.loads(Path(self.args.general.toml_readfish).read_text(encoding="utf-8"))
         else:
-            raise ValueError("Need either fastq for simulation or device for live run")
+            args_readfish = dict()
+
+        # initialise a log file in the output folder
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        Path("./logs").mkdir(parents=True, exist_ok=True)
+        self.logfile = f'./logs/{stamp}_boss.log'
+        init_logger(logfile=self.logfile, args=self.args)
+        # config settings for readfish
+        if self.args.live.device:
+            # check that experiment exists as readfish region
+            self._verify_region_names(self.args, args_readfish)
+            # validate readfish args
+            self._validate_readfish_conf(args_readfish)
 
 
 
-    def _convert_to_namespace(self, toml_args: dict) -> SimpleNamespace:
+    @staticmethod
+    def write_template(path: Path = Path("config_template.toml")) -> None:
         """
-        Convert arguments from a parsed Dict to a Namespace object
-        For method-style access to attributes
+        Write a template config file to the specified path.
 
-        :return: Arguments as SimpleNamespace object
+        :param path: Path to the template config file
+        """        
+        VALUE_COL = 30
+        config = ""
+        for section_name, section in BossConfig.model_fields.items():
+            config += f"\n[{section_name}]"
+            section_type = section.annotation
+            for key, field in section_type.model_fields.items():   # type: ignore
+                key_val = f"{key} = {field.default!r}"
+                config += f"\n{key_val:<{VALUE_COL}}  # {field.description}"
+            config += "\n"
+
+        print(config)
+        with path.open("w") as f:
+            f.write(config)
+
+
+
+
+    def _parse_toml_arg(self) -> str:
         """
-        args = SimpleNamespace()
-        for category, subdict in toml_args.items():
-            if type(subdict) is not dict:
-                setattr(args, category, subdict)
-            else:
-                for k, v in subdict.items():
-                    setattr(args, k, v)
-        return args
+        Parse TOML path given as argument on the command line
 
-
-
-    def _parse_toml_args(self) -> argparse.Namespace:
-        """
-        Parse TOML paths given as arguments on the command line
-
-        :return: argparse.Namespace with paths to the two TOMLs
+        :return: path to TOML config file
         """
         parser = argparse.ArgumentParser()
         parser.add_argument(
@@ -151,50 +154,17 @@ class Config:
             default=None,
             required=True,
             help='TOML configuration file')
-        parser.add_argument(
-            '--toml_readfish',
-            type=str,
-            default=None,
-            help='TOML configuration file for readfish')
-        toml_paths = parser.parse_args(self.arg_list)
-        return toml_paths
+        toml_path = parser.parse_args()
+        return toml_path.toml
+
 
 
 
     @staticmethod
-    def _load_tomls(toml_paths: argparse.Namespace) -> tuple[dict, dict]:
-        """
-        Load the TOML files into dictionaries using rTOML
-
-        :param toml_paths: Paths to TOMLs as parsed arguments
-        :return: Tuple with parsed TOML dictionaries
-        """
-        args_file = rtoml.loads(Path(toml_paths.toml).read_text(encoding="utf-8"))
-        if toml_paths.toml_readfish:
-            args_readfish_file = rtoml.loads(Path(toml_paths.toml_readfish).read_text(encoding="utf-8"))
-        else:
-            args_readfish_file = dict()
-        return args_file, args_readfish_file
-
-
-
-    def _overwrite_defaults(self, args_from_file: dict) -> None:
-        """
-        Use TOML given on CL to overwrite defaults
-
-        :param args_from_file: parsed contents of given TOML
-        :return:
-        """
-        for category in args_from_file:
-            for k, v in args_from_file[category].items():
-                setattr(self.args, k, v)
-
-
-
-    @staticmethod
-    def _verify_region_names(args: SimpleNamespace, args_readfish: dict) -> None:
+    def _verify_region_names(args, args_readfish: dict) -> None:
         """
         Verify that the experiment name of BOSS exists as region in readfish
+        TODO this is not relevant if barcodes are used, then there might not be regions
 
         :param args: Config dictionary for BOSS
         :param args_readfish: Config dictionary for readfish
@@ -205,7 +175,7 @@ class Config:
 
         # make sure the names of BOSS and regions on flowcell are the same
         region_names = {r['name'] for r in args_readfish['regions']}
-        if args.name not in region_names:
+        if args.general.name not in region_names:
             raise ValueError("One of the regions in readfish needs the same name as the experiment in BOSS")
 
         # TODO: Add check that all boss-runs barcodes are also in readfish
@@ -230,6 +200,6 @@ class Config:
         return 0
 
 
-
-
+if __name__ == "__main__":
+    Config.write_template()
 

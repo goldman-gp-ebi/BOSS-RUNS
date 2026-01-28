@@ -15,11 +15,9 @@ def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.toml_readfish = "TEST"
-    args.split_flowcell = False
-    args.live_run = True
-    args.ref = PATHS.fasta
-    args.mmi = PATHS.mmi
+    args.general.toml_readfish = "TEST"
+    args.general.ref = PATHS.fasta
+    args.general.mmi = PATHS.mmi
     return args
 
 
@@ -58,10 +56,10 @@ def test_process_batch(BossRuns):
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in BossRuns.contigs_filt.items():
-        cont.switched_on = np.ones(shape=(len(BossRuns.args.barcodes)), dtype="bool")
+        cont.switched_on = np.ones(shape=(BossRuns.nbarcodes), dtype="bool")
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
-    assert next_update != BossRuns.args.wait
+    assert next_update != BossRuns.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
 

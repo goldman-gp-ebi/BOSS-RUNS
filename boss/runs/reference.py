@@ -17,7 +17,7 @@ from boss.runs.sequences import Scoring
 
 class Contig:
 
-    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list = ['']):
+    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list | None = None):
         """
         Initialise a contig object
 
@@ -32,7 +32,7 @@ class Contig:
         self.length = len(self.seq)
         self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes, Lukas believes this is not needed for initial implementation
         self.barcodes = barcodes
-        self.nbarcodes = len(barcodes)
+        self.nbarcodes = len(barcodes) if barcodes is not None else 1
         self.seq_int = self._seq2int()
         self._init_coverage()
         self._init_buckets()
@@ -74,9 +74,9 @@ class Contig:
 
         :return:
         """
-        self.coverage = np.zeros(shape=(self.length, 5, len(self.barcodes)), dtype="uint16")
+        self.coverage = np.zeros(shape=(self.length, 5, self.nbarcodes), dtype="uint16")
         # to indicate where changes happened for score calculations
-        self.change_mask = np.zeros(shape=(self.length, len(self.barcodes)), dtype="bool")
+        self.change_mask = np.zeros(shape=(self.length, self.nbarcodes), dtype="bool")
 
 
 
@@ -88,8 +88,8 @@ class Contig:
         :return:
         """
         self.bucket_size = bucket_size
-        self.bucket_switches = np.zeros(shape=(int(self.length // bucket_size) + 1, len(self.barcodes)), dtype="bool")
-        self.switched_on = np.zeros(shape=(len(self.barcodes)), dtype="bool")
+        self.bucket_switches = np.zeros(shape=(int(self.length // bucket_size) + 1, self.nbarcodes), dtype="bool")
+        self.switched_on = np.zeros(shape=(self.nbarcodes), dtype="bool")
 
 
 
@@ -100,9 +100,9 @@ class Contig:
         :return:
         """
         # initialise entropy and scores
-        self.initial_scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
-        self.scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
-        self.entropy = np.full(fill_value=self.ent0[0], shape=(self.length, len(self.barcodes)))
+        self.initial_scores = np.full(fill_value=self.score0[0], shape=(self.length, self.nbarcodes))
+        self.scores = np.full(fill_value=self.score0[0], shape=(self.length, self.nbarcodes))
+        self.entropy = np.full(fill_value=self.ent0[0], shape=(self.length, self.nbarcodes))
 
 
 
@@ -115,7 +115,7 @@ class Contig:
         if self.rej:
             self.strat = np.zeros(dtype="bool", shape=1)  # NOTE: If 'reject by default' can be barcode specific, add another dimension here
         else:
-            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2, len(self.barcodes)))
+            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2, self.nbarcodes))
 
 
 
@@ -273,7 +273,7 @@ class Contig:
 
 class Reference:
 
-    def __init__(self, ref: str, mmi: str | None = None, reject_refs: str | None = None, barcodes: list = []):
+    def __init__(self, ref: str, mmi: str | None = None, reject_refs: str | None = None, barcodes: list | None = None):
         """
         Initialise a reference object. Loads contigs, load or create index
         and set contigs from which to always reject
