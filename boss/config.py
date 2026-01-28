@@ -27,6 +27,7 @@ class GeneralConfig(BaseModel):
     mmi: str | None = Field(default=None, description="Index of reference (will be built if not provided)")
     toml_readfish: str | None = Field(default=None, description="TOML config file for readfish. Not required for simulations.")
     wait: int = Field(default=60, description="Waiting time between updates in live version")
+    barcodes: list[str] | None = Field(default=None, description="List of barcodes in the experiment")
 
 
 class LiveConfig(BaseModel):
