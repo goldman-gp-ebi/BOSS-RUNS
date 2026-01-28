@@ -75,10 +75,10 @@ class Boss:
             sequencer.grab_channels(run_name=self.name)
 
         # get the relevant infos from the Sequencer
-        self.args.fq = f'{sequencer.out_path}/fastq_pass' 
+        self.fq = f'{sequencer.out_path}/fastq_pass' 
         # TODO: Find out if Minknow always places barcoded samples in subfolders 
         # or whether there are config options. Lukas believes we should be able to handle default settings
-        assert Path(self.args.fq).is_dir()
+        assert Path(self.fq).is_dir()
         # readfish needs to have placed the channels.toml at this point
         # channels can be an empty set if there is only one condition
         # then data from all channels will be used (i.e. later regex skipped)

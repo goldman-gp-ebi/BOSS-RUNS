@@ -29,7 +29,7 @@ class BossAeons(Boss):
         # init scoring func
         self.score_vec = Benefit.init_scoring_vec(lowcov=self.args.optional.lowcov)
         # launch into first assembly
-        if hasattr(self.args, "live_run") and getattr(self.args, "live_run"):
+        if self.args.live.device:
             self.first_live_asm()
 
 

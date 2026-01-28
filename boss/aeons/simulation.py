@@ -42,7 +42,7 @@ class BossAeonsSim(BossAeons):
     def _initial_asm(self):
         # load some initial batches
         init_pool = SequencePool(name="init_pool", out_dir=self.out_dir)
-        for i in range(self.args.binit):
+        for i in range(self.args.simulation.binit):
             read_sequences, _, _, _, _ = self.sampler.sample()
             init_pool.ingest(seqs=read_sequences)
         logging.info(f"total bases in pool: {init_pool.total_bases()}")
