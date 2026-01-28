@@ -28,7 +28,7 @@ class Boss:
         # initialise output directory structure
         self._init_file_struct()
         # object to record read lengths
-        self.rl_dist = ReadlengthDist()
+        self.rl_dist = ReadlengthDist()  # NOTE: readlength distribution will not differ by barcodes for now
 
 
 
@@ -45,6 +45,7 @@ class Boss:
         out_path = Path(self.out_dir)
         out_path.mkdir(parents=True, exist_ok=True)
         (out_path / "masks").mkdir(parents=True, exist_ok=True)
+        # NOTE: Could process barcodes into separate outputfiles, will not affect the directory structure, but something to keep in mind
         (out_path / "fq").mkdir(parents=True, exist_ok=True)
         (out_path / "logs").mkdir(parents=True, exist_ok=True)
         (out_path / "contigs").mkdir(parents=True, exist_ok=True)
@@ -74,8 +75,10 @@ class Boss:
             sequencer.grab_channels(run_name=self.name)
 
         # get the relevant infos from the Sequencer
-        self.fq = f'{sequencer.out_path}/fastq_pass'
-        assert Path(self.fq).is_dir()
+        self.args.fq = f'{sequencer.out_path}/fastq_pass' 
+        # TODO: Find out if Minknow always places barcoded samples in subfolders 
+        # or whether there are config options. Lukas believes we should be able to handle default settings
+        assert Path(self.args.fq).is_dir()
         # readfish needs to have placed the channels.toml at this point
         # channels can be an empty set if there is only one condition
         # then data from all channels will be used (i.e. later regex skipped)

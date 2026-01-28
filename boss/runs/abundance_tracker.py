@@ -15,7 +15,7 @@ class AbundanceTracker:
         :param contigs: Dictionary of contigs
         """
         self.total_reads = 0
-        self.read_counts = {cname: 0 for cname in contigs.keys()}
+        self.read_counts = {cname: 0 for cname in contigs.keys()}  # TODO: Add dimension for barcodes
 
 
     def _count_read_targets(self, paf_dict: paf_dict_type) -> None:
@@ -25,6 +25,7 @@ class AbundanceTracker:
         :param paf_dict: Dict of mappings
         :return:
         """
+        # TODO: Change this function so it knows how to count reads per contig and barcode
         # in case there was no mapped read in the batch
         if len(paf_dict) == 0:
             return

@@ -17,7 +17,7 @@ from boss.runs.sequences import Scoring
 
 class Contig:
 
-    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False):
+    def __init__(self, name: str, seq: str, ploidy: int = 1, rej: bool = False, barcodes: list = ['']):
         """
         Initialise a contig object
 
@@ -25,11 +25,14 @@ class Contig:
         :param seq: DNA string of the contig.
         :param ploidy: Contig from haploid or diploid organism
         :param rej: Always reject from this contig?
+        :param barcodes: List of strings of barcode names
         """
         self.name = name.strip().split(" ")[0]
         self.seq = seq.upper()
         self.length = len(self.seq)
-        self.rej = rej   # flag whether to reject all reads from this contig
+        self.rej = rej   # flag whether to reject all reads from this contig # NOTE: Will depend on whether this is the same for every barcodes, Lukas believes this is not needed for initial implementation
+        self.barcodes = barcodes
+        self.nbarcodes = len(barcodes)
         self.seq_int = self._seq2int()
         self._init_coverage()
         self._init_buckets()
@@ -71,9 +74,9 @@ class Contig:
 
         :return:
         """
-        self.coverage = np.zeros(shape=(self.length, 5), dtype="uint16")
+        self.coverage = np.zeros(shape=(self.length, 5, len(self.barcodes)), dtype="uint16")
         # to indicate where changes happened for score calculations
-        self.change_mask = np.zeros(shape=self.length, dtype="bool")
+        self.change_mask = np.zeros(shape=(self.length, len(self.barcodes)), dtype="bool")
 
 
 
@@ -85,8 +88,8 @@ class Contig:
         :return:
         """
         self.bucket_size = bucket_size
-        self.bucket_switches = np.zeros(shape=int(self.length // bucket_size) + 1, dtype="bool")
-        self.switched_on = False
+        self.bucket_switches = np.zeros(shape=(int(self.length // bucket_size) + 1, len(self.barcodes)), dtype="bool")
+        self.switched_on = np.zeros(shape=(len(self.barcodes)), dtype="bool")
 
 
 
@@ -97,9 +100,9 @@ class Contig:
         :return:
         """
         # initialise entropy and scores
-        self.initial_scores = np.full(fill_value=self.score0[0], shape=self.length)
-        self.scores = np.full(fill_value=self.score0[0], shape=self.length)
-        self.entropy = np.full(fill_value=self.ent0[0], shape=self.length)
+        self.initial_scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
+        self.scores = np.full(fill_value=self.score0[0], shape=(self.length, len(self.barcodes)))
+        self.entropy = np.full(fill_value=self.ent0[0], shape=(self.length, len(self.barcodes)))
 
 
 
@@ -110,9 +113,9 @@ class Contig:
         :return:
         """
         if self.rej:
-            self.strat = np.zeros(dtype="bool", shape=1)
+            self.strat = np.zeros(dtype="bool", shape=1)  # NOTE: If 'reject by default' can be barcode specific, add another dimension here
         else:
-            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2))
+            self.strat = np.ones(dtype="bool", shape=(self.length // window, 2, len(self.barcodes)))
 
 
 
@@ -127,11 +130,14 @@ class Contig:
         self.change_mask.fill(0)
         # temporary container for coverage
         tmp_cov = np.zeros(shape=self.coverage.shape, dtype="uint16")
-        for (start, end, query_arr, addition) in increment_list:
+        for (start, end, query_arr, addition, barcode) in increment_list:
             # range to index into the bit we want to increment
             indices = np.arange(query_arr.shape[0])
             # add the "addition" to the corresponding bases
-            np.add.at(tmp_cov[start: end], (indices, query_arr), addition)
+            if barcode is None:
+                np.add.at(tmp_cov[start: end], (indices, query_arr, 0), addition)
+            else:
+                np.add.at(tmp_cov[start: end], (indices, query_arr, barcode), addition)
         # set the change mask
         self.change_mask[np.where(tmp_cov)[0]] = 1
         # add the coverage to the previous one
@@ -151,7 +157,7 @@ class Contig:
         covsum = np.sum(self.coverage, axis=1)
         if np.mean(covsum) > 5:
             dropout_idx = self._find_dropout(covsum)
-            logging.info(f'detected {dropout_idx.shape[0]} dropouts')
+            logging.info(f'detected {dropout_idx.shape[0]} dropouts') # NOTE: Should we make this more explicit to distinguish dropouts on the same species but different barcodes?
             self.scores[dropout_idx] = 0
 
 
@@ -183,19 +189,26 @@ class Contig:
         :return:
         """
         # coverage depth
-        csum = np.sum(self.coverage, axis=1)
-        # coverage in buckets
-        csum_buckets = window_sum(csum, self.bucket_size)
-        cmean_buckets = np.divide(csum_buckets, self.bucket_size)
-        cmean_buckets = adjust_length(original_size=self.bucket_switches.shape[0], expanded=cmean_buckets)
-        # flip strategy switches
-        self.bucket_switches[np.where(cmean_buckets >= threshold)] = 1
-        switch_count = np.bincount(self.bucket_switches)
-        states = len(switch_count)
-        # log the first time a contig's strategy is switched on
-        if states == 2 and not self.switched_on:
-            self.switched_on = True
-            logging.info(f"Activated strategy for: {self.name}")
+        for b in range(0, self.nbarcodes):
+            coverage = self.coverage[:,:,b]
+            bucket_switches = self.bucket_switches[:,b]
+
+            csum = np.sum(coverage, axis=1)
+            # coverage in buckets
+            csum_buckets = window_sum(csum, self.bucket_size)
+            cmean_buckets = np.divide(csum_buckets, self.bucket_size)
+            cmean_buckets = adjust_length(original_size=bucket_switches.shape[0], expanded=cmean_buckets)
+            # flip strategy switches
+            bucket_switches[np.where(cmean_buckets >= threshold)] = 1
+            switch_count = np.bincount(bucket_switches)
+            states = len(switch_count)
+            # log the first time a contig's strategy is switched on
+            if states == 2 and not all(self.switched_on):
+                self.switched_on[self.switched_on] = True
+                logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
+            
+            self.coverage[:,:,b] = coverage
+            self.bucket_switches[:,b] = bucket_switches
 
 
 
@@ -207,18 +220,21 @@ class Contig:
         :param mu: Length of mu in model
         :return:
         """
-        # downsample the scores
-        self.scores_ds = np.zeros(shape=int(self.length // window) + 1)
-        site_indices = np.arange(0, self.length) // window
-        # avoid buffering
-        np.add.at(self.scores_ds, site_indices, self.scores)
-        # calculate smu - fwd needs double reversal due to how bn.move_sum() operates
-        smu_fwd = bn.move_sum(self.scores_ds[::-1], window=mu // window, min_count=1)[::-1]
-        smu_rev = bn.move_sum(self.scores_ds, window=mu // window, min_count=1)
+        # NOTE: Can in the future vectorise this function fully
         # assign smu as attribute
-        self.smu = np.zeros(shape=(self.scores_ds.shape[0], 2))
-        self.smu[:, 0] = smu_fwd
-        self.smu[:, 1] = smu_rev
+        self.smu = np.zeros(shape=(int(self.length // window) + 1, 2, self.nbarcodes))
+        # downsample the scores
+        self.scores_ds = np.zeros(shape=(int(self.length // window) + 1, self.nbarcodes))
+        for b in range(0, self.nbarcodes):
+            site_indices = np.arange(0, self.length) // window
+            # avoid buffering
+            np.add.at(self.scores_ds[:,b], site_indices, self.scores[:,b])
+            # calculate smu - fwd needs double reversal due to how bn.move_sum() operates
+            smu_fwd = bn.move_sum(self.scores_ds[::-1,b], window=mu // window, min_count=1)[::-1]
+            smu_rev = bn.move_sum(self.scores_ds[:,b], window=mu // window, min_count=1)
+
+            self.smu[:, 0, b] = smu_fwd
+            self.smu[:, 1, b] = smu_rev
 
 
 
@@ -231,20 +247,23 @@ class Contig:
         :param window: Downsampling window size
         :return:
         """
+        # TODO: Find out how this function works and the how it needs to change
         # downsample read length dist
         approx_ccl_ds = approx_ccl // window
         mult = np.arange(0.05, 1, 0.1)[::-1]
-        # temporary container
-        tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2))
-        for i in range(10):
-            b_part_fwd = bn.move_sum(self.scores_ds[::-1], window=int(approx_ccl_ds[i]), min_count=1)[::-1]
-            b_part_rev = bn.move_sum(self.scores_ds, window=int(approx_ccl_ds[i]), min_count=1)
-            # apply weighting by length
-            wgt = mult[i]
-            tmp_benefit[:, 0] += (b_part_fwd * wgt)
-            tmp_benefit[:, 1] += (b_part_rev * wgt)
-        # assign as attribute
-        self.expected_benefit = tmp_benefit
+        self.expected_benefit = np.zeros((self.scores_ds.shape[0], 2, self.nbarcodes))
+        for b in range(0, self.nbarcodes):
+            # temporary container
+            tmp_benefit = np.zeros(shape=(self.scores_ds.shape[0], 2))
+            for i in range(10):
+                b_part_fwd = bn.move_sum(self.scores_ds[::-1, b], window=int(approx_ccl_ds[i]), min_count=1)[::-1]
+                b_part_rev = bn.move_sum(self.scores_ds[:, b], window=int(approx_ccl_ds[i]), min_count=1)
+                # apply weighting by length
+                wgt = mult[i]
+                tmp_benefit[:, 0] += (b_part_fwd * wgt)
+                tmp_benefit[:, 1] += (b_part_rev * wgt)
+            # assign as attribute
+            self.expected_benefit[:,:,b] = tmp_benefit
         self.additional_benefit = self.expected_benefit - self.smu
         # correct numerical issues
         self.additional_benefit[self.additional_benefit < 0] = 0
@@ -254,7 +273,7 @@ class Contig:
 
 class Reference:
 
-    def __init__(self, ref: str, mmi: str | None = None, reject_refs: str | None = None):
+    def __init__(self, ref: str, mmi: str | None = None, reject_refs: str | None = None, barcodes: list = []):
         """
         Initialise a reference object. Loads contigs, load or create index
         and set contigs from which to always reject
@@ -262,9 +281,11 @@ class Reference:
         :param ref: Path to the reference fasta file
         :param mmi: Optional path to minimap index file
         :param reject_refs: Optional comma-sep list of headers in fasta
+        :param barcodes: Optional list of barcode names used in the experiment
         """
         self.ref = ref
         self.mmi = mmi
+        self.barcodes = barcodes
         if not Path(ref).is_file():
             raise FileNotFoundError("Reference file not found")
         ref_suff = Path(ref).suffixes
@@ -282,6 +303,7 @@ class Reference:
 
 
         # headers of reference sequences from which to always reject
+        # NOTE: This could potentially be different for different barcodes, consider and implement if applicable, Lukas believes this is not needed for first implementation
         if reject_refs:
             self.reject_refs = set(reject_refs.split(','))
         else:
@@ -308,11 +330,11 @@ class Reference:
             if len(cseq) < min_len:
                 continue
             # load reference sequences
-            if cname not in self.reject_refs:
-                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy)
+            if cname not in self.reject_refs: # NOTE: If barcodes can have different always reject refs, self.reject_refs should be indexable by barcode
+                contigs[cname] = Contig(name=cname, seq=cseq, ploidy=ploidy, barcodes=self.barcodes)
             # for ref seqs that we always reject, set sequence empty
             else:
-                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True)
+                contigs[cname] = Contig(name=cname, seq="ACGT", ploidy=ploidy, rej=True) # NOTE: Add barcodes as parameter, if barcodes can have different always reject refs
         return contigs
 
 

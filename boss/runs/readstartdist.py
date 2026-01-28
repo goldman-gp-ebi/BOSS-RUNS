@@ -23,7 +23,7 @@ class ReadStartDist:
         self.p0 = p0
         self.window_size = window_size
         # track read start positions (forward and rev) in windows
-        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}
+        self.read_starts = {cname : np.zeros(shape=(int(c.length / window_size), 2)) for cname, c in contigs.items()}  # NOTE: No additional dimension for barcodes in this initial implementation
         # fhat exists only in its merged form, i.e. for use in updating on a merged array
         self.total_len = np.sum([a.shape[0] for a in self.read_starts.values()])
         self.target_size = int(np.sum([c.length for c in contigs.values()]) // 100)
@@ -51,7 +51,7 @@ class ReadStartDist:
         # collect all starting positions
         starts_fwd = defaultdict(list)
         starts_rev = defaultdict(list)
-
+        
         for rid in paf_dict.keys():
             rec = paf_dict[rid]
             # choose the highest ranked mapping
@@ -146,6 +146,7 @@ class ReadStartDist:
         if fhat_sum != 0:
             # normalise for ratio of on/off target reads
             # uses estimated on-target proportion from initially accepted sites
+            # TODO: better understand what this ratio means in a barcoded sample and whether this is still sensible
             normalizer = self.on_target / fhat_sum     # TODO get the on-target estimator
             fhat_exp = np.multiply(fhat_exp, normalizer)
         return fhat_exp

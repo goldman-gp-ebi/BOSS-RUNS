@@ -28,11 +28,15 @@ class BossRuns(Boss):
 
         :return:
         """
+        if self.args.barcodes[0] == "":
+            self.barcodes_index = {"": 0}
+        else:
+            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
         # initialise reference
         assert self.args.general.ref is not None
-        self.ref = Reference(ref=self.args.general.ref, mmi=self.args.general.mmi, reject_refs=self.args.optional.reject_refs)
+        self.ref = Reference(ref=self.args.general.ref, mmi=self.args.general.mmi, reject_refs=self.args.optional.reject_refs, barcodes=self.args.barcodes)
         self.contigs = self.ref.contigs
-        self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}
+        self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}  # NOTE: This could potentially be different for different barcodes, consider and implement if applicable
         # initialise a mapper using the reference
         assert self.ref.mmi is not None
         self.mapper = Mapper(ref=self.ref.mmi)
@@ -62,6 +66,7 @@ class BossRuns(Boss):
         # after writing to tmpfile, rename to replace the current strat
         cpath = f'{self.out_dir}/masks/boss.npz'
         Path(cpath_tmp).rename(cpath)
+        # NOTE: Come back here and think about how the dimension change impacts loading the strat etc. This might also impact readfish
         # Example how to load these:
         # container = np.load(f'{cpath}.npz')
         # data = {key: container[key] for key in container}
@@ -101,7 +106,7 @@ class BossRuns(Boss):
         for cname, cont in self.contigs_filt.items():
             cont.check_buckets(threshold=self.args.optional.bucket_threshold)
         # check if any switches are on
-        switched_on = [c.switched_on for c in self.contigs.values()]
+        switched_on = [any(c.switched_on) for c in self.contigs.values()]
         return any(switched_on)
 
 
@@ -135,11 +140,12 @@ class BossRuns(Boss):
             cstrat = strat[i: i + cont.length // window, :]
             assert cstrat.shape == cont.strat.shape
             # assign new strat
-            cont.strat[buckets, :] = cstrat[buckets, :]
+            for b in range(0, len(self.args.barcodes)):
+                cont.strat[buckets[:,b], :, b] = cstrat[buckets[:,b], :,b]
             # log number of accepted sites
             f_perc = np.count_nonzero(cont.strat[:, 0]) / cont.strat.shape[0]
             r_perc = np.count_nonzero(cont.strat[:, 1]) / cont.strat.shape[0]
-            logging.info(f'{cname}: {f_perc}, {r_perc}')
+            logging.info(f'{cname}: {f_perc}, {r_perc}') # NOTE: Maybe think about whether this log is confusing because it can report more sites than exist with barcodes
             i += cont.length // window
 
 
@@ -160,6 +166,7 @@ class BossRuns(Boss):
         if switched_on:
             # update Fhat: unpack and normalise
             fhat_exp = self.read_starts.update_f_pointmass()
+            fhat_exp = np.repeat(fhat_exp[:, :, np.newaxis], len(self.args.barcodes), axis=2)
             self._update_benefits()
             # merge the benefits into one array for combined calculation
             benefit, smu = self.scoring.merge_benefit(self.contigs_filt)
@@ -196,6 +203,8 @@ class BossRuns(Boss):
         :return:
         """
         # map the new reads to the reference
+        # TODO: Read about paf_dict and see if I can add barcode information there or how else I should carry it through
+        # Lukas: Barcode info should be in header of fastq file just like channel info, so could grab it in a similar way in _read_single_batch()
         paf_dict = self.mapper.map_sequences(sequences=new_reads)
         # convert coverage counts to increment arrays
         increments = self.cc.convert_records(paf_dict=paf_dict, seqs=new_reads, quals=new_quals)

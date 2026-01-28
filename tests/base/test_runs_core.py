@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import logging
 import time
+import numpy as np
 
 import boss.runs.core
 import boss.config
@@ -42,7 +43,7 @@ def test__init_dummy_strats(BossRuns, modes):
     BossRuns.init()
     strat_dict = BossRuns.ref.get_strategy_dict()
     assert len(strat_dict) == 9
-    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2)
+    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2, 1)
     # test _write_contig_strategies (run during init)
     assert (Path(BossRuns.out_dir) / "masks" / "boss.npz").is_file()
 
@@ -55,7 +56,7 @@ def test_process_batch(BossRuns):
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in BossRuns.contigs_filt.items():
-        cont.switched_on = True
+        cont.switched_on = np.ones(shape=(len(BossRuns.args.barcodes)), dtype="bool")
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
     assert next_update != BossRuns.args.general.wait

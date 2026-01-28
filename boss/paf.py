@@ -71,6 +71,7 @@ class PafLine:
         # dummy inits
         self.maplen = 0
         self.min_length_pair = None
+        self.barcode = None
 
 
     @staticmethod

@@ -60,6 +60,10 @@ class BossBits:
     def _reload_npz(mask_files):
         mask_container = np.load(mask_files[0])
         return {name: mask_container[name] for name in mask_container}
+        # TODO: This function might need to change (or at least the functions that 
+        # interpret what it returns when the masks gain an extra dimension)
+        # Lukas: Readfish needs to know which masks correspond to which barcode. 
+        # One option is to have one npz per barcode or have just one and communicate indices a different way
 
 
     @staticmethod
@@ -80,13 +84,13 @@ class BossBits:
             raise FileNotFoundError("No mask files present")
 
         # Do we actually update this time?
-        if not new_masks[0].stat().st_mtime > self.last_mask_mtime:
+        if not new_masks[0].stat().st_mtime > self.last_mask_mtime: # NOTE: Change for barcodes if we have multiple npz files instead of just one
             return 0
 
         try:
             mask_dict = reload_func(mask_files=new_masks)
             self.masks = mask_dict
-            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences")
+            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences") # NOTE: Increase this per barcode? -- maintain generalisability
         except Exception as e:
             self.logger.error(f"Error reading strategy array ->>> {repr(e)}")
             self.masks = {"exception": True}
@@ -151,7 +155,7 @@ class BossBits:
         return 1, self.mapper
 
 
-    def _check_coord(self, contig, start_pos, reverse):
+    def _check_coord(self, contig, start_pos, reverse, barcode):
         """
         Query numpy mask array and return decision to keep sequencing
         Parameters
@@ -180,7 +184,10 @@ class BossBits:
             return 0
         # otherwise query the strategy array
         try:
-            d = arr[:, int(reverse)][start_pos // self.scale_factor]
+            d = arr[:, int(reverse)][start_pos // self.scale_factor] 
+            # TODO: Change this based on barcode, there will be an extra dimension 
+            # -- maintain generalisability, could add barcode argument to function signature 
+            # with default 0 or check what the dimensionality of array is
             return d
         except Exception as e:  # noqa
             return 1

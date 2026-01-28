@@ -177,6 +177,8 @@ class Config:
         if args.general.name not in region_names:
             raise ValueError("One of the regions in readfish needs the same name as the experiment in BOSS")
 
+        # TODO: Add check that all boss-runs barcodes are also in readfish
+
 
 
     @staticmethod
