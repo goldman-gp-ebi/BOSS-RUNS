@@ -6,7 +6,7 @@ import mappy
 import numpy as np
 
 from boss.utils import empty_file, execute, random_id
-from boss.paf import paf_dict_type
+
 
 
 

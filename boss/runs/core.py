@@ -29,10 +29,12 @@ class BossRuns(Boss):
         :return:
         """
         # initialise reference
-        self.ref = Reference(ref=self.args.ref, mmi=self.args.mmi, reject_refs=self.args.reject_refs)
+        assert self.args.general.ref is not None
+        self.ref = Reference(ref=self.args.general.ref, mmi=self.args.general.mmi, reject_refs=self.args.optional.reject_refs)
         self.contigs = self.ref.contigs
         self.contigs_filt = {n: c for n, c in self.contigs.items() if not c.rej}
         # initialise a mapper using the reference
+        assert self.ref.mmi is not None
         self.mapper = Mapper(ref=self.ref.mmi)
         # initialise a translator for coverage conversions
         self.cc = CoverageConverter()
@@ -41,7 +43,7 @@ class BossRuns(Boss):
         # initialise the tracker for read start position distribution
         self.read_starts = ReadStartDist(contigs=self.contigs_filt)
         # initialise scoring array
-        self.scoring = Scoring(ploidy=self.args.ploidy)
+        self.scoring = Scoring(ploidy=self.args.optional.ploidy)
         self.scoring.init_score_array()
         # write initial strategies to file
         strat_dict = self.ref.get_strategy_dict()
@@ -97,7 +99,7 @@ class BossRuns(Boss):
         :return: Boolean if any strategy has been switched on
         """
         for cname, cont in self.contigs_filt.items():
-            cont.check_buckets(threshold=self.args.bucket_threshold)
+            cont.check_buckets(threshold=self.args.optional.bucket_threshold)
         # check if any switches are on
         switched_on = [c.switched_on for c in self.contigs.values()]
         return any(switched_on)

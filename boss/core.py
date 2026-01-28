@@ -1,26 +1,25 @@
 import time
 import logging
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Callable
 
 from boss.live import LiveRun, Sequencer
 from boss.readlengthdist import ReadlengthDist
 from boss.batch import FastqBatch
-
+from boss.config import BossConfig
 
 
 
 class Boss:
 
-    def __init__(self, args: SimpleNamespace):
+    def __init__(self, args: BossConfig):
         """
         Main initialisation of experiment
 
         :param args: Configuration of the experiment
         """
         self.args = args
-        self.name = args.name
+        self.name = args.general.name
         self.processed_files = set()
         self.n_fastq = 0
         self.batch = 0
@@ -40,9 +39,9 @@ class Boss:
         :return:
         """
         # make sure the run name does not have any spaces
-        assert ' ' not in self.args.name
+        assert ' ' not in self.name
 
-        self.out_dir = f'./out_{self.args.name}'
+        self.out_dir = f'./out_{self.name}'
         out_path = Path(self.out_dir)
         out_path.mkdir(parents=True, exist_ok=True)
         (out_path / "masks").mkdir(parents=True, exist_ok=True)
@@ -65,18 +64,18 @@ class Boss:
         """
         # connect to sequencing machine
         # early exit for pytests
-        if self.args.device == "TEST":
+        if not self.args.live.device:
             sequencer = Sequencer()
 
         else:
-            sequencer = LiveRun.connect_sequencer(device=self.args.device,
-                                                  host=self.args.host,
-                                                  port=self.args.port)
-            sequencer.grab_channels(run_name=self.args.name)
+            sequencer = LiveRun.connect_sequencer(device=self.args.live.device,
+                                                  host=self.args.live.host,
+                                                  port=self.args.live.port)
+            sequencer.grab_channels(run_name=self.name)
 
         # get the relevant infos from the Sequencer
-        self.args.fq = f'{sequencer.out_path}/fastq_pass'
-        assert Path(self.args.fq).is_dir()
+        self.fq = f'{sequencer.out_path}/fastq_pass'
+        assert Path(self.fq).is_dir()
         # readfish needs to have placed the channels.toml at this point
         # channels can be an empty set if there is only one condition
         # then data from all channels will be used (i.e. later regex skipped)
@@ -92,7 +91,7 @@ class Boss:
         """
         # find new fastq files
         new_fastq = LiveRun.scan_dir(
-            fastq_pass=self.args.fq, processed_files=self.processed_files)
+            fastq_pass=self.fq, processed_files=self.processed_files)
         if not new_fastq:
             logging.info("no new files, deferring update ")
             return {}, {}
@@ -114,7 +113,7 @@ class Boss:
         """
         toc = time.time()
         passed = toc - tic
-        next_update = int(self.args.wait - passed)
+        next_update = int(self.args.general.wait - passed)
         logging.info(f"batch took: {passed}")
         logging.info(f"finished update, waiting for {next_update}s ... \n")
         return next_update
@@ -122,13 +121,14 @@ class Boss:
 
     def launch_live_components(self):
         # launch readfish and initialise connection to sequencer if live experiment
-        if hasattr(self.args, "live_run") and getattr(self.args, "live_run"):
+        assert self.args.general.toml_readfish is not None
+        if self.args.live.device:
             LiveRun.launch_readfish(
-                toml=self.args.toml_readfish,
-                device=self.args.device,
+                toml=self.args.general.toml_readfish,
+                device=self.args.live.device,
                 name=self.name
             )
-            self._init_live()
+        self._init_live()
 
 
     def process_batch(self, main_processing_func: Callable) -> int:
@@ -145,7 +145,7 @@ class Boss:
 
         new_reads, new_quals = self._get_new_data()
         if not new_reads:
-            return self.args.wait
+            return self.args.general.wait
 
         main_processing_func(new_reads=new_reads, new_quals=new_quals)
 
