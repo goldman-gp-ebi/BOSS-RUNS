@@ -143,9 +143,9 @@ class BossRunsSim(BossRuns):
         :return:
         """
         # trigger the sampling of reads and their mappings
-        read_seqs, read_quals, read_barcodes, paf_f, paf_t = self.sampler.sample()
+        read_seqs, read_quals, read_barcodes_names, paf_f, paf_t = self.sampler.sample()
         # Convert barcodes to index
-        read_barcodes = {rid: self.barcodes_index.get(bc, 0) for rid, bc in read_barcodes.items()}
+        read_barcodes = {rid: self.barcodes_index.get(bc, 0) for rid, bc in read_barcodes_names.items()}
         # make decisions and generate the paf_dict
         paf_dict, reads_decision, n_mapped, n_unmapped, n_accepted, n_rejected = (
             self.make_decisions(seqs=read_seqs,
@@ -175,7 +175,11 @@ class BossRunsSim(BossRuns):
             reads_decision=reads_decision,
             n_reject=n_rejected
         )
-        self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
+        if self.args.barcodes[0] == "":
+            self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
+        else:
+            self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision, 
+            reads_barcodes=read_barcodes_names)
         # update wrapper of superclass
         self.update_wrapper()
 
