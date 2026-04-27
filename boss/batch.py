@@ -265,18 +265,12 @@ class ReadCache:
         """
         logging.info(f'dump {cond} #{dump_number}. # of reads {len(list(cache.keys()))}')
         filename = f'00_reads/{cond}_{dump_number}.fa'
-        # copy previous file to make cumulative
-        previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
-        try:
-            execute(f"cp {previous_filename} {filename}")
-        except FileNotFoundError:
-            # at the first batch, create empty 0th and copy to 1st file
-            # to make sure we don't append to the same file multiple times
-            # otherwise we have duplicate reads causing issues
+        # at the first batch, create empty 0th file
+        if dump_number == 1:
+            previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
             empty_file(previous_filename)
-            execute(f"cp {previous_filename} {filename}")
         # writing operation
-        with open(filename, "a") as f:
+        with open(filename, "w+") as f:
             for rid, seq in cache.items():
                 r = random_id()
                 fa_line = f'>{rid}.{r}\n{seq}\n'
