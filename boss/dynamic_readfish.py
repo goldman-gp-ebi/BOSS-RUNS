@@ -26,6 +26,11 @@ class BossBits:
         self.last_mask_mtime = 0
         self.last_contig_mtime = 0
 
+        if self.args.barcodes[0] == "":
+            self.barcodes_index = {"": 0}
+        else:
+            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
+
         # Overwrite the default strand_converter
         # used to index into the strategies,
         # which are shaped 2xN for forward & reverse in 1st dim
@@ -50,7 +55,7 @@ class BossBits:
         # if there is no strategy, generate dummy to start with
         if not Path(self.mask_path / 'boss.npz').is_file():
             self.logger.info("Creating dummy strategy")
-            contig_strats = {'init': np.ones(1)}
+            contig_strats = {'init': np.ones(1)} # NOTE: I believe this can stay the same with barcodes
             np.savez(self.mask_path / "boss", **contig_strats)
         else:
             self.logger.info("Loading starting strategy")
@@ -166,6 +171,8 @@ class BossBits:
             Whether the coordinate is on the forward or reverse strand
         contig: str
             The name of the contig the mask is for, used to lookup correct mask in the directory
+        barcode: str
+            The name of the barcode (either 'barcode{int}' or 'unclassified' if barcoding is used, None otherwise)
         Returns
         -------
         bool
@@ -184,10 +191,14 @@ class BossBits:
             return 0
         # otherwise query the strategy array
         try:
-            d = arr[:, int(reverse)][start_pos // self.scale_factor] 
+            if barcode is None:
+                d = arr[:, int(reverse)][start_pos // self.scale_factor] 
             # TODO: Change this based on barcode, there will be an extra dimension 
             # -- maintain generalisability, could add barcode argument to function signature 
             # with default 0 or check what the dimensionality of array is
+            else:
+                b = self.barcodes_index[int(barcode.split('barcode')[1])]
+                d = arr[:, int(reverse), b][start_pos // self.scale_factor] 
             return d
         except Exception as e:  # noqa
             return 1
@@ -218,7 +229,7 @@ class BossBits:
             coord = al.r_st if al.strand == 1 else al.r_en
             # matches.append(targets.check_coord(contig, strand, coord))
             strand_conv = self.strand_converter[al.strand]  # type: ignore
-            matches.append(self._check_coord(contig=contig, start_pos=coord, reverse=strand_conv))
+            matches.append(self._check_coord(contig=contig, start_pos=coord, reverse=strand_conv, barcode=result.barcode))
         coord_match = any(matches)
 
         if not results:
