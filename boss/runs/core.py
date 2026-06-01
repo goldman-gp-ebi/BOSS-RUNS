@@ -138,8 +138,13 @@ class BossRuns(Boss):
             cstrat = strat[i: i + cont.length // window, :]
             assert cstrat.shape == cont.strat.shape
             # assign new strat
-            for b in range(0, len(self.args.barcodes)):
-                cont.strat[buckets[:,b], :, b] = cstrat[buckets[:,b], :,b]
+            for bc_name in self.args.barcodes:
+                if self.args.barcodes[0] == '':
+                    b = 0
+                    cont.strat[buckets[:,b], :, b] = cstrat[buckets[:,b], :,b]
+                else:
+                    b = self.barcodes_index[int(bc_name.split('barcode')[1])]
+                    cont.strat[buckets[:,b], :, b] = cstrat[buckets[:,b], :,b]
             # log number of accepted sites
             f_perc = np.count_nonzero(cont.strat[:, 0]) / cont.strat.shape[0]
             r_perc = np.count_nonzero(cont.strat[:, 1]) / cont.strat.shape[0]

@@ -192,7 +192,8 @@ class BossRunsSim(BossRuns):
         for cond in ('control', 'boss'):
             dump_number = getattr(self.read_cache, f'dump_n_{cond}')
             cache = getattr(self.read_cache, f'cache_{cond}')
-            self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
+            if len(list(cache.keys())) > 0:  # don't dump empty file
+                self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
 
 
 
