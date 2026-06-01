@@ -9,9 +9,9 @@ import boss.config
 
 from ..constants import PATHS
 
-
-@pytest.fixture
-def args():
+barcode_list = [[""],["barcode01", "barcode02"]]
+@pytest.fixture(params=barcode_list)
+def args(request):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
@@ -20,6 +20,7 @@ def args():
     args.live_run = True
     args.ref = PATHS.fasta
     args.mmi = PATHS.mmi
+    args.barcodes = request.param
     return args
 
 
@@ -45,7 +46,7 @@ def test__init_dummy_strats(BossRuns, modes):
     BossRuns.init()
     strat_dict = BossRuns.ref.get_strategy_dict()
     assert len(strat_dict) == 9
-    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2, 1)
+    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2, len(BossRuns.args.barcodes))
     # test _write_contig_strategies (run during init)
     assert (Path(BossRuns.out_dir) / "masks" / "boss.npz").is_file()
 

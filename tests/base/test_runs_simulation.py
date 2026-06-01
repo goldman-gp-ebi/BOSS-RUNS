@@ -11,8 +11,9 @@ import boss.config
 from ..constants import PATHS
 
 
-@pytest.fixture
-def args():
+barcode_list = [[""],["barcode01", "barcode02"]]
+@pytest.fixture(params=barcode_list)
+def args(request):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
@@ -24,7 +25,7 @@ def args():
     args.maxb = 8
     args.batchsize = 100
     args.dumptime = 10000
-    args.barcodes = ['']
+    args.barcodes = request.param
     return args
 
 
@@ -43,7 +44,7 @@ def test_init(args):
 
 
 
-def test_process_batch(args): # Unexpected failure: in _distribute_strategy we are trying to index cstrat [seq, fw/rv, b] with buckets [seq, b] which causes issues
+def test_process_batch(args):
     args.batchsize = 500
     args.maxb = 9
     b = boss.runs.simulation.BossRunsSim(args=args)
