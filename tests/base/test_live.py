@@ -43,6 +43,8 @@ def test_connect_sequencer_dummy():
     (PATHS.fastq_dir, set(), 5),
     (PATHS.fastq_dir, {f'{PATHS.fastq_dir}/FAT91932_pass_e7bf7751_f43c451e_1.fastq.gz', f'{PATHS.fastq_dir}/FAT91932_pass_e7bf7751_f43c451e_2.fastq.gz'}, 3),
     ("../scripts", set(), 0),
+    (PATHS.fastq_bc_dir, set(), 5),
+    (PATHS.fastq_bc_dir, {f'{PATHS.fastq_bc_dir}/barcode01/FAT91932_pass_e7bf7751_f43c451e_1_barcode01.fastq.gz', f'{PATHS.fastq_bc_dir}/barcode02/FAT91932_pass_e7bf7751_f43c451e_2_barcode02.fastq.gz'}, 3),
 ])
 def test_scan_dir(fastq_pass, processed_files, exp):
     new_fq = boss.live.LiveRun.scan_dir(fastq_pass=fastq_pass, processed_files=processed_files)
@@ -53,7 +55,7 @@ def test_scan_dir(fastq_pass, processed_files, exp):
 
 def test_launch_readfish():
     log = boss.live.LiveRun.launch_readfish(toml=PATHS.readfish_toml, device="dummy", name="dummy")
-    time.sleep(1)  # required for file to be registered, otherwise assertion fails
+    time.sleep(5)  # required for file to be registered, otherwise assertion fails
     assert Path(log).is_file()
     assert Path(log).stat().st_size > 0
 
