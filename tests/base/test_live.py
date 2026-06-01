@@ -64,6 +64,12 @@ def test_launch_readfish_TEST():
     log = boss.live.LiveRun.launch_readfish(toml=PATHS.readfish_toml, device="TEST", name="dummy")
     assert not log
 
+def test_launch_readfish_barcode():
+    log = boss.live.LiveRun.launch_readfish(toml=PATHS.readfish_toml_bc, device="dummy", name="dummy")
+    time.sleep(5)  # required for file to be registered, otherwise assertion fails
+    assert Path(log).is_file()
+    assert Path(log).stat().st_size > 0
+
 
 @pytest.mark.xfail(raises=FileNotFoundError)
 def test_launch_readfish_DUMMY():
