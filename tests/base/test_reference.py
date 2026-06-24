@@ -21,12 +21,16 @@ def test_contig(name, seq, ploidy,barcodes):
     logging.info(c.name)
     logging.info(c.seq)
     logging.info(c.seq_int)
+    if not barcodes:
+        len_bc = 1
+    else:
+        len_bc = len(barcodes)
     assert c.length == len(seq)
     assert c.length == len(c.seq_int)
     assert " " not in c.name
-    assert c.coverage.shape == (len(seq), 5, len(barcodes))
+    assert c.coverage.shape == (len(seq), 5, len_bc)
     assert c.coverage.sum() == 0
-    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, len(barcodes))
+    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, len_bc)
     assert all(c.initial_scores[0] == c.score0)
 
 
@@ -45,9 +49,9 @@ def test_contig_seq():
 
 
 @pytest.mark.parametrize("ref, mmi, reject_refs, nsites, barcodes", [
-    (PATHS.fasta, None, "", 31012581, [""]),
-    (PATHS.fasta, PATHS.mmi, "", 31012581, [""]),
-    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526, [""]),
+    (PATHS.fasta, None, "", 31012581, None),
+    (PATHS.fasta, PATHS.mmi, "", 31012581, None),
+    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526, None),
     (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526, ["barcode01", "barcode02"]),
 ])
 def test_reference(ref, mmi, reject_refs, nsites, barcodes, request):
