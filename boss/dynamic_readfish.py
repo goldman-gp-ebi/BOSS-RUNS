@@ -26,10 +26,16 @@ class BossBits:
         self.last_mask_mtime = 0
         self.last_contig_mtime = 0
 
-        if self.args.barcodes[0] == "":
+        if len(conf.barcodes) == 0:
             self.barcodes_index = {"": 0}
         else:
-            self.barcodes_index = {int(bc.split('barcode')[1]): i for i, bc in enumerate(self.args.barcodes)}
+            self.barcodes_index = {}
+            for bc in conf.barcodes.keys():
+                try:
+                    i = int(bc.split('barcode')[1])
+                    self.barcodes_index[i] = bc
+                except IndexError:
+                    continue
 
         # Overwrite the default strand_converter
         # used to index into the strategies,
