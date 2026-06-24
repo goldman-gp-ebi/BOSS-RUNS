@@ -175,7 +175,7 @@ class BossRunsSim(BossRuns):
             reads_decision=reads_decision,
             n_reject=n_rejected
         )
-        if self.args.barcodes[0] == "":
+        if not self.args.general.barcodes:
             self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
         else:
             self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision, 
