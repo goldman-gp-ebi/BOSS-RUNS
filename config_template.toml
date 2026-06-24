@@ -5,6 +5,7 @@ ref = None                      # Reference file (fasta or None). Not specifying
 mmi = None                      # Index of reference (will be built if not provided)
 toml_readfish = ''              # TOML config file for readfish. Not required for simulations.
 wait = 60                       # Waiting time between updates in live version
+barcodes = None                 # List of barcode names if using a barcoded experiment
 
 [live]
 device = None                   # Position on sequencing device
