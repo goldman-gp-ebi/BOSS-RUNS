@@ -2,6 +2,7 @@
 name = "runs"                   # experiment name
 wait = 30                       # waiting time between updates in live version
 ref = "../data/zymo.fa"         # reference file
+barcodes = ["barcode07", "barcode15", "barcode111"]
 
 ########################################################################################
 
@@ -13,5 +14,4 @@ binit = 3
 dumptime = 5000
 paf_full = "../data/ERR3152366_10k.paf"
 paf_trunc = "../data/ERR3152366_10k_trunc.paf"
-barcodes = ["barcode07", "barcode15", "barcode111"]
 
