@@ -6,8 +6,8 @@ import glob
 import inspect
 from pathlib import Path
 from datetime import datetime
+import tomllib
 
-import rtoml
 from minknow_api.manager import Manager, FlowCellPosition
 from minknow_api import __version__ as minknow_api_version
 
@@ -131,7 +131,7 @@ class Sequencer:
         :param run_name: experiment name of BOSS region
         :return: Set of channel numbers from which to consider data
         """
-        toml_dict = rtoml.load(Path(self.channels_toml))
+        toml_dict = tomllib.loads(Path(self.channels_toml).read_text())
         # if there is only one condition, we return empty set
         # that way we can skip the regex when scanning new data
         if len(toml_dict["conditions"]) == 1:

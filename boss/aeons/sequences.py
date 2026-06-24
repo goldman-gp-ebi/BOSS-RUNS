@@ -4,7 +4,6 @@ from collections import defaultdict, Counter
 from copy import deepcopy
 from shutil import copy
 import time
-from types import SimpleNamespace
 from typing import Optional, Any
 from concurrent.futures import ThreadPoolExecutor as TPexe
 from pathlib import Path
@@ -17,6 +16,7 @@ from boss.utils import execute, random_id, load_gfa, write_logs
 from boss.dependencies import Dependencies
 from boss.paf import Paf, PafLine
 from boss.aeons.kmer import euclidean_dist, euclidean_threshold
+from boss.config import BossConfig
 
 
 Edge = tuple[str, str]  # typehint for containments: tuple of (source, target)
@@ -25,7 +25,7 @@ Edge = tuple[str, str]  # typehint for containments: tuple of (source, target)
 
 class SequenceAVA:
 
-    def __init__(self, paf: str, filters: SimpleNamespace, tetra: bool = False):
+    def __init__(self, paf: str, filters: BossConfig, tetra: bool = False):
         """
         Initialize the SequenceAVA object.
 

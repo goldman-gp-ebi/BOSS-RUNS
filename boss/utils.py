@@ -1,5 +1,4 @@
 import subprocess
-from types import SimpleNamespace
 from importlib.metadata import version
 
 import numpy as np
@@ -18,7 +17,7 @@ def empty_file(path: str) -> None:
     return
 
 
-def init_logger(logfile: str, args: SimpleNamespace) -> None:
+def init_logger(logfile: str, args) -> None:
     """
     Initialize the logger with the given logfile and log the arguments.
 
@@ -34,8 +33,7 @@ def init_logger(logfile: str, args: SimpleNamespace) -> None:
     logging.info("BOSS RUNS/AEONS")
     logging.info(f"{version('boss_runs')}")
     logging.info('\n')
-    for a, aval in args.__dict__.items():
-        logging.info(f'{a} {aval}')
+    logging.info(args.model_dump())
     logging.info('\n')
 
 

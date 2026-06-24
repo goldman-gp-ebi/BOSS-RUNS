@@ -14,11 +14,10 @@ def args():
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.live_run = False
-    args.fq = PATHS.fastq
-    args.maxb = 8
-    args.batchsize = 100
-    args.dumptime = 10000
+    args.simulation.fq = PATHS.fastq
+    args.simulation.maxb = 8
+    args.simulation.batchsize = 100
+    args.simulation.dumptime = 10000
     return args
 
 
@@ -32,7 +31,7 @@ def test_init_fail(args):
 
 
 def test_init(args):
-    args.batchsize = 1000
+    args.simulation.batchsize = 1000
     b = boss.aeons.simulation.BossAeonsSim(args=args)
     b.init_sim()
     assert Path("00_reads/control_0.fa").is_file()
@@ -45,15 +44,15 @@ def test_init(args):
 
 def test_process_batch(args):
     tic = time.time()
-    args.batchsize = 1000
-    args.lowcov = 1
+    args.simulation.batchsize = 1000
+    args.optional.lowcov = 1
     b = boss.aeons.simulation.BossAeonsSim(args=args)
     b.init_sim()
     assert b.batch == 5
     # add some new data
     next_update = b.process_batch_sim(b.process_batch_aeons_sim)
     assert b.batch == 6
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new contigs were produced
     assert Path("out_boss/contigs/aeons.fa").stat().st_mtime > tic
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
@@ -62,7 +61,7 @@ def test_process_batch(args):
     tic = time.time()
     next_update = b.process_batch_sim(b.process_batch_aeons_sim)
     assert b.batch == 7
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new contigs were produced
     assert Path("out_boss/contigs/aeons.fa").stat().st_mtime > tic
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic

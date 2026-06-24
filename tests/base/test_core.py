@@ -32,7 +32,7 @@ def test_process_batch(Boss):
     assert Boss.batch == 1
     # launch it again to trigger the case when there are no new files
     next_update = Boss.process_batch(main_processing_func=dummy)
-    assert next_update == Boss.args.wait
+    assert next_update == Boss.args.general.wait
     assert Boss.batch == 1
 
 

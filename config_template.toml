@@ -1,0 +1,36 @@
+
+[general]
+name = 'boss'                   # Experiment name. Used as output prefix and to match readfish region name
+ref = None                      # Reference file (fasta or None). Not specifying a file switches operation to AEONS
+mmi = None                      # Index of reference (will be built if not provided)
+toml_readfish = ''              # TOML config file for readfish. Not required for simulations.
+wait = 60                       # Waiting time between updates in live version
+
+[live]
+device = None                   # Position on sequencing device
+host = 'localhost'              # Host of sequencing device
+port = 9502                     # Port of sequencing device
+data_wait = 100                 # Wait for X Mb of data before first strategy update
+
+[optional]
+reject_refs = None              # Comma-separated list of headers in reference from which to always reject
+ploidy = 1                      # Ploidy level
+lowcov = 10                     # [debug] Minimum coverage
+temperature = 60                # [debug] Temperature
+min_seq_len = 2500              # [debug] Minimum sequence length
+min_contig_len = 10000          # [debug] Minimum contig length
+min_s1 = 200                    # [debug] Minimum S1
+min_map_len = 2000              # [debug] Minimum mapping length
+tetra = True                    # [debug] Switch tetranucleotide frequency tests
+filter_repeats = False          # [debug] Switch repeat filtering
+bucket_threshold = 5            # [debug] At which coverage to switch on the strategy in a bucket
+
+[simulation]
+fq = None                       # Input fastq file
+batchsize = 4000                # Number of reads per update
+maxb = 400                      # Maximum number of batches
+binit = 5                       # Initial batch size
+dumptime = 200000000            # Time (in units of psudo-sequencing time) between writing output fastq files
+paf_full = None                 # Mappings (PAF) of full-length reads for fast sampling
+paf_trunc = None                # Mappings (PAF) of truncated reads for fast sampling
+accept_unmapped = False         # Accept unmapped reads

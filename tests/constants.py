@@ -22,13 +22,3 @@ PATHS = SimpleNamespace(
     readfish_toml_aeons=f"{CONF_BASE}/BOSS_AEONS_RF.toml",
 )
 
-ARG_DICT = {
-    "boss-runs": ['--toml', f"{CONF_BASE}/BOSS_RUNS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_RUNS_RF.toml"],
-    "boss-runs-sim": ['--toml', f"{CONF_BASE}/BOSS_RUNS_SIM.toml"],
-    "boss-runs-barcoded": ['--toml', f"{CONF_BASE}/BOSS_RUNS_barcode.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_RUNS_RF_barcode.toml"],
-    "boss-runs-sim-barcoded": ['--toml', f"{CONF_BASE}/BOSS_RUNS_SIM_barcoded.toml"],
-    "boss-aeons": ['--toml', f"{CONF_BASE}/BOSS_AEONS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_AEONS_RF.toml"],
-    "boss-aeons-sim": ['--toml', f"{CONF_BASE}/BOSS_AEONS_SIM.toml"],
-    "boss-aeons-broken": ['--toml', f"{CONF_BASE}/BOSS_AEONS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_AEONS_RF_broken.toml"],
-}
-

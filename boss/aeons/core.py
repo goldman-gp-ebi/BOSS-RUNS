@@ -20,16 +20,16 @@ class BossAeons(Boss):
         :return:
         """
         # initialise central objects
-        self.pool = SequencePool(name=self.args.name,
-                                 min_len=self.args.min_seq_len,
+        self.pool = SequencePool(name=self.args.general.name,
+                                 min_len=self.args.optional.min_seq_len,
                                  out_dir=self.out_dir)
-        self.ava = SequenceAVA(paf=f'{self.args.name}.ava',
-                               tetra=self.args.tetra,
+        self.ava = SequenceAVA(paf=f'{self.args.general.name}.ava',
+                               tetra=self.args.optional.tetra,
                                filters=self.args)
         # init scoring func
-        self.score_vec = Benefit.init_scoring_vec(lowcov=self.args.lowcov)
+        self.score_vec = Benefit.init_scoring_vec(lowcov=self.args.optional.lowcov)
         # launch into first assembly
-        if hasattr(self.args, "live_run") and getattr(self.args, "live_run"):
+        if self.args.live.device:
             self.first_live_asm()
 
 
@@ -43,40 +43,40 @@ class BossAeons(Boss):
         :return:
         """
         while True:
-            new_fastq = LiveRun.scan_dir(fastq_pass=self.args.fq, processed_files=set())
+            new_fastq = LiveRun.scan_dir(fastq_pass=self.fq, processed_files=set())
             fq_batch = FastqBatch(fq_files=new_fastq, channels=self.channels)
             logging.info(f"available so far: {fq_batch.total_bases / 1e6} Mbases")
-            if fq_batch.total_bases / 1e6 < self.args.data_wait:
-                logging.info(f"waiting for {self.args.data_wait} Mbases of data ... \n")
+            if fq_batch.total_bases / 1e6 < self.args.live.data_wait:
+                logging.info(f"waiting for {self.args.live.data_wait} Mbases of data ... \n")
                 time.sleep(30)
                 continue
             else:
                 # try first asm
                 logging.info("Attempting initial assembly")
                 init_pool = SequencePool(name="init_pool",
-                                         min_len=self.args.min_seq_len,
+                                         min_len=self.args.optional.min_seq_len,
                                          out_dir=self.out_dir)
                 init_pool.ingest(seqs=fq_batch.read_sequences)
 
                 init_contigs = init_pool.initial_asm_miniasm()
                 ncontigs = len(init_contigs.sequences)
-                has_contig = init_pool.has_min_one_contig(min_contig_len=self.args.min_contig_len)
+                has_contig = init_pool.has_min_one_contig(min_contig_len=self.args.optional.min_contig_len)
 
                 if not ncontigs or not has_contig:
                     logging.info("Initial assembly yielded no contigs, waiting for more data ... ")
                     time.sleep(30)
                     continue
                 else:
-                    self.pool = SequencePool(name=self.args.name,
-                                             min_len=self.args.min_seq_len,
+                    self.pool = SequencePool(name=self.args.general.name,
+                                             min_len=self.args.optional.min_seq_len,
                                              out_dir=self.out_dir)
-                    self.ava = SequenceAVA(paf=f'{self.args.name}.ava',
-                                           tetra=self.args.tetra,
+                    self.ava = SequenceAVA(paf=f'{self.args.general.name}.ava',
+                                           tetra=self.args.optional.tetra,
                                            filters=self.args)
                     self.pool.ingest(init_contigs)
                     # set up a repeat filter from the initial set of reads
-                    if self.args.filter_repeats:
-                        self.repeat_filter = RepeatFilter(name=self.args.name, seqpool=init_pool)
+                    if self.args.optional.filter_repeats:
+                        self.repeat_filter = RepeatFilter(name=self.args.general.name, seqpool=init_pool)
                     break
 
         # once there are contigs, record used files
@@ -108,7 +108,7 @@ class BossAeons(Boss):
         unitig_pool.get_unitig_coverage_arrays(seqpool=self.pool)
         # transform into a sequence pool
         new_pool, used_sids = unitig_pool.unitigs2seqpool(
-            seqpool=self.pool, min_seq_len=self.args.min_seq_len
+            seqpool=self.pool, min_seq_len=self.args.optional.min_seq_len
         )
         # remove used sequences from current pool
         self.remove_seqs(used_sids)
@@ -130,7 +130,7 @@ class BossAeons(Boss):
         self.add_new_sequences(sequences=new_pool, increment=False)
         # write the current pool to file for mapping against
         logging.info("finding contigs to map against.. ")
-        contigs = self.pool.declare_contigs(min_contig_len=self.args.min_contig_len)
+        contigs = self.pool.declare_contigs(min_contig_len=self.args.optional.min_contig_len)
         SequencePool.write_seq_dict(seq_dict=contigs.seqdict(), file=self.pool.contig_fa)
         return contigs
 
@@ -174,7 +174,7 @@ class BossAeons(Boss):
         self.remove_seqs(sequences=cont)
         # raise temp for overlappers (new links are saved as class attr in load_ava)
         ovl = ovl_new | ovl_onto
-        self.pool.reset_temperature(ovl, t=self.args.temperature)
+        self.pool.reset_temperature(ovl, t=self.args.optional.temperature)
 
 
 
@@ -185,7 +185,7 @@ class BossAeons(Boss):
         :return:
         """
         logging.info("Running all-versus-all of sequence pool")
-        contigs = self.pool.declare_contigs(min_contig_len=self.args.min_contig_len)
+        contigs = self.pool.declare_contigs(min_contig_len=self.args.optional.min_contig_len)
         if contigs.is_empty():
             return
         pool_paf = self.pool.run_ava(sequences=contigs.seqdict(), fa=self.pool.fa, paf=self.pool.ava)
@@ -233,7 +233,7 @@ class BossAeons(Boss):
         tmpdir = f'{self.out_dir}/tmp'
         if not os.path.exists(tmpdir):
             os.mkdir(tmpdir)
-        execute(f'mv {self.args.name}.* {tmpdir}')
+        execute(f'mv {self.args.general.name}.* {tmpdir}')
         with open("sim.done", 'w') as done:
             done.write('')
 
@@ -245,13 +245,13 @@ class BossAeons(Boss):
         :return:
         """
         # filter sequences with repeats at the end
-        if self.args.filter_repeats:
+        if self.args.optional.filter_repeats:
             reads_filtered = self.repeat_filter.filter_batch(seq_dict=new_reads)
         else:
             reads_filtered = new_reads
 
         # load new sequences, incl length filter
-        sequences = SequencePool(sequences=reads_filtered, min_len=self.args.min_seq_len)
+        sequences = SequencePool(sequences=reads_filtered, min_len=self.args.optional.min_seq_len)
         # add new sequences to AVA
         self.add_new_sequences(sequences=sequences)
         # check for overlaps and containment in pool
@@ -264,7 +264,7 @@ class BossAeons(Boss):
         # write the current pool to file for mapping against
         self.pool.write_seq_dict(seq_dict=contigs.seqdict(), file=self.pool.contig_fa)
         # check if we have any frozen sequences
-        frozen_ids = self.pool.decrease_temperature(lim=self.args.min_contig_len)
+        frozen_ids = self.pool.decrease_temperature(lim=self.args.optional.min_contig_len)
         self.remove_seqs(sequences=frozen_ids)
         # update the sequencing masks
         self.strat = contig_pool.process_contigs(

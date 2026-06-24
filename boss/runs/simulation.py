@@ -14,21 +14,23 @@ class BossRunsSim(BossRuns):
     def init_sim(self):
         # run the init from super
         self.init()
+        args = self.args.simulation
+        assert args.fq is not None
 
         # initialise the sampler
         self.sampler = Sampler(
-            source=self.args.fq,
-            paf_full=self.args.paf_full,
-            paf_trunc=self.args.paf_trunc,
-            maxbatch=self.args.maxb,
-            batchsize=self.args.batchsize
+            source=args.fq,
+            paf_full=args.paf_full,
+            paf_trunc=args.paf_trunc,
+            maxbatch=args.maxb,
+            batchsize=args.batchsize
         )
         # initialise pseudotiming object
-        self.read_cache = ReadCache(batchsize=self.args.batchsize, dumptime=self.args.dumptime)
+        self.read_cache = ReadCache(batchsize=args.batchsize, dumptime=args.dumptime)
         self.mu = 400
 
         # initialise accept_unmapped
-        self.accept_unmapped = self.args.accept_unmapped
+        self.accept_unmapped = args.accept_unmapped
 
 
 

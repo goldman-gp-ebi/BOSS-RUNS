@@ -21,15 +21,17 @@ class BossAeonsSim(BossAeons):
         """
         # run the init from super
         self.init()
+        args = self.args.simulation
+        assert args.fq is not None
 
         # initialise the sampler
         self.sampler = Sampler(
-            source=self.args.fq,
-            maxbatch=self.args.maxb,
-            batchsize=self.args.batchsize
+            source=args.fq,
+            maxbatch=args.maxb,
+            batchsize=args.batchsize
         )
         # initialise pseudotiming object
-        self.read_cache = ReadCache(batchsize=self.args.batchsize, dumptime=self.args.dumptime)
+        self.read_cache = ReadCache(batchsize=args.batchsize, dumptime=args.dumptime)
         # run initial assembly with starting data
         self._initial_asm()
         self.strat = {}  # empty strat to accept everything
@@ -40,7 +42,7 @@ class BossAeonsSim(BossAeons):
     def _initial_asm(self):
         # load some initial batches
         init_pool = SequencePool(name="init_pool", out_dir=self.out_dir)
-        for i in range(self.args.binit):
+        for i in range(self.args.simulation.binit):
             read_sequences, _, _, _, _ = self.sampler.sample()
             init_pool.ingest(seqs=read_sequences)
         logging.info(f"total bases in pool: {init_pool.total_bases()}")
@@ -50,13 +52,13 @@ class BossAeonsSim(BossAeons):
         # set the batch counter
         self.batch = self.sampler.fq_stream.batch
         # initialise a repeat filter from the raw initial reads
-        if self.args.filter_repeats:
-            self.repeat_filter = RepeatFilter(name=self.args.name, seqpool=init_pool)
+        if self.args.optional.filter_repeats:
+            self.repeat_filter = RepeatFilter(name=self.args.general.name, seqpool=init_pool)
         # run first asm
         logging.info("Running assembly of initial data..")
         init_contigs = init_pool.initial_asm_miniasm()
         self.pool.ingest(init_contigs)
-        has_contig = self.pool.has_min_one_contig(min_contig_len=self.args.min_contig_len)
+        has_contig = self.pool.has_min_one_contig(min_contig_len=self.args.optional.min_contig_len)
         ncontigs = len(self.pool.sequences)
         logging.info(f'initial contigs: {ncontigs}')
         if len(self.pool.sequences) == 0 or not has_contig:
