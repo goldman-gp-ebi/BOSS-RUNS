@@ -7,12 +7,12 @@ from ..constants import PATHS
 
 
 @pytest.mark.parametrize("name, seq, ploidy, barcodes", [
-    ("ch1", "ACGTACGT", 1, [""]),
-    ("ch1", "ACGTACGTNnWwIi", 1, [""]),
-    ("ch1", "ACGTACGT", 2, [""]),
-    ("ch2", "ACgtacGT", 1, [""]),
-    ("ch3  r", "ACGTACGT", 1, [""]),
-    ("ch_garbage", "NotaREALSequenceGT", 1, [""]),
+    ("ch1", "ACGTACGT", 1, None),
+    ("ch1", "ACGTACGTNnWwIi", 1, None),
+    ("ch1", "ACGTACGT", 2, None),
+    ("ch2", "ACgtacGT", 1, None),
+    ("ch3  r", "ACGTACGT", 1, None),
+    ("ch_garbage", "NotaREALSequenceGT", 1, None),
     ("ch1_bc", "ACGTACGT", 1, ["barcode01", "barcode02"])
 ])
 
