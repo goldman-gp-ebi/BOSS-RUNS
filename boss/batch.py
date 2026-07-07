@@ -206,7 +206,7 @@ class ReadCache:
 
 
 
-    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str], reads_barcodes: dict[str, str]=None) -> None:
+    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str], reads_barcodes: dict[str, str] | None = None) -> None:
         """
         Write batches of simulated reads for convenient processing after the experiment
         Either only adds reads to a cache, or dumps them to file if it's time

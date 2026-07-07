@@ -203,7 +203,7 @@ class BossBits:
             # -- maintain generalisability, could add barcode argument to function signature 
             # with default 0 or check what the dimensionality of array is
             else:
-                b = self.barcodes_index[int(barcode.split('barcode')[1])]
+                b = self.barcodes_index[int(barcode.split('barcode')[1])]  # type: ignore
                 d = arr[:, int(reverse), b][start_pos // self.scale_factor] 
             return d
         except Exception as e:  # noqa
@@ -235,7 +235,14 @@ class BossBits:
             coord = al.r_st if al.strand == 1 else al.r_en
             # matches.append(targets.check_coord(contig, strand, coord))
             strand_conv = self.strand_converter[al.strand]  # type: ignore
-            matches.append(self._check_coord(contig=contig, start_pos=coord, reverse=strand_conv, barcode=result.barcode))
+            matches.append(
+                self._check_coord(
+                    contig=contig, 
+                    start_pos=coord, 
+                    reverse=strand_conv, 
+                    barcode=result.barcode
+                )
+            )
         coord_match = any(matches)
 
         if not results:

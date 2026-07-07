@@ -11,7 +11,8 @@ import boss.config
 from ..constants import PATHS
 
 
-barcode_list = [None,["barcode01", "barcode02"]]
+barcode_list = [None, ["barcode01", "barcode02"]]
+
 @pytest.fixture(params=barcode_list)
 def args(request):
     conf = boss.config.Config()

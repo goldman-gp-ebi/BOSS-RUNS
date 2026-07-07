@@ -176,10 +176,16 @@ class BossRunsSim(BossRuns):
             n_reject=n_rejected
         )
         if not self.args.general.barcodes:
-            self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
+            self.read_cache.fill_cache(
+                read_sequences=self.sampler.fq_stream.read_sequences,
+                reads_decision=reads_decision
+            )
         else:
-            self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision, 
-            reads_barcodes=read_barcodes_names)
+            self.read_cache.fill_cache(
+                read_sequences=self.sampler.fq_stream.read_sequences, 
+                reads_decision=reads_decision, 
+                reads_barcodes=read_barcodes_names
+            )
         # update wrapper of superclass
         self.update_wrapper()
 
