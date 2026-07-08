@@ -57,26 +57,50 @@ pip install boss_runs
 BOSS* can be used in different ways depending on the aim of the sequencing experiment.
 When providing a reference (and an optional index) BOSS-RUNS is executed.
 
+In version 0.3.2, the ability to run barcoded BOSS-RUNS experiments was added. See the [section
+below](#configuring-a-barcoded-boss-runs-experiment) for details on how to configure a barcoded
+BOSS-RUNS experiment. This feature is not currently implemented for BOSS-AEONS.
+
 The experiment is configured using 2 toml files, one for this software and one for readfish.
 The toml file and defaults for BOSS* are described here:
 
 ```toml
 [general]
 name = "boss"                   # experiment name
+ref = None                      # reference fasta file. Not specifying a file switches to BOSS-AEONS
+mmi = None                      # index of reference (will be built if ref is given but not mmi)
+toml_readfish = ''              # TOML config file for readfish. Not required for simulations.
 wait = 60                       # waiting time between periodic updates
-ref = ""                        # reference fasta file. Not specifying a file switches to BOSS-AEONS
-mmi = ""                        # index of reference (will be built if ref is given but not mmi)
+barcodes = None                 # list of barcode names if using a barcoded BOSS-RUNS experiment
 
 [live]
-device = "X1"                   # position on sequencer
+device = None                   # position on sequencer
 host = "localhost"              # host of sequencing device
 port = 9502                     # port of sequencing device
 data_wait = 100                 # wait for X Mb of data before first update
-prom = false                    # switch for using a PromethION flowcell (experimental)
 
 [optional]
-reject_refs = ""                # comma-separated list of headers in reference from which to always reject
-ploidy = 1                      # 1 or 2
+reject_refs = None              # Comma-separated list of headers in reference from which to always reject
+ploidy = 1                      # Ploidy level (1 or 2)
+lowcov = 10                     # [debug] Minimum coverage
+temperature = 60                # [debug] Temperature
+min_seq_len = 2500              # [debug] Minimum sequence length
+min_contig_len = 10000          # [debug] Minimum contig length
+min_s1 = 200                    # [debug] Minimum S1
+min_map_len = 2000              # [debug] Minimum mapping length
+tetra = True                    # [debug] Switch tetranucleotide frequency tests
+filter_repeats = False          # [debug] Switch repeat filtering
+bucket_threshold = 5            # [debug] At which coverage to switch on the strategy in a bucket
+
+[simulation]
+fq = None                       # Input fastq file
+batchsize = 4000                # Number of reads per update
+maxb = 400                      # Maximum number of batches
+binit = 5                       # Initial batch size
+dumptime = 200000000            # Time (in units of psudo-sequencing time) between writing output fastq files
+paf_full = None                 # Mappings (PAF) of full-length reads for fast sampling
+paf_trunc = None                # Mappings (PAF) of truncated reads for fast sampling
+accept_unmapped = False         # Accept unmapped reads
 ```
 
 
@@ -135,14 +159,121 @@ below_min_chunks = "stop_receiving"
 
 readfish is launched from within BOSS* for ease of use
 
+### Configuring a barcoded BOSS-RUNS experiment
+Enabling barcoding in a BOSS-RUNS experiment requires changes to the two toml files.
 
+In the BOSS* toml file (see above for details), you need to specify the names of the barcodes you want to dynamically optimise for.
+For example:
+
+```toml
+barcodes = ["barcode01","barcode04"]                 # list of barcode names if using a barcoded BOSS-RUNS experiment
+```
+
+In the readfish toml file, you need to specify a region for each barcode listed in the BOSS* toml file.
+The [readfish documentation](https://looselab.github.io/readfish/toml.html#barcode-specific-configuration) contains more details
+on barcode-specific configuration. A readfish toml file that matches the example above would look like this:
+
+```toml
+[caller_settings.dorado]  
+config = 'dna_r10.4.1_e8.2_400bps_5khz_fast'
+address = 'ipc:///tmp/.guppy/5555'
+debug_log = 'live_reads.fq'
+
+[mapper_settings.mappy_rs]
+fn_idx_in = "../data/test.fasta"
+debug_log = 'live_alignments.paf'
+n_threads = 4
+
+[[regions]]
+name = "runs"
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "unblock"
+no_map = "unblock"
+above_max_chunks = "stop_receiving"
+below_min_chunks = "proceed"
+
+[[regions]]
+name = "control"
+control = true
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "stop_receiving"
+multi_off = "stop_receiving"
+no_seq = "stop_receiving"
+no_map = "stop_receiving"
+above_max_chunks = "stop_receiving"
+below_min_chunks = "stop_receiving"
+
+[barcodes.classified]
+name = "classified_reads"
+control = false
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+
+[barcodes.unclassified]
+name = "unclassified_reads"
+control = false
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "unblock"
+multi_on = "unblock"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "proceed"
+no_map = "proceed"
+
+[barcodes.barcode01]
+name = "barcode01"
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "unblock"
+no_map = "unblock"
+above_max_chunks = "stop_receiving"
+below_min_chunks = "proceed"
+
+[barcodes.barcode04]
+name = "barcode04"
+min_chunks = 0
+max_chunks = 2
+targets = []
+single_on = "stop_receiving"
+multi_on = "stop_receiving"
+single_off = "unblock"
+multi_off = "unblock"
+no_seq = "unblock"
+no_map = "unblock"
+above_max_chunks = "stop_receiving"
+below_min_chunks = "proceed"
+```
 
 ### Starting BOSS*
 
 After sequencing has started launch BOSS* with:
 
 ```shell
-boss --toml path/to/toml --toml_readfish path/to/readfish/toml
+boss --toml path/to/toml
 ```
 
 
@@ -164,7 +295,7 @@ As soon as playback is running, BOSS* can be executed using toml files located i
 
 
 ```shell
-boss --toml tests/config/boss_ch20.toml --toml_readfish tests/config/boss_ch20_readfish.toml
+boss --toml tests/config/boss_ch20.toml
 ``` 
               
 This configures targeting of chromosome 20 with continuously updated decision strategies.
