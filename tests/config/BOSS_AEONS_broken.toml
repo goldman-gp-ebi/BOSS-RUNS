@@ -8,7 +8,6 @@ device = "MS00000"              # position on sequencer
 host = "localhost"              # host of sequencing device
 port = 9502                     # port of sequencing device
 data_wait = 10                  # wait for X Mb data before first update
-prom = false
 
 [optional]
 lowcov = 1                      # target for assemblies
