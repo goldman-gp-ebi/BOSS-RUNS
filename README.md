@@ -23,7 +23,7 @@ The method is described in this [article](https://doi.org/10.1038/s41587-022-015
 
 ## Changelog
 
-- 2025/07/08 0.3.2 added barcoding functionality to BOSS-RUNS, changes to configuration files and implemented config validation
+- 2025/07/08 0.4.0 added barcoding functionality to BOSS-RUNS, changes to configuration files and implemented config validation
 - 2025/02/24 0.3.1 improved pytests, small bug fixes, updated documentation
 - 2024/09/23 0.3.0 compatibility with minknow 6, improved performance of paring coverage counts, improved pytests and test coverage
 - 2024/05/21 0.2.0 Updated internal readfish functionality to ensure compatibility with newest dorado versions
@@ -57,7 +57,7 @@ pip install boss_runs
 BOSS* can be used in different ways depending on the aim of the sequencing experiment.
 When providing a reference (and an optional index) BOSS-RUNS is executed.
 
-In version 0.3.2, the ability to run barcoded BOSS-RUNS experiments was added. See the [section
+In version 0.4.0, the ability to run barcoded BOSS-RUNS experiments was added. See the [section
 below](#configuring-a-barcoded-boss-runs-experiment) for details on how to configure a barcoded
 BOSS-RUNS experiment. This feature is not currently implemented for BOSS-AEONS.
 
