@@ -2,23 +2,24 @@ import pytest
 from pathlib import Path
 import logging
 import time
+import numpy as np
 
 import boss.runs.core
 import boss.config
 
 from ..constants import PATHS
 
+barcode_list = [None, ["barcode01", "barcode02"]]
 
-@pytest.fixture
-def args():
+@pytest.fixture(params=barcode_list)
+def args(request):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.toml_readfish = "TEST"
-    args.split_flowcell = False
-    args.live_run = True
-    args.ref = PATHS.fasta
-    args.mmi = PATHS.mmi
+    args.general.toml_readfish = "TEST"
+    args.general.ref = PATHS.fasta
+    args.general.mmi = PATHS.mmi
+    args.general.barcodes = request.param
     return args
 
 
@@ -44,7 +45,7 @@ def test__init_dummy_strats(BossRuns, modes):
     BossRuns.init()
     strat_dict = BossRuns.ref.get_strategy_dict()
     assert len(strat_dict) == 9
-    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2)
+    assert strat_dict["NZ_CP041015.1"].shape == (4045619 // 100, 2, BossRuns.nbarcodes)
     # test _write_contig_strategies (run during init)
     assert (Path(BossRuns.out_dir) / "masks" / "boss.npz").is_file()
 
@@ -57,10 +58,10 @@ def test_process_batch(BossRuns):
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in BossRuns.contigs_filt.items():
-        cont.switched_on = True
+        cont.switched_on = np.ones(shape=(BossRuns.nbarcodes), dtype="bool")
     next_update = BossRuns.process_batch(BossRuns.process_batch_runs)
     assert BossRuns.batch == 1
-    assert next_update != BossRuns.args.wait
+    assert next_update != BossRuns.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
 

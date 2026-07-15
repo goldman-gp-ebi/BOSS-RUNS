@@ -2,6 +2,7 @@
 name = "bossruns"
 ref = "../data/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 mmi = "../data/Homo_sapiens.GRCh38.dna.primary_assembly.fa.mmi"
+toml_readfish = "tests/config/boss_ch20_readfish.toml"
 
 [live]
 device = "MS00000"

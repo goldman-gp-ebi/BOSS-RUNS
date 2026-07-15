@@ -6,8 +6,8 @@ import glob
 import inspect
 from pathlib import Path
 from datetime import datetime
+import tomllib
 
-import rtoml
 from minknow_api.manager import Manager, FlowCellPosition
 from minknow_api import __version__ as minknow_api_version
 
@@ -131,14 +131,14 @@ class Sequencer:
         :param run_name: experiment name of BOSS region
         :return: Set of channel numbers from which to consider data
         """
-        toml_dict = rtoml.load(Path(self.channels_toml))
+        toml_dict = tomllib.loads(Path(self.channels_toml).read_text())
         # if there is only one condition, we return empty set
         # that way we can skip the regex when scanning new data
         if len(toml_dict["conditions"]) == 1:
             logging.info('Only one condition. Using all channels!')
             return set()
 
-        # otherwise find the corresponding condition
+        # otherwise find the corresponding condition # TODO: Find out how the conditions here interact with barcodes and if we obtain the correct channels
         correct_key = ''
         for key in toml_dict["conditions"].keys():
             name = toml_dict["conditions"][key]["name"]
@@ -226,7 +226,7 @@ class LiveRun:
         patterns = ["*.fq.gz", "*.fastq.gz", "*.fastq.gzip", "*.fq.gzip", "*.fastq", "*.fq"]
         all_fq = set()
         for p in patterns:
-            all_fq.update(glob.glob(f'{fastq_pass}/{p}'))
+            all_fq.update(glob.glob(f'{fastq_pass}/**/{p}', recursive=True))
         # which files have we not seen before?
         new_fq = all_fq.difference(processed_files)
         logging.info(f"found {len(new_fq)} new fq files")

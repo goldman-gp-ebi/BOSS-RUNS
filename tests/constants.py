@@ -14,17 +14,11 @@ PATHS = SimpleNamespace(
     fasta=f"{DATA_BASE}/zymo.fa",
     mmi=f"{DATA_BASE}/zymo.fa.mmi",
     fastq_dir=f"{DATA_BASE}/fastq_pass",
+    fastq_bc_dir=f"{DATA_BASE}/barcoded/fastq_pass",
     fastq_dir_noch=f"{DATA_BASE}/fastq_pass_no_ch/",
     readfish_toml=f"{CONF_BASE}/BOSS_RUNS_RF.toml",
+    readfish_toml_bc=f"{CONF_BASE}/BOSS_RUNS_RF_barcode.toml",
     readfish_toml_singleregion=f"{CONF_BASE}/BOSS_RUNS_RF_singleregion.toml",
     readfish_toml_aeons=f"{CONF_BASE}/BOSS_AEONS_RF.toml",
 )
-
-ARG_DICT = {
-    "boss-runs": ['--toml', f"{CONF_BASE}/BOSS_RUNS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_RUNS_RF.toml"],
-    "boss-runs-sim": ['--toml', f"{CONF_BASE}/BOSS_RUNS_SIM.toml"],
-    "boss-aeons": ['--toml', f"{CONF_BASE}/BOSS_AEONS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_AEONS_RF.toml"],
-    "boss-aeons-sim": ['--toml', f"{CONF_BASE}/BOSS_AEONS_SIM.toml"],
-    "boss-aeons-broken": ['--toml', f"{CONF_BASE}/BOSS_AEONS.toml", '--toml_readfish', f"{CONF_BASE}/BOSS_AEONS_RF_broken.toml"],
-}
 

@@ -14,21 +14,23 @@ class BossRunsSim(BossRuns):
     def init_sim(self):
         # run the init from super
         self.init()
+        args = self.args.simulation
+        assert args.fq is not None
 
         # initialise the sampler
         self.sampler = Sampler(
-            source=self.args.fq,
-            paf_full=self.args.paf_full,
-            paf_trunc=self.args.paf_trunc,
-            maxbatch=self.args.maxb,
-            batchsize=self.args.batchsize
+            source=args.fq,
+            paf_full=args.paf_full,
+            paf_trunc=args.paf_trunc,
+            maxbatch=args.maxb,
+            batchsize=args.batchsize
         )
         # initialise pseudotiming object
-        self.read_cache = ReadCache(batchsize=self.args.batchsize, dumptime=self.args.dumptime)
+        self.read_cache = ReadCache(batchsize=args.batchsize, dumptime=args.dumptime)
         self.mu = 400
 
         # initialise accept_unmapped
-        self.accept_unmapped = self.args.accept_unmapped
+        self.accept_unmapped = args.accept_unmapped
 
 
 
@@ -37,6 +39,7 @@ class BossRunsSim(BossRuns):
         seqs: dict[str, str],
         paf_full: str,
         paf_trunc: str,
+        barcodes: dict[str, int],
         window: int = 100
     ) -> tuple[paf_dict_type, dict[str, str], int, int, int, int]:
         """
@@ -45,8 +48,9 @@ class BossRunsSim(BossRuns):
         :param seqs: Dict of raw sequences
         :param paf_full: Raw output of mapping full-length reads
         :param paf_trunc: Raw output of mapping truncated reads
+        :param barcodes: Dict of barcodes of raw sequences
         :param window: downsampling size
-        :return: pad_dict, and numbers of unmapped and rejected reads
+        :return: paf_dict, and numbers of unmapped and rejected reads
         """
         # build a paf dict and either accept or reject reads
         paf_dict = defaultdict(list)
@@ -63,6 +67,7 @@ class BossRunsSim(BossRuns):
         # loop over the mu-sized mappings to make decisions
         for rid, rlist in paf_dict_trunc.items():
             rec = Paf.choose_best_mapper(rlist)[0]
+            rec.barcode = barcodes[rec.qname]
             mapped_reads.add(rid)
             # deal with strandedness
             if rec.rev:
@@ -72,18 +77,20 @@ class BossRunsSim(BossRuns):
             # actual decision look-up
             try:
                 strat = self.contigs_filt[str(rec.tname)].strat
-                decision = strat[start_pos // window, rec.rev]
+                decision = strat[start_pos // window, rec.rev, barcodes[rec.qname]]
 
             except (KeyError, IndexError):
                 # in case the read maps to a chromosome that we don't have a strategy for
                 # reject by default (can happen in testing or for references with short scaffolds)
                 decision = 0
+                # NOTE: Could adjust this for unclassified barcodes based on config option
 
             if decision:
                 # ACCEPT READ
                 # grab the full-length version
                 rec_full_list = paf_dict_full[str(rec.qname)]
                 rec_full = Paf.choose_best_mapper(rec_full_list)[0]
+                rec_full.barcode = barcodes[rec_full.qname]
                 paf_dict[str(rec.qname)].append(rec_full)
                 n_accepted += 1
             else:
@@ -136,12 +143,15 @@ class BossRunsSim(BossRuns):
         :return:
         """
         # trigger the sampling of reads and their mappings
-        read_seqs, read_quals, paf_f, paf_t = self.sampler.sample()
+        read_seqs, read_quals, read_barcodes_names, paf_f, paf_t = self.sampler.sample()
+        # Convert barcodes to index
+        read_barcodes = {rid: self.barcodes_index.get(bc, 0) for rid, bc in read_barcodes_names.items()}
         # make decisions and generate the paf_dict
         paf_dict, reads_decision, n_mapped, n_unmapped, n_accepted, n_rejected = (
             self.make_decisions(seqs=read_seqs,
                                 paf_full=paf_f,
-                                paf_trunc=paf_t
+                                paf_trunc=paf_t,
+                                barcodes = read_barcodes
                                 )
         )
         logging.info(f"mapped {n_mapped}, not mapped {n_unmapped}")
@@ -152,7 +162,7 @@ class BossRunsSim(BossRuns):
         self.rl_dist.update(read_lengths={n: r[0].qlen for n, r in paf_dict_acc.items()})
         # NOTE from here similar but not identical to live version
         # convert coverage counts to increment arrays
-        increments = self.cc.convert_records(paf_dict=paf_dict, seqs=read_seqs, quals=read_quals)
+        increments = self.cc.convert_records(paf_dict=paf_dict, seqs=read_seqs, quals=read_quals, barcodes=read_barcodes)
         # effect the coverage increments for each contig
         self._effect_increments(increments=increments)
         # update the abundance tracker with new data
@@ -165,7 +175,17 @@ class BossRunsSim(BossRuns):
             reads_decision=reads_decision,
             n_reject=n_rejected
         )
-        self.read_cache.fill_cache(read_sequences=self.sampler.fq_stream.read_sequences, reads_decision=reads_decision)
+        if not self.args.general.barcodes:
+            self.read_cache.fill_cache(
+                read_sequences=self.sampler.fq_stream.read_sequences,
+                reads_decision=reads_decision
+            )
+        else:
+            self.read_cache.fill_cache(
+                read_sequences=self.sampler.fq_stream.read_sequences, 
+                reads_decision=reads_decision, 
+                reads_barcodes=read_barcodes_names
+            )
         # update wrapper of superclass
         self.update_wrapper()
 
@@ -180,7 +200,8 @@ class BossRunsSim(BossRuns):
         for cond in ('control', 'boss'):
             dump_number = getattr(self.read_cache, f'dump_n_{cond}')
             cache = getattr(self.read_cache, f'cache_{cond}')
-            self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
+            if len(list(cache.keys())) > 0:  # don't dump empty file
+                self.read_cache._execute_dump(cond=cond, dump_number=dump_number, cache=cache)
 
 
 

@@ -73,7 +73,7 @@ def test_request_too_much():
 def test_sample(sampler):
     # this is the main function to retrieve new data
     # samples reads first and then grabs their mappings
-    r_seqs, r_quals, paf_f, paf_t = sampler.sample()
+    r_seqs, r_quals, r_barcodes, paf_f, paf_t = sampler.sample()
     assert len(sampler.fq_stream.read_ids) == 50
     assert len(sampler.fq_stream.read_lengths) == 50
     assert len(r_seqs) == 50
@@ -86,7 +86,7 @@ def test_sample(sampler):
 def test_sample_nopaf(sampler_nopaf):
     # this is the main function to retrieve new data
     # samples reads first and then grabs their mappings
-    r_seqs, r_quals, paf_f, paf_t = sampler_nopaf.sample()
+    r_seqs, r_quals, r_barcodes, paf_f, paf_t = sampler_nopaf.sample()
     assert len(sampler_nopaf.fq_stream.read_ids) == 50
     assert len(sampler_nopaf.fq_stream.read_lengths) == 50
     assert len(r_seqs) == 50

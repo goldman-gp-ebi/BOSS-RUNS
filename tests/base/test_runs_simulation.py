@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 import logging
 import time
+import numpy as np
 
 import boss.runs.simulation
 import boss.config
@@ -10,19 +11,21 @@ import boss.config
 from ..constants import PATHS
 
 
-@pytest.fixture
-def args():
+barcode_list = [None, ["barcode01", "barcode02"]]
+
+@pytest.fixture(params=barcode_list)
+def args(request):
     conf = boss.config.Config()
     args = conf.args
     # assign some args since we don't load the full config
-    args.live_run = False
-    args.ref = PATHS.fasta
-    args.fq = PATHS.fastq
-    args.paf_full = PATHS.paf
-    args.paf_trunc = PATHS.paf_trunc
-    args.maxb = 8
-    args.batchsize = 100
-    args.dumptime = 10000
+    args.general.ref = PATHS.fasta
+    args.simulation.fq = PATHS.fastq
+    args.simulation.paf_full = PATHS.paf
+    args.simulation.paf_trunc = PATHS.paf_trunc
+    args.simulation.maxb = 8
+    args.simulation.batchsize = 100
+    args.simulation.dumptime = 10000
+    args.general.barcodes = request.param
     return args
 
 
@@ -42,18 +45,18 @@ def test_init(args):
 
 
 def test_process_batch(args):
-    args.batchsize = 500
-    args.maxb = 9
+    args.simulation.batchsize = 500
+    args.simulation.maxb = 9
     b = boss.runs.simulation.BossRunsSim(args=args)
     b.init_sim()
     assert b.batch == 0
     tic = time.time()
     # we need to switch bucket switches manually here
     for cname, cont in b.contigs_filt.items():
-        cont.switched_on = True
+        cont.switched_on = np.ones(shape=(b.nbarcodes), dtype="bool") 
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 1
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
     assert Path("00_reads/control_1.fa").is_file()
@@ -62,7 +65,7 @@ def test_process_batch(args):
     tic = time.time()
     next_update = b.process_batch_sim(b.process_batch_runs_sim)
     assert b.batch == 2
-    assert next_update != b.args.wait
+    assert next_update != b.args.general.wait
     # check that new strats were produced
     assert Path("out_boss/masks/boss.npz").stat().st_mtime > tic
     assert Path("00_reads/control_2.fa").is_file()

@@ -89,7 +89,7 @@ def test_convert_records(zymo_read_batch, paf_dict, zymo_ref):
     nonref_fraction = []
     for refname, adds in incr.items():
         for i in range(len(adds)):
-            start, end, seq, qual = adds[i]
+            start, end, seq, qual, _ = adds[i]
             # grab the reference sequence
             refarr = zymo_ref.contigs[refname].seq_int[start: end]
             # check where the mapping differs

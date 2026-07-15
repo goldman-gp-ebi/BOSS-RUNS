@@ -403,49 +403,56 @@ class Scoring:
         :param contig: Contig object for which to update scores
         :return: Arrays of scores and entropy to reassign
         """
-        # grab the correct arrays
-        scores = contig.scores
-        entropy = contig.entropy
-        coverage = contig.coverage
+        # NOTE: Could be improved by adjusting dimensions to account for barcodes instead of iterating through them
+
         # this is run after coverage has been updated
-        cm = contig.change_mask
-        # set deletions to 0 if not counting them
-        if contig.len_b == 4:
-            coverage[:, 4] = 0
-        # indices where array_limit is reached
-        maxed_indices = np.where(coverage.sum(axis=1) >= 30)[0]
-        cm[maxed_indices] = False
-        # indices of change
-        cc_pos = np.nonzero(cm)[0]
-        # target coverage patterns
-        cc = coverage[cc_pos]
-        # grab base of changed positions
-        ref_bases = contig.seq_int[cc_pos]
-        # main operation: indexing in pre-computed values using coverage patterns
-        scores[cc_pos] = self.score_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
-        # prevent maxed sites from being recalculated
-        scores[maxed_indices] = np.finfo(float).tiny
-        # check positions where scores were not found in the scoreArray
-        # i.e. if they remain 0.0
-        missing = np.argwhere(scores == 0.0).flatten()
-        nmiss = missing.shape[0]
-        # if any positions without scores, calc and add to array
-        if nmiss != 0:
-            missing_patterns = coverage[missing]
-            # calculate new scores and entropies
-            miss_entropies, miss_scores = self.calc_posterior_and_scores(cov_patterns=missing_patterns)
-            # place into pre-computed array
-            bases = contig.seq_int[missing]
-            scores[missing] = miss_scores[bases, np.arange(nmiss)]
-            entropy[missing] = miss_entropies[bases, np.arange(nmiss)]
-            ind = np.swapaxes(missing_patterns, 0, 1)
-            # assign the calculated scores and entropies to the large array
-            for i in range(ind.shape[1]):
-                self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
-                self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
-        # grab the entropy values of the changed sites
-        entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
-        return scores, entropy
+        for b in range(0, contig.scores.shape[1]): # ignore unclassified barcodes for scoring
+            scores = contig.scores[:, b]
+            entropy = contig.entropy[:, b]
+            coverage = contig.coverage[:,:, b]
+            cm = contig.change_mask[:, b]
+
+            # set deletions to 0 if not counting them
+            if contig.len_b == 4:
+                coverage[:, 4] = 0
+            # indices where array_limit is reached
+            maxed_indices = np.where(coverage.sum(axis=1) >= 30)[0]
+            cm[maxed_indices] = False
+            # indices of change
+            cc_pos = np.nonzero(cm)[0]
+            # target coverage patterns
+            cc = coverage[cc_pos]
+            # grab base of changed positions
+            ref_bases = contig.seq_int[cc_pos]
+            # main operation: indexing in pre-computed values using coverage patterns
+            scores[cc_pos] = self.score_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+            # prevent maxed sites from being recalculated
+            scores[maxed_indices] = np.finfo(float).tiny
+            # check positions where scores were not found in the scoreArray
+            # i.e. if they remain 0.0
+            missing = np.argwhere(scores == 0.0).flatten()
+            nmiss = missing.shape[0]
+            # if any positions without scores, calc and add to array
+            if nmiss != 0:
+                missing_patterns = coverage[missing]
+                # calculate new scores and entropies
+                miss_entropies, miss_scores = self.calc_posterior_and_scores(cov_patterns=missing_patterns)
+                # place into pre-computed array
+                bases = contig.seq_int[missing]
+                scores[missing] = miss_scores[bases, np.arange(nmiss)]
+                entropy[missing] = miss_entropies[bases, np.arange(nmiss)]
+                ind = np.swapaxes(missing_patterns, 0, 1)
+                # assign the calculated scores and entropies to the large array
+                for i in range(ind.shape[1]):
+                    self.score_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_scores[:, i]
+                    self.entropy_arr[ind[0, i], ind[1, i], ind[2, i], ind[3, i], ind[4, i]] = miss_entropies[:, i]
+            # grab the entropy values of the changed sites
+            entropy[cc_pos] = self.entropy_arr[cc[:, 0], cc[:, 1], cc[:, 2], cc[:, 3], cc[:, 4], ref_bases]
+            
+            contig.scores[:, b] = scores
+            contig.entropy[:, b] = entropy
+            contig.coverage[:,:, b] = coverage
+        return contig.scores, contig.entropy
 
 
 
@@ -547,6 +554,7 @@ class Scoring:
         """
         :return: Concatenated array of read starting sites across all contigs
         """
+        # NOTE: This function is probably fine if I made no mistakes elsewhere, but double-check
         c_benefits = [c.additional_benefit for c in contigs.values()]
         c_smu = [c.smu for c in contigs.values()]
         return np.concatenate(c_benefits), np.concatenate(c_smu)
@@ -612,7 +620,7 @@ class Scoring:
         # aggregate results
         for fg in fgs:
             f_grid[0: fg.shape[0]] += fg
-
+        
         f_grid = f_grid[exponents_unique]  # filter empty bins
         f_grid_mean = f_grid / counts  # mean fhat for exponent bin
         # use exponents to rebuild benefit values
@@ -671,15 +679,18 @@ class CoverageConverter:
             self,
             paf_dict: paf_dict_type,
             seqs: dict[str, str],
-            quals: dict[str, str]) -> defaultdict[Any, list]:
+            quals: dict[str, str],
+            barcodes: dict[str,int]={'':0}) -> defaultdict[Any, list]:
         """
         Convert mappings to coverage counts
 
         :param paf_dict: Dict of mappings
         :param seqs: Dict of read sequences
         :param quals: Dict of read qualities
+        :param barcodes: Dict of barcode names to index
         :return: Defaultdict of lists of coverage counts per target seq
         """
+        # TODO: Change this function to consider barcodes and return something of the correct dimensions
         # container to collect increments per contig
         increments = defaultdict(list)
         # loop through all reads
@@ -724,7 +735,7 @@ class CoverageConverter:
             addition = np.ones(shape=query_arr.shape[0])
             addition[np.where(qual_arr < self.qt)] = 0
             # collect increments
-            increments[rec.tname].append((start, end, query_arr, addition))
+            increments[rec.tname].append((start, end, query_arr, addition, rec.barcode))
         return increments
 
 

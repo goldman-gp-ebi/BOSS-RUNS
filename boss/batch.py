@@ -6,7 +6,7 @@ import mappy
 import numpy as np
 
 from boss.utils import empty_file, execute, random_id
-from boss.paf import paf_dict_type
+
 
 
 
@@ -24,6 +24,7 @@ class FastqBatch:
         # attributes to be filled
         self.read_sequences = {}
         self.read_qualities = {}
+        self.read_barcodes = {}
         self.read_ids = {}
         self.read_lengths = {}
         self.total_bases = 0
@@ -39,13 +40,17 @@ class FastqBatch:
         """
         read_sequences = {}
         read_qualities = {}
+        # read_barcodes = {}
         for fq in self.fq_files:
             rseq, rqual = self._read_single_batch(fastq_file=fq)
+            # rseq, rqual, rbarcodes = self._read_single_batch(fastq_file=fq)
             read_sequences.update(rseq)
             read_qualities.update(rqual)
+            # read_barcodes.update(rbarcodes)
         # set attributes of the batch
         self.read_sequences = read_sequences
         self.read_qualities = read_qualities
+        # self.read_barcodes = read_barcodes
         self.read_ids = set(read_sequences.keys())
         self.read_lengths = {rid: len(seq) for rid, seq in read_sequences.items()}
         self.total_bases = np.sum(list(self.read_lengths.values()))
@@ -53,7 +58,7 @@ class FastqBatch:
 
 
 
-    def _read_single_batch(self, fastq_file: str) -> tuple[dict[str, str], dict[str, str]]:
+    def _read_single_batch(self, fastq_file: str) -> tuple[dict[str, str], dict[str, str]]: #, dict[str, int]]:
         """
         Get the reads from a single fq file and put into dictionary
 
@@ -63,10 +68,13 @@ class FastqBatch:
         logging.info(f"Reading file: {fastq_file}")
         read_sequences = {}
         read_qualities = {}
+        # read_barcodes = {}
         # to make sure it's a string
         if not isinstance(fastq_file, str):
             raise TypeError('Fastq file must be a string')
-        # loop over all reads in the fastq file
+        # TODO: Recover the barcode information here somewhere and bake it into the read object somehow
+        # loop over all reads in the fastq file, 
+        # see Lukas' comment on github (https://github.com/goldman-gp-ebi/BOSS-RUNS/pull/11/files/bb6611313feb1091a00da28665ea91375d3b87b4#r2445414842)
         # if we consider all channels
         if not self.channels:
             for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
@@ -88,7 +96,27 @@ class FastqBatch:
                 if ch_num in self.channels:
                     read_sequences[str(name)] = seq
                     read_qualities[str(name)] = qual
-        return read_sequences, read_qualities
+        # if not self.barcodes: # TODO: Check what self.barcodes is -- could be a set just like channels
+            # NOTE: Lukas pointed out that this reading of reads is superfluous without barcodes and 
+            # that it would be preferential to simply use a defaultdict(int) instead. Transforming all barcodes to int would require us to encode unclassified barcodes somehow
+            # TODO: when implementing live mode, adjust this passage
+        #     for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
+        #         read_barcodes[str(name)] = ''
+        # else:
+        #     # consider source barcode
+        #     for name, seq, qual, desc in mappy.fastx_read(fastq_file, read_comment=True):
+        #         try:
+        #             # regex to get the channel number from the header
+        #             # \s=whitespace followed by 'ch=' and then any amount of numeric characters
+        #             barcode = int(re.search("\sbarcode([0-9]*)", desc).group(1))
+        #         except AttributeError:
+        #             # if the pattern is not in the header, skip the read
+        #             logging.info("barcode not found in header of fastq read")
+        #             continue
+        #         # check if read comes from a BOSS channel
+        #         if barcode in self.barcodes:
+        #             read_barcodes[str(name)] = barcode
+        return read_sequences, read_qualities #, read_barcodes
 
 
 
@@ -178,7 +206,7 @@ class ReadCache:
 
 
 
-    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str]) -> None:
+    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str], reads_barcodes: dict[str, str] | None = None) -> None:
         """
         Write batches of simulated reads for convenient processing after the experiment
         Either only adds reads to a cache, or dumps them to file if it's time
@@ -191,9 +219,17 @@ class ReadCache:
         def add_to_cache(seqs, cache):
             for rid, seq in seqs.items():
                 cache[rid] = seq
+
+        def add_to_cache_bc(seqs, cache, barcodes):
+            for rid, seq in seqs.items():
+                cache[rid+".barcode=barcode"+str(barcodes[rid]).zfill(2)] = seq
         # add the current sequences to the cache
-        add_to_cache(seqs=read_sequences, cache=self.cache_control)
-        add_to_cache(seqs=reads_decision, cache=self.cache_boss)
+        if reads_barcodes is None:
+            add_to_cache(seqs=read_sequences, cache=self.cache_control)
+            add_to_cache(seqs=reads_decision, cache=self.cache_boss)
+        else:
+            add_to_cache_bc(seqs=read_sequences, cache=self.cache_control, barcodes=reads_barcodes)
+            add_to_cache_bc(seqs=reads_decision, cache=self.cache_boss, barcodes=reads_barcodes)
         # check if time to dump and execute
         self._prep_dump(cond='control')
         self._prep_dump(cond='boss')
@@ -229,18 +265,12 @@ class ReadCache:
         """
         logging.info(f'dump {cond} #{dump_number}. # of reads {len(list(cache.keys()))}')
         filename = f'00_reads/{cond}_{dump_number}.fa'
-        # copy previous file to make cumulative
-        previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
-        try:
-            execute(f"cp {previous_filename} {filename}")
-        except FileNotFoundError:
-            # at the first batch, create empty 0th and copy to 1st file
-            # to make sure we don't append to the same file multiple times
-            # otherwise we have duplicate reads causing issues
+        # at the first batch, create empty 0th file
+        if dump_number == 1:
+            previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
             empty_file(previous_filename)
-            execute(f"cp {previous_filename} {filename}")
         # writing operation
-        with open(filename, "a") as f:
+        with open(filename, "w+") as f:
             for rid, seq in cache.items():
                 r = random_id()
                 fa_line = f'>{rid}.{r}\n{seq}\n'

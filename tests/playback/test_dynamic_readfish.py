@@ -8,7 +8,11 @@ from readfish.plugins.abc import AlignerABC
 from boss.readfish_boss import run
 from boss.dynamic_readfish import BossBits, get_args
 
+from ..constants import PATHS
 
+@pytest.fixture
+def readfish_toml_loc():
+    return PATHS.readfish_toml
 
 # the next two fixtures grab what we need to test the bossbits code,
 # i.e. only the conf, logger, and mapper objects that are created
@@ -21,6 +25,9 @@ def conf_runs(readfish_toml_loc):
     mapper: AlignerABC = conf.mapper_settings.load_object("Aligner")
     return conf, logger, mapper
 
+@pytest.fixture
+def readfish_toml_aeons_loc():
+    return PATHS.readfish_toml_aeons
 
 @pytest.fixture
 def conf_aeons(readfish_toml_aeons_loc):

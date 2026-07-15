@@ -26,6 +26,17 @@ class BossBits:
         self.last_mask_mtime = 0
         self.last_contig_mtime = 0
 
+        if len(conf.barcodes) == 0:
+            self.barcodes_index = {"": 0}
+        else:
+            self.barcodes_index = {}
+            for bc in conf.barcodes.keys():
+                try:
+                    i = int(bc.split('barcode')[1])
+                    self.barcodes_index[i] = bc
+                except IndexError:
+                    continue
+
         # Overwrite the default strand_converter
         # used to index into the strategies,
         # which are shaped 2xN for forward & reverse in 1st dim
@@ -50,7 +61,7 @@ class BossBits:
         # if there is no strategy, generate dummy to start with
         if not Path(self.mask_path / 'boss.npz').is_file():
             self.logger.info("Creating dummy strategy")
-            contig_strats = {'init': np.ones(1)}
+            contig_strats = {'init': np.ones(1)} # NOTE: I believe this can stay the same with barcodes
             np.savez(self.mask_path / "boss", **contig_strats)
         else:
             self.logger.info("Loading starting strategy")
@@ -60,6 +71,10 @@ class BossBits:
     def _reload_npz(mask_files):
         mask_container = np.load(mask_files[0])
         return {name: mask_container[name] for name in mask_container}
+        # TODO: This function might need to change (or at least the functions that 
+        # interpret what it returns when the masks gain an extra dimension)
+        # Lukas: Readfish needs to know which masks correspond to which barcode. 
+        # One option is to have one npz per barcode or have just one and communicate indices a different way
 
 
     @staticmethod
@@ -80,13 +95,13 @@ class BossBits:
             raise FileNotFoundError("No mask files present")
 
         # Do we actually update this time?
-        if not new_masks[0].stat().st_mtime > self.last_mask_mtime:
+        if not new_masks[0].stat().st_mtime > self.last_mask_mtime: # NOTE: Change for barcodes if we have multiple npz files instead of just one
             return 0
 
         try:
             mask_dict = reload_func(mask_files=new_masks)
             self.masks = mask_dict
-            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences")
+            self.logger.info(f"Reloaded strategies for {len(set(self.masks.keys()))} sequences") # NOTE: Increase this per barcode? -- maintain generalisability
         except Exception as e:
             self.logger.error(f"Error reading strategy array ->>> {repr(e)}")
             self.masks = {"exception": True}
@@ -151,7 +166,7 @@ class BossBits:
         return 1, self.mapper
 
 
-    def _check_coord(self, contig, start_pos, reverse):
+    def _check_coord(self, contig, start_pos, reverse, barcode):
         """
         Query numpy mask array and return decision to keep sequencing
         Parameters
@@ -162,6 +177,8 @@ class BossBits:
             Whether the coordinate is on the forward or reverse strand
         contig: str
             The name of the contig the mask is for, used to lookup correct mask in the directory
+        barcode: str
+            The name of the barcode (either 'barcode{int}' or 'unclassified' if barcoding is used, None otherwise)
         Returns
         -------
         bool
@@ -180,7 +197,14 @@ class BossBits:
             return 0
         # otherwise query the strategy array
         try:
-            d = arr[:, int(reverse)][start_pos // self.scale_factor]
+            if barcode is None:
+                d = arr[:, int(reverse)][start_pos // self.scale_factor] 
+            # TODO: Change this based on barcode, there will be an extra dimension 
+            # -- maintain generalisability, could add barcode argument to function signature 
+            # with default 0 or check what the dimensionality of array is
+            else:
+                b = self.barcodes_index[int(barcode.split('barcode')[1])]  # type: ignore
+                d = arr[:, int(reverse), b][start_pos // self.scale_factor] 
             return d
         except Exception as e:  # noqa
             return 1
@@ -211,7 +235,14 @@ class BossBits:
             coord = al.r_st if al.strand == 1 else al.r_en
             # matches.append(targets.check_coord(contig, strand, coord))
             strand_conv = self.strand_converter[al.strand]  # type: ignore
-            matches.append(self._check_coord(contig=contig, start_pos=coord, reverse=strand_conv))
+            matches.append(
+                self._check_coord(
+                    contig=contig, 
+                    start_pos=coord, 
+                    reverse=strand_conv, 
+                    barcode=result.barcode
+                )
+            )
         coord_match = any(matches)
 
         if not results:

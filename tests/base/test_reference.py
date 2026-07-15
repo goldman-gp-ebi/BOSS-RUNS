@@ -6,26 +6,32 @@ import boss.runs.reference as refc
 from ..constants import PATHS
 
 
-@pytest.mark.parametrize("name, seq, ploidy", [
-    ("ch1", "ACGTACGT", 1),
-    ("ch1", "ACGTACGTNnWwIi", 1),
-    ("ch1", "ACGTACGT", 2),
-    ("ch2", "ACgtacGT", 1),
-    ("ch3  r", "ACGTACGT", 1),
-    ("ch_garbage", "NotaREALSequenceGT", 1),
+@pytest.mark.parametrize("name, seq, ploidy, barcodes", [
+    ("ch1", "ACGTACGT", 1, None),
+    ("ch1", "ACGTACGTNnWwIi", 1, None),
+    ("ch1", "ACGTACGT", 2, None),
+    ("ch2", "ACgtacGT", 1, None),
+    ("ch3  r", "ACGTACGT", 1, None),
+    ("ch_garbage", "NotaREALSequenceGT", 1, None),
+    ("ch1_bc", "ACGTACGT", 1, ["barcode01", "barcode02"])
 ])
-def test_contig(name, seq, ploidy):
-    c = refc.Contig(name=name, seq=seq, ploidy=ploidy)
+
+def test_contig(name, seq, ploidy,barcodes):
+    c = refc.Contig(name=name, seq=seq, ploidy=ploidy,barcodes=barcodes)
     logging.info(c.name)
     logging.info(c.seq)
     logging.info(c.seq_int)
+    if not barcodes:
+        len_bc = 1
+    else:
+        len_bc = len(barcodes)
     assert c.length == len(seq)
     assert c.length == len(c.seq_int)
     assert " " not in c.name
-    assert c.coverage.shape == (len(seq), 5)
+    assert c.coverage.shape == (len(seq), 5, len_bc)
     assert c.coverage.sum() == 0
-    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, )
-    assert c.initial_scores[0] == c.score0
+    assert c.bucket_switches.shape == ((len(seq) // 20_000) + 1, len_bc)
+    assert all(c.initial_scores[0] == c.score0)
 
 
 @pytest.mark.xfail(raises=ValueError)
@@ -42,20 +48,23 @@ def test_contig_seq():
 
 
 
-@pytest.mark.parametrize("ref, mmi, reject_refs, nsites", [
-    (PATHS.fasta, None, "", 31012581),
-    (PATHS.fasta, PATHS.mmi, "", 31012581),
-    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526),
+@pytest.mark.parametrize("ref, mmi, reject_refs, nsites, barcodes", [
+    (PATHS.fasta, None, "", 31012581, None),
+    (PATHS.fasta, PATHS.mmi, "", 31012581, None),
+    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526, None),
+    (PATHS.fasta, PATHS.mmi, "NZ_CP041014.1,NZ_VFAE01000004.1,NZ_VFAG01000001.1", 27910526, ["barcode01", "barcode02"]),
 ])
-def test_reference(ref, mmi, reject_refs, nsites, request):
+def test_reference(ref, mmi, reject_refs, nsites, barcodes, request):
     # only grab fixture if mmi is actually passed as param
     r = refc.Reference(
         ref=ref,
         mmi=mmi,
-        reject_refs=reject_refs
+        reject_refs=reject_refs,
+        barcodes=barcodes
     )
     assert len(r.contigs) == 9
     assert r.n_sites == nsites
+    assert r.barcodes == barcodes
 
 
 @pytest.mark.xfail(raises=FileNotFoundError)
