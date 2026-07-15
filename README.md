@@ -169,9 +169,11 @@ For example:
 barcodes = ["barcode01","barcode04"]                 # list of barcode names if using a barcoded BOSS-RUNS experiment
 ```
 
-In the readfish toml file, you need to specify a region for each barcode listed in the BOSS* toml file.
+In the readfish toml file, you need to specify a barcode-definition block for each barcode listed in the BOSS* toml file.
 The [readfish documentation](https://looselab.github.io/readfish/toml.html#barcode-specific-configuration) contains more details
-on barcode-specific configuration. A readfish toml file that matches the example above would look like this:
+on barcode-specific configuration. Barcodes can be used with or without splitting a flowcell into multiple "regions", but for now at least one region is required.
+
+A readfish toml file that matches the example above is shown below. Here, regions splitting the flowcell into condition/control sections are combined with barcodes. When a read originates in a control region that definition takes precedence over the decision from the barcode-block. 
 
 ```toml
 [caller_settings.dorado]  
