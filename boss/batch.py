@@ -206,7 +206,7 @@ class ReadCache:
 
 
 
-    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str]) -> None:
+    def fill_cache(self, read_sequences: dict[str, str], reads_decision: dict[str, str], reads_barcodes: dict[str, str] | None = None) -> None:
         """
         Write batches of simulated reads for convenient processing after the experiment
         Either only adds reads to a cache, or dumps them to file if it's time
@@ -219,9 +219,17 @@ class ReadCache:
         def add_to_cache(seqs, cache):
             for rid, seq in seqs.items():
                 cache[rid] = seq
+
+        def add_to_cache_bc(seqs, cache, barcodes):
+            for rid, seq in seqs.items():
+                cache[rid+".barcode=barcode"+str(barcodes[rid]).zfill(2)] = seq
         # add the current sequences to the cache
-        add_to_cache(seqs=read_sequences, cache=self.cache_control)
-        add_to_cache(seqs=reads_decision, cache=self.cache_boss)
+        if reads_barcodes is None:
+            add_to_cache(seqs=read_sequences, cache=self.cache_control)
+            add_to_cache(seqs=reads_decision, cache=self.cache_boss)
+        else:
+            add_to_cache_bc(seqs=read_sequences, cache=self.cache_control, barcodes=reads_barcodes)
+            add_to_cache_bc(seqs=reads_decision, cache=self.cache_boss, barcodes=reads_barcodes)
         # check if time to dump and execute
         self._prep_dump(cond='control')
         self._prep_dump(cond='boss')
@@ -257,18 +265,12 @@ class ReadCache:
         """
         logging.info(f'dump {cond} #{dump_number}. # of reads {len(list(cache.keys()))}')
         filename = f'00_reads/{cond}_{dump_number}.fa'
-        # copy previous file to make cumulative
-        previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
-        try:
-            execute(f"cp {previous_filename} {filename}")
-        except FileNotFoundError:
-            # at the first batch, create empty 0th and copy to 1st file
-            # to make sure we don't append to the same file multiple times
-            # otherwise we have duplicate reads causing issues
+        # at the first batch, create empty 0th file
+        if dump_number == 1:
+            previous_filename = f'00_reads/{cond}_{dump_number - 1}.fa'
             empty_file(previous_filename)
-            execute(f"cp {previous_filename} {filename}")
         # writing operation
-        with open(filename, "a") as f:
+        with open(filename, "w+") as f:
             for rid, seq in cache.items():
                 r = random_id()
                 fa_line = f'>{rid}.{r}\n{seq}\n'

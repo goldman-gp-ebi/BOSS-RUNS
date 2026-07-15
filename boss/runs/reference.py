@@ -204,7 +204,7 @@ class Contig:
             states = len(switch_count)
             # log the first time a contig's strategy is switched on
             if states == 2 and not all(self.switched_on):
-                self.switched_on[self.switched_on] = True
+                self.switched_on[np.logical_not(self.switched_on)] = True
                 logging.info(f"Activated strategy for: {self.name}") # TODO: Add barcode to this log
             
             self.coverage[:,:,b] = coverage

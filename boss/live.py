@@ -223,12 +223,10 @@ class LiveRun:
         :param processed_files: Set of already processed files
         :return: List of new, previously unprocessed files
         """
-        # TODO: Research minknow barcode behaviour, is it always different subdirectories for different barcodes? And then change this here accordingly
-        # Lukas: glob.glob() search recursively to deal with subfolders
         patterns = ["*.fq.gz", "*.fastq.gz", "*.fastq.gzip", "*.fq.gzip", "*.fastq", "*.fq"]
         all_fq = set()
         for p in patterns:
-            all_fq.update(glob.glob(f'{fastq_pass}/{p}'))
+            all_fq.update(glob.glob(f'{fastq_pass}/**/{p}', recursive=True))
         # which files have we not seen before?
         new_fq = all_fq.difference(processed_files)
         logging.info(f"found {len(new_fq)} new fq files")

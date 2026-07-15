@@ -15,6 +15,7 @@ def test_defaults():
     assert conf.args.optional.min_seq_len == 2500
     assert conf.args.simulation.fq is None
     assert conf.args.live.device is None
+    assert conf.args.general.barcodes is None
 
 
 
@@ -34,6 +35,23 @@ def test_config_runs_sim(monkeypatch):
     assert conf.args.general.name == "runs"
     assert conf.args.live.device is None
     assert conf.args.general.toml_readfish is None
+
+def test_config_runs_bc(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [sys.argv[0], '--toml', f"{CONF_BASE}/BOSS_RUNS_barcode.toml"])
+    conf = boss.config.Config(parse=True)
+    assert conf.args.general.name == "runs"
+    assert conf.args.live.device == "MS00000"
+    assert conf.args.general.ref == f"{DATA_BASE}/zymo.fa"
+    assert conf.args.general.toml_readfish == f"{CONF_BASE}/BOSS_RUNS_RF_barcode.toml"
+    assert conf.args.general.barcodes == ["barcode01", 'barcode02']
+
+def test_config_runs_sim_bc(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [sys.argv[0], '--toml', f"{CONF_BASE}/BOSS_RUNS_SIM_barcoded.toml"])
+    conf = boss.config.Config(parse=True)
+    assert conf.args.general.name == "runs"
+    assert conf.args.live.device is None
+    assert conf.args.general.toml_readfish is None
+    assert conf.args.general.barcodes == ["barcode07", 'barcode15', 'barcode111']
 
 
 
