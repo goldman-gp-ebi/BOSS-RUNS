@@ -46,7 +46,7 @@ These commands will create an environment and install BOSS* alongside the necess
 
 
 ```shell
-mamba create -n boss python=3.10 pip bioconda::gfatools bioconda::minimap2 bioconda::miniasm && mamba activate boss   
+mamba create -n boss python=3.11 pip bioconda::gfatools bioconda::minimap2 bioconda::miniasm && mamba activate boss   
 pip install boss_runs
 ```
 
